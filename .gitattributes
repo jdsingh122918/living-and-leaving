@@ -1,0 +1,35 @@
+# Partner-specific files - keep partner's version on merge
+# These files are customized by each partner and should not be overwritten
+# during upstream syncs
+brand.config.ts merge=ours
+public/brand/* merge=ours
+.env.local merge=ours
+.env.production merge=ours
+
+# Documentation can be merged normally with union strategy
+# This allows additions from both sides to be kept
+docs/PARTNER_SETUP.md merge=union
+
+# Core brand system files - prefer upstream changes
+# Partners should not modify these files directly
+lib/brand/types.ts merge=theirs
+lib/brand/defaults.ts merge=theirs
+
+# Auto-detect text files and normalize line endings
+* text=auto
+
+# Ensure shell scripts have LF line endings
+*.sh text eol=lf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.pdf binary

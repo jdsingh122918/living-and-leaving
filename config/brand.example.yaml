@@ -1,0 +1,316 @@
+# ============================================================================
+# Brand Configuration Reference
+# ============================================================================
+#
+# This file documents ALL available brand configuration options.
+# Copy the fields you need to config/brand.yaml in your instance.
+#
+# Field Status Legend:
+#   [REQUIRED] - Must be customized for your deployment
+#   [OPTIONAL] - Has sensible defaults, customize if needed
+#   [UNUSED]   - Defined in schema but not yet active in codebase
+#
+# ============================================================================
+
+
+# ============================================================================
+# CORE IDENTITY
+# ============================================================================
+# These fields define your organization's basic identity.
+# They appear throughout the UI, emails, and metadata.
+
+# [REQUIRED] Full organization name
+# Used in: page titles, email signatures, legal text
+# Example: "Partner Care Community", "Sunset Village"
+name: "Villages"
+
+# [REQUIRED] Short abbreviation (2-4 characters)
+# Used in: compact UI elements, mobile headers, badges
+# Example: "PCC", "SV", "CARE"
+shortName: "VIL"
+
+# [REQUIRED] Organization tagline/motto
+# Used in: login page, marketing sections, email footers
+# Example: "Caring for our community", "Together in care"
+tagline: "It takes a village"
+
+# [REQUIRED] Full description for SEO and meta tags
+# Used in: HTML meta description, Open Graph tags
+# Should be 150-160 characters for optimal SEO
+description: "Supporting families through end of life care with compassion, resources, and community"
+
+
+# ============================================================================
+# CONTACT & LINKS
+# ============================================================================
+# External URLs and contact information for your organization.
+
+# [REQUIRED] Primary domain (without protocol)
+# Used in: canonical URLs, email links, CORS configuration
+# Example: "partnercare.org", "myvillage.com"
+domain: "villages.com"
+
+# [REQUIRED] Support email address
+# Used in: footer links, error pages, help sections
+# Example: "help@partnercare.org", "support@myvillage.com"
+supportEmail: "support@villages.com"
+
+# [UNUSED] Privacy policy URL
+# Planned for: footer links, registration flow
+# Note: Not currently rendered in UI
+privacyUrl: "https://villages.com/privacy"
+
+# [UNUSED] Terms of service URL
+# Planned for: footer links, registration flow
+# Note: Not currently rendered in UI
+termsUrl: "https://villages.com/terms"
+
+
+# ============================================================================
+# VISUAL IDENTITY - LOGOS
+# ============================================================================
+# Logo files should be placed in /public/brand/ directory.
+# Supported formats: PNG, SVG (recommended), JPG
+
+logos:
+  # [REQUIRED] Logo for light backgrounds
+  # Used in: main navigation, emails, PDF exports
+  # Recommended: SVG or PNG with transparency, ~200px wide
+  light: "/brand/logo-light.png"
+
+  # [REQUIRED] Logo for dark backgrounds and dark mode
+  # Used in: dark mode navigation, dark email themes
+  # Should have good contrast on dark backgrounds
+  dark: "/brand/logo-dark.png"
+
+  # [REQUIRED] Favicon/app icon
+  # Used in: browser tab, bookmarks, PWA icon
+  # Recommended: SVG for scalability, or 32x32 PNG minimum
+  favicon: "/brand/favicon.svg"
+
+  # [OPTIONAL] Hero image for login/signup pages
+  # Used in: authentication pages sidebar
+  # Recommended: 1200x800px JPG, calming imagery
+  # Default: Falls back to gradient background if not set
+  loginHero: "/brand/login-hero.jpg"
+
+  # [UNUSED] Open Graph image for social sharing
+  # Planned for: link previews on social media
+  # Recommended: 1200x630px for optimal display
+  # Note: Not currently implemented
+  ogImage: "/brand/og-image.png"
+
+
+# ============================================================================
+# COLORS
+# ============================================================================
+# All colors use OkLCH format for perceptual uniformity.
+# Format: oklch(lightness chroma hue)
+#   - lightness: 0-1 (0=black, 1=white)
+#   - chroma: 0-0.4 (0=gray, higher=more saturated)
+#   - hue: 0-360 (color wheel degrees)
+#
+# Converter: https://oklch.com
+
+colors:
+  # [OPTIONAL] Primary brand color
+  # Used in: buttons, links, active states, highlights
+  # Default: Villages Sage Green
+  # Tips: Choose a color with good contrast ratios
+  primary: "oklch(0.50 0.08 145)"
+
+  # [OPTIONAL] Text color on primary backgrounds
+  # Used in: button text, badge text on primary color
+  # Default: White
+  # Tips: Ensure WCAG AA contrast (4.5:1 minimum)
+  primaryForeground: "oklch(1 0 0)"
+
+  # [UNUSED] Secondary brand color
+  # Planned for: secondary buttons, less prominent UI elements
+  # Note: Not currently applied to components
+  secondary: "oklch(0.65 0.05 145)"
+
+  # [UNUSED] Accent color for highlights
+  # Planned for: notifications, special callouts
+  # Note: Not currently applied to components
+  accent: "oklch(0.70 0.10 160)"
+
+  # [UNUSED] Extended color palette
+  # Planned for: charts, category badges, visual variety
+  # Note: Schema defined but not actively used
+  palette:
+    sage: "oklch(0.50 0.08 145)"      # Primary Sage Green
+    deepTeal: "oklch(0.40 0.08 165)"  # Deep Teal-Green
+    forest: "oklch(0.50 0.10 160)"    # Forest Green
+    sea: "oklch(0.72 0.08 140)"       # Dark Sea Green
+    moss: "oklch(0.58 0.06 145)"      # Moss Green
+    olive: "oklch(0.35 0.05 145)"     # Dark Olive
+
+
+# ============================================================================
+# TYPOGRAPHY
+# ============================================================================
+# Font configuration. Uses Google Fonts by default.
+
+fonts:
+  # [UNUSED] Primary font family for body text
+  # Default: "Roboto" (loaded via Google Fonts)
+  # Note: Font loading not yet implemented via brand config
+  primary: "Roboto"
+
+  # [UNUSED] Monospace font for code/technical content
+  # Default: "Roboto Mono"
+  # Note: Font loading not yet implemented via brand config
+  mono: "Roboto Mono"
+
+  # [UNUSED] Google Fonts to load
+  # List font family names to load from Google Fonts
+  # Note: Font loading not yet implemented via brand config
+  googleFonts:
+    - "Roboto:400,500,700"
+    - "Roboto Mono:400"
+
+
+# ============================================================================
+# FEATURES
+# ============================================================================
+# Toggle platform features on/off. All features are enabled by default.
+# Set to false to hide/disable specific functionality.
+
+features:
+  # --- Core Features ---
+
+  # [OPTIONAL] Enable real-time chat system
+  # Includes: direct messages, group chats, SSE notifications
+  # Default: true
+  chat: true
+
+  # [OPTIONAL] Enable community forums/discussions
+  # Includes: forum posts, comments, categories
+  # Default: true
+  forums: true
+
+  # [OPTIONAL] Enable resource library
+  # Includes: documents, links, file uploads, categories
+  # Default: true
+  resources: true
+
+  # [OPTIONAL] Enable notification system
+  # Includes: in-app notifications, notification center
+  # Default: true
+  notifications: true
+
+  # --- Healthcare Features ---
+
+  # [OPTIONAL] Enable advance directives management
+  # Includes: document storage, sharing, PDF generation
+  # Default: true
+  advanceDirectives: true
+
+  # [OPTIONAL] Enable PDF generation for documents
+  # Includes: advance directives export, reports
+  # Default: true
+  pdfGeneration: true
+
+  # [OPTIONAL] Enable healthcare tagging system
+  # Includes: diagnoses, care needs, medical conditions
+  # Default: true
+  healthcareTags: true
+
+  # [OPTIONAL] Enable family member management
+  # Includes: family connections, relationship tracking
+  # Default: true
+  familyManagement: true
+
+  # [OPTIONAL] Enable volunteer management features
+  # Includes: volunteer assignments, scheduling, tracking
+  # Default: true
+  volunteerManagement: true
+
+  # --- UI Features ---
+
+  # [OPTIONAL] Enable dark mode toggle
+  # Includes: theme switcher, system preference detection
+  # Default: true
+  darkMode: true
+
+  # [OPTIONAL] Enable accessibility widget
+  # Includes: font size, contrast, reduced motion controls
+  # Default: true
+  accessibilityWidget: true
+
+  # [OPTIONAL] Enable feedback button
+  # Includes: floating feedback button, feedback submission
+  # Default: true
+  feedbackButton: true
+
+  # --- Communication Features ---
+
+  # [OPTIONAL] Enable email notifications
+  # Includes: digest emails, notification emails
+  # Default: true
+  emailNotifications: true
+
+
+# ============================================================================
+# EMAIL CONFIGURATION
+# ============================================================================
+# Settings for outbound email communications.
+
+email:
+  # [OPTIONAL] Sender email address
+  # Used in: From header for all outbound emails
+  # Default: "noreply@villages.com"
+  # Note: Must be verified with your email provider
+  fromAddress: "noreply@villages.com"
+
+  # [OPTIONAL] Sender display name
+  # Used in: From header display name
+  # Default: "Villages Care Team"
+  fromName: "Villages Care Team"
+
+  # [OPTIONAL] Reply-to email address
+  # Used in: Reply-To header for support responses
+  # Default: Falls back to supportEmail if not set
+  replyTo: "support@villages.com"
+
+
+# ============================================================================
+# LEGAL & COMPLIANCE
+# ============================================================================
+# Legal entity information and compliance settings.
+
+legal:
+  # [UNUSED] Legal company/organization name
+  # Planned for: email footers, legal documents
+  # Note: Not currently rendered in UI
+  companyName: "Villages Care, Inc."
+
+  # [UNUSED] Physical mailing address
+  # Planned for: email footers (CAN-SPAM compliance)
+  # Note: Not currently rendered in UI
+  address: "123 Care Lane, Suite 100, City, ST 12345"
+
+  # [UNUSED] HIPAA compliance indicator
+  # Planned for: compliance badges, data handling indicators
+  # Note: Not currently rendered in UI
+  hipaaCompliant: true
+
+
+# ============================================================================
+# MINIMAL CONFIGURATION EXAMPLE
+# ============================================================================
+# For a quick start, copy just these required fields to config/brand.yaml:
+#
+# name: "Your Organization"
+# shortName: "YO"
+# tagline: "Your tagline here"
+# description: "Your SEO description"
+# domain: "yourdomain.com"
+# supportEmail: "support@yourdomain.com"
+# logos:
+#   light: "/brand/logo-light.png"
+#   dark: "/brand/logo-dark.png"
+#   favicon: "/brand/favicon.svg"
+#
+# ============================================================================

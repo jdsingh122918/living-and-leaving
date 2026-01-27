@@ -1,0 +1,275 @@
+import { auth } from '@/lib/auth/server-auth'
+import { redirect } from 'next/navigation'
+import Link from 'next/link'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Users, Heart, Plus, Eye } from 'lucide-react'
+import { UserRole } from '@/lib/auth/roles'
+import { UserRepository } from '@/lib/db/repositories/user.repository'
+import { FamilyRepository } from '@/lib/db/repositories/family.repository'
+import { TemplateAssignmentRepository } from '@/lib/db/repositories/template-assignment.repository'
+import { ResourcesSharedSection } from '@/components/dashboard/resources-shared-section'
+import type { User, TemplateAssignment } from '@/lib/types'
+
+const userRepository = new UserRepository()
+const familyRepository = new FamilyRepository()
+const templateAssignmentRepository = new TemplateAssignmentRepository()
+
+export default async function VolunteerDashboard() {
+  const { userId, sessionClaims } = await auth()
+
+  if (!userId) {
+    redirect('/sign-in')
+  }
+
+  const userRole = (sessionClaims?.metadata as { role?: string })?.role
+
+  console.log('🔍 Volunteer dashboard access check:', {
+    userRole,
+    userRoleType: typeof userRole,
+    allowedRoles: [UserRole.VOLUNTEER, UserRole.ADMIN],
+    hasAccess: userRole === UserRole.VOLUNTEER || userRole === UserRole.ADMIN
+  });
+
+  // Only volunteers and admins can access this page
+  if (userRole !== UserRole.VOLUNTEER && userRole !== UserRole.ADMIN) {
+    console.log('❌ Volunteer access denied, redirecting to sign-in');
+    redirect('/sign-in')
+  }
+
+  // Get volunteer data from database
+  const volunteer = await userRepository.getUserByClerkId(userId)
+  let myFamilies: Array<{ id: string; name: string; createdAt: Date; members: User[] }> = []
+  let myMembers: User[] = []
+  let sharedResources: TemplateAssignment[] = []
+  let familyCount = 0
+  let memberCount = 0
+
+  if (volunteer) {
+    try {
+      // Get families assigned to this volunteer
+      const families = await familyRepository.getFamiliesByVolunteer(volunteer.id)
+      // Get full family data with members
+      myFamilies = await Promise.all(
+        families.map(async (family) => {
+          const members = await userRepository.getAllUsers({ familyId: family.id })
+          return {
+            ...family,
+            members
+          }
+        })
+      )
+      familyCount = myFamilies.length
+
+      // Get all members from assigned families
+      const allMembers: User[] = []
+      for (const family of myFamilies) {
+        allMembers.push(...family.members)
+      }
+      myMembers = allMembers
+      memberCount = myMembers.length
+
+      // Get resources shared by this volunteer
+      sharedResources = await templateAssignmentRepository.getAssignmentsByAssigner(volunteer.id, { limit: 5 })
+
+      console.log('📊 Volunteer dashboard data:', {
+        volunteerId: volunteer.id,
+        familyCount,
+        memberCount,
+        sharedResourcesCount: sharedResources.length
+      })
+    } catch (error) {
+      console.error('❌ Error fetching volunteer data:', error)
+    }
+  }
+
+  return (
+    <div data-testid="volunteer-dashboard" className="space-y-6 pb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Volunteer Dashboard</h2>
+          <p className="text-sm sm:text-base text-muted-foreground">
+            Manage your assigned families and members
+          </p>
+        </div>
+        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
+          <Button data-testid="create-family-button" asChild className="w-full sm:w-auto min-h-[44px]">
+            <Link href="/volunteer/families/new">
+              <Plus className="mr-2 h-4 w-4" />
+              Create Family
+            </Link>
+          </Button>
+          <Button data-testid="add-member-button" asChild variant="outline" className="w-full sm:w-auto min-h-[44px]">
+            <Link href="/volunteer/users/new">
+              <Plus className="mr-2 h-4 w-4" />
+              Add Member
+            </Link>
+          </Button>
+        </div>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
+        <Card data-testid="families-stat" className="p-3 border-l-4 border-l-[var(--healthcare-home)] bg-[hsl(var(--healthcare-home)/0.05)] hover:bg-[hsl(var(--healthcare-home)/0.08)] transition-colors">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Families</CardTitle>
+            <Heart className="h-4 w-4 text-[hsl(var(--healthcare-home))]" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{familyCount}</div>
+            <p className="text-xs text-muted-foreground">
+              Families assigned to you
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card data-testid="members-stat" className="p-3 border-l-4 border-l-[var(--healthcare-basic)] bg-[hsl(var(--healthcare-basic)/0.05)] hover:bg-[hsl(var(--healthcare-basic)/0.08)] transition-colors">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Members</CardTitle>
+            <Users className="h-4 w-4 text-[hsl(var(--healthcare-basic))]" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{memberCount}</div>
+            <p className="text-xs text-muted-foreground">
+              Members in your families
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2">
+        {/* Families */}
+        <Card data-testid="families-section" className="border-l-4 border-l-[var(--healthcare-home)] bg-[hsl(var(--healthcare-home)/0.05)] hover:bg-[hsl(var(--healthcare-home)/0.08)] transition-colors">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Families</CardTitle>
+              <Button size="sm" variant="default" asChild>
+                <Link href="/volunteer/families">
+                  <Eye className="mr-2 h-4 w-4" />
+                  View All
+                </Link>
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {myFamilies.length === 0 ? (
+              <div className="text-center py-8">
+                <Heart className="mx-auto h-12 w-12 text-muted-foreground" />
+                <h3 className="mt-2 text-sm font-semibold text-muted-foreground">No families yet</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Create your first family to get started.
+                </p>
+                <div className="mt-6">
+                  <Button size="sm" asChild>
+                    <Link href="/volunteer/families/new">
+                      <Plus className="mr-2 h-4 w-4" />
+                      Create Family
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {myFamilies.slice(0, 3).map((family) => (
+                  <div key={family.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <Link
+                        href={`/volunteer/families/${family.id}`}
+                        className="font-medium text-primary hover:underline"
+                      >
+                        {family.name}
+                      </Link>
+                      <div className="text-sm text-muted-foreground">
+                        {family.members.length} {family.members.length === 1 ? 'member' : 'members'}
+                      </div>
+                    </div>
+                    <Badge variant="secondary">
+                      {new Date(family.createdAt).toLocaleDateString()}
+                    </Badge>
+                  </div>
+                ))}
+                {myFamilies.length > 3 && (
+                  <div className="text-center pt-2">
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href="/volunteer/families">
+                        View {myFamilies.length - 3} more families
+                      </Link>
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Recent Members */}
+        <Card data-testid="members-section" className="border-l-4 border-l-[var(--healthcare-basic)] bg-[hsl(var(--healthcare-basic)/0.05)] hover:bg-[hsl(var(--healthcare-basic)/0.08)] transition-colors">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Recent Members</CardTitle>
+              <Button size="sm" variant="default" asChild>
+                <Link href="/volunteer/users">
+                  <Eye className="mr-2 h-4 w-4" />
+                  View All
+                </Link>
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {myMembers.length === 0 ? (
+              <div className="text-center py-8">
+                <Users className="mx-auto h-12 w-12 text-muted-foreground" />
+                <h3 className="mt-2 text-sm font-semibold text-muted-foreground">No members yet</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Add your first member to get started.
+                </p>
+                <div className="mt-6">
+                  <Button size="sm" asChild>
+                    <Link href="/volunteer/users/new">
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Member
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {myMembers.slice(0, 3).map((member) => (
+                  <div key={member.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <Link
+                        href={`/volunteer/users/${member.id}`}
+                        className="font-medium text-primary hover:underline"
+                      >
+                        {member.firstName ? `${member.firstName} ${member.lastName || ''}`.trim() : member.email}
+                      </Link>
+                      <div className="text-sm text-muted-foreground">
+                        {member.family ? member.family.name : 'No family assigned'}
+                      </div>
+                    </div>
+                    <Badge variant="secondary">
+                      {new Date(member.createdAt).toLocaleDateString()}
+                    </Badge>
+                  </div>
+                ))}
+                {myMembers.length > 3 && (
+                  <div className="text-center pt-2">
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href="/volunteer/users">
+                        View {myMembers.length - 3} more members
+                      </Link>
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Resources Shared */}
+      <ResourcesSharedSection assignments={sharedResources} role="volunteer" />
+    </div>
+  )
+}

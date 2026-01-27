@@ -1,0 +1,779 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-roboto-sans);
+  --font-mono: var(--font-roboto-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  --radius: 0.625rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  /* Villages Primary Sage Green #5B7555 */
+  --primary: oklch(0.50 0.08 145);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.145 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.145 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.50 0.08 145); /* Ring color matches Villages primary */
+  /* Villages Green Color Palette */
+  --villages-sage: oklch(0.50 0.08 145); /* #5B7555 - Primary Sage Green */
+  --villages-deep-teal: oklch(0.40 0.08 165); /* #2D5A4A - Deep Teal-Green */
+  --villages-forest: oklch(0.50 0.10 160); /* #3D7A5A - Forest Green */
+  --villages-sea: oklch(0.72 0.08 140); /* #8FBC8F - Dark Sea Green */
+  --villages-moss: oklch(0.58 0.06 145); /* #6B8E6B - Moss Green */
+  --villages-olive: oklch(0.35 0.05 145); /* #2F4F2F - Dark Olive */
+  /* Legacy PPCC aliases for compatibility */
+  --ppcc-orange: var(--villages-sage);
+  --ppcc-pink: var(--villages-deep-teal);
+  --ppcc-teal: var(--villages-forest);
+  --ppcc-purple: var(--villages-sea);
+  --ppcc-blue: var(--villages-moss);
+  --ppcc-gray: var(--villages-olive);
+  /* Status Colors - Light Mode */
+  --status-pending: oklch(0.58 0.06 145); /* Moss Green - for pending/assigned states */
+  --status-active: oklch(0.50 0.08 145); /* Villages Sage - for in progress states */
+  --status-success: oklch(0.65 0.15 140); /* Green - for completed states */
+  --status-warning: oklch(0.75 0.15 80); /* Yellow - for high priority/warning */
+  --status-error: oklch(0.577 0.245 27.325); /* Red - matches destructive color */
+  --status-info: oklch(0.50 0.10 160); /* Forest Green - for informational states */
+  --status-neutral: oklch(0.556 0 0); /* Gray - for cancelled/neutral states */
+  /* Healthcare Category Colors - Light Mode (All Green Tones) */
+  --healthcare-medical: var(--villages-deep-teal); /* Medical & Healthcare Services */
+  --healthcare-mental: var(--villages-sea); /* Mental Health & Supportive Programs */
+  --healthcare-home: var(--villages-forest); /* Home & Community-Based Care */
+  --healthcare-equipment: var(--villages-moss); /* Medical Equipment & Adaptive Technology */
+  --healthcare-basic: var(--villages-sage); /* Basic Needs & Community Resources */
+  --healthcare-financial: var(--villages-forest); /* Financial Resources & Health Insurance */
+  --healthcare-legal: var(--villages-olive); /* Legal & Advocacy */
+  --healthcare-education: var(--villages-moss); /* Education & Family Resources */
+  /* Chart colors using Villages palette */
+  --chart-1: var(--villages-sage);
+  --chart-2: var(--villages-forest);
+  --chart-3: var(--villages-moss);
+  --chart-4: var(--villages-sea);
+  --chart-5: var(--villages-deep-teal);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.50 0.08 145); /* Villages Sage for sidebar primary */
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.145 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.50 0.08 145); /* Ring color matches Villages primary */
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  /* Villages Primary Sage Green - Dark Mode (brighter for contrast) */
+  --primary: oklch(0.62 0.08 145);
+  --primary-foreground: oklch(0.145 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.62 0.08 145); /* Ring color matches Villages primary dark mode */
+  /* Villages Green Color Palette - Dark Mode (brighter for contrast) */
+  --villages-sage: oklch(0.62 0.08 145); /* #7A9A73 - Light Sage for dark mode */
+  --villages-deep-teal: oklch(0.52 0.08 165); /* Brighter Deep Teal-Green */
+  --villages-forest: oklch(0.60 0.10 160); /* Brighter Forest Green */
+  --villages-sea: oklch(0.78 0.08 140); /* Brighter Dark Sea Green */
+  --villages-moss: oklch(0.68 0.06 145); /* Brighter Moss Green */
+  --villages-olive: oklch(0.48 0.05 145); /* Brighter Dark Olive */
+  /* Legacy PPCC aliases for backward compatibility */
+  --ppcc-orange: var(--villages-sage);
+  --ppcc-pink: var(--villages-deep-teal);
+  --ppcc-teal: var(--villages-forest);
+  --ppcc-purple: var(--villages-sea);
+  --ppcc-blue: var(--villages-moss);
+  --ppcc-gray: var(--villages-olive);
+  /* Status Colors - Dark Mode (brighter for contrast) */
+  --status-pending: oklch(0.68 0.06 145); /* Villages Moss for pending */
+  --status-active: oklch(0.62 0.08 145); /* Villages Sage for active */
+  --status-success: oklch(0.70 0.15 140); /* Bright green for success */
+  --status-warning: oklch(0.80 0.15 80); /* Yellow for warnings */
+  --status-error: oklch(0.704 0.191 22.216); /* Red - matches dark mode destructive */
+  --status-info: oklch(0.60 0.10 160); /* Villages Forest for info */
+  --status-neutral: oklch(0.708 0 0); /* Light gray for neutral */
+  /* Healthcare Category Colors - Dark Mode (All Green Tones) */
+  --healthcare-medical: var(--villages-deep-teal); /* Medical & Healthcare Services */
+  --healthcare-mental: var(--villages-sea); /* Mental Health & Supportive Programs */
+  --healthcare-home: var(--villages-forest); /* Home & Community-Based Care */
+  --healthcare-equipment: var(--villages-moss); /* Medical Equipment & Adaptive Technology */
+  --healthcare-basic: var(--villages-sage); /* Basic Needs & Community Resources */
+  --healthcare-financial: var(--villages-forest); /* Financial Resources & Health Insurance */
+  --healthcare-legal: var(--villages-olive); /* Legal & Advocacy */
+  --healthcare-education: var(--villages-moss); /* Education & Family Resources */
+  /* Chart colors using Villages palette - dark mode versions */
+  --chart-1: var(--villages-sage);
+  --chart-2: var(--villages-forest);
+  --chart-3: var(--villages-moss);
+  --chart-4: var(--villages-sea);
+  --chart-5: var(--villages-deep-teal);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.62 0.08 145); /* Villages Sage for dark mode sidebar */
+  --sidebar-primary-foreground: oklch(0.145 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.62 0.08 145); /* Ring color matches Villages primary dark mode */
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/60;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* PPCC Brand Guidelines - Print Typography Fallback */
+@media print {
+  body {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+  }
+}
+
+/* Editor.js Inline Toolbar Fix - Prevent cut-off at container edges */
+.ce-inline-toolbar {
+  position: fixed !important;
+  z-index: 60 !important;  /* Above most content but below navigation header */
+}
+
+.ce-popover__container {
+  z-index: 61 !important;  /* Ensure dropdown menus render above inline toolbar */
+}
+
+/* Ensure editor container doesn't clip the toolbar */
+.codex-editor,
+.codex-editor__redactor {
+  overflow: visible !important;
+}
+
+/* Editor.js Mobile Optimizations */
+@media (max-width: 640px) {
+  /* Mobile-friendly inline toolbar */
+  .ce-inline-toolbar {
+    /* Increase button sizes for touch */
+    --button-size: 44px;
+  }
+
+  .ce-inline-toolbar__buttons {
+    gap: 8px !important;
+  }
+
+  .ce-inline-toolbar__dropdown {
+    min-width: calc(100vw - 2rem) !important;
+    max-width: calc(100vw - 2rem) !important;
+  }
+
+  /* Better touch targets for toolbar buttons */
+  .ce-inline-toolbar__button {
+    min-width: var(--button-size) !important;
+    min-height: var(--button-size) !important;
+    width: var(--button-size) !important;
+    height: var(--button-size) !important;
+  }
+
+  /* Mobile-optimized block spacing */
+  .ce-block {
+    padding: 0.75rem 0 !important;
+  }
+
+  .ce-block__content {
+    padding: 0 !important;
+    max-width: none !important;
+  }
+
+  /* Better font sizes for mobile readability */
+  .ce-paragraph {
+    font-size: 16px !important;
+    line-height: 1.6 !important;
+  }
+
+  .ce-header {
+    line-height: 1.3 !important;
+  }
+
+  /* Responsive heading sizes */
+  .ce-header[data-level="2"] {
+    font-size: 1.5rem !important;
+  }
+
+  .ce-header[data-level="3"] {
+    font-size: 1.25rem !important;
+  }
+
+  /* Mobile-friendly list spacing */
+  .ce-list__item {
+    padding: 0.25rem 0 !important;
+  }
+
+  /* Touch-friendly quote blocks */
+  .ce-quote {
+    padding: 1rem !important;
+    margin: 1rem 0 !important;
+  }
+
+  /* Responsive table handling */
+  .ce-table {
+    overflow-x: auto !important;
+  }
+
+  /* Popover positioning fixes for mobile */
+  .ce-popover {
+    max-width: calc(100vw - 2rem) !important;
+    left: 1rem !important;
+    right: 1rem !important;
+    width: auto !important;
+  }
+}
+
+/* Enhanced Markdown Editor Styling */
+.enhanced-markdown-editor {
+  line-height: 1.7 !important;
+  font-size: 15px !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+/* Make markdown syntax less visually prominent while editing */
+.enhanced-markdown-editor::placeholder {
+  color: hsl(var(--muted-foreground));
+  font-style: italic;
+}
+
+/* Improve focus state for better editing experience */
+.enhanced-markdown-editor:focus {
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Enhanced readability with better spacing */
+.enhanced-markdown-editor {
+  letter-spacing: 0.01em;
+  word-spacing: 0.05em;
+}
+
+/* Chat Message Overflow Fixes - Prevent emoji picker clipping */
+.chat-message-container {
+  overflow: visible !important;
+}
+
+.chat-message-group {
+  overflow: visible !important;
+}
+
+/* ScrollArea viewport adjustments for chat messages - Improved emoji picker compatibility */
+[data-radix-scroll-area-viewport] {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+/* Specific adjustments for chat message scrolling */
+.chat-message-container [data-radix-scroll-area-viewport] {
+  overflow-x: visible; /* Allow emoji picker to extend horizontally */
+  overflow-y: auto;
+}
+
+/* Ensure chat popover content can extend beyond boundaries */
+.chat-emoji-picker {
+  overflow: visible !important;
+}
+
+/* Chat Message Bubble Overflow Exception */
+.message-bubble-container {
+  overflow: visible !important;
+}
+
+/* Accessibility Features */
+
+/* Font Size Scaling Support - Extended for Elderly Users */
+/* Supports continuous scaling from 87.5% to 200% via CSS variable */
+:root {
+  --font-size-scale: 1; /* Default standard size */
+}
+
+/* Dynamic font scaling - the value is set directly via JS */
+/* These data attributes are for backward compatibility */
+[data-font-size="small"] {
+  --font-size-scale: 0.875;
+}
+
+[data-font-size="medium"] {
+  --font-size-scale: 1;
+}
+
+[data-font-size="large"] {
+  --font-size-scale: 1.125;
+}
+
+/* Extended sizes for elderly users */
+[data-font-size="xl"] {
+  --font-size-scale: 1.5;
+}
+
+[data-font-size="xxl"] {
+  --font-size-scale: 1.75;
+}
+
+[data-font-size="max"] {
+  --font-size-scale: 2;
+}
+
+/* Apply font scaling to all text elements */
+[data-font-scale] {
+  font-size: calc(1rem * var(--font-size-scale)) !important;
+}
+
+[data-font-scale] h1 {
+  font-size: calc(2.25rem * var(--font-size-scale)) !important;
+}
+
+[data-font-scale] h2 {
+  font-size: calc(1.875rem * var(--font-size-scale)) !important;
+}
+
+[data-font-scale] h3 {
+  font-size: calc(1.5rem * var(--font-size-scale)) !important;
+}
+
+[data-font-scale] h4 {
+  font-size: calc(1.25rem * var(--font-size-scale)) !important;
+}
+
+[data-font-scale] h5 {
+  font-size: calc(1.125rem * var(--font-size-scale)) !important;
+}
+
+[data-font-scale] h6 {
+  font-size: calc(1rem * var(--font-size-scale)) !important;
+}
+
+[data-font-scale] .text-xs {
+  font-size: calc(0.75rem * var(--font-size-scale)) !important;
+}
+
+[data-font-scale] .text-sm {
+  font-size: calc(0.875rem * var(--font-size-scale)) !important;
+}
+
+[data-font-scale] .text-base {
+  font-size: calc(1rem * var(--font-size-scale)) !important;
+}
+
+[data-font-scale] .text-lg {
+  font-size: calc(1.125rem * var(--font-size-scale)) !important;
+}
+
+[data-font-scale] .text-xl {
+  font-size: calc(1.25rem * var(--font-size-scale)) !important;
+}
+
+[data-font-scale] .text-2xl {
+  font-size: calc(1.5rem * var(--font-size-scale)) !important;
+}
+
+[data-font-scale] .text-3xl {
+  font-size: calc(1.875rem * var(--font-size-scale)) !important;
+}
+
+[data-font-scale] .text-4xl {
+  font-size: calc(2.25rem * var(--font-size-scale)) !important;
+}
+
+/* Legacy support for old data-font-size attribute */
+[data-font-size] {
+  font-size: calc(1rem * var(--font-size-scale)) !important;
+}
+
+[data-font-size] h1 {
+  font-size: calc(2.25rem * var(--font-size-scale)) !important;
+}
+
+[data-font-size] h2 {
+  font-size: calc(1.875rem * var(--font-size-scale)) !important;
+}
+
+[data-font-size] h3 {
+  font-size: calc(1.5rem * var(--font-size-scale)) !important;
+}
+
+[data-font-size] h4 {
+  font-size: calc(1.25rem * var(--font-size-scale)) !important;
+}
+
+[data-font-size] h5 {
+  font-size: calc(1.125rem * var(--font-size-scale)) !important;
+}
+
+[data-font-size] h6 {
+  font-size: calc(1rem * var(--font-size-scale)) !important;
+}
+
+[data-font-size] .text-xs {
+  font-size: calc(0.75rem * var(--font-size-scale)) !important;
+}
+
+[data-font-size] .text-sm {
+  font-size: calc(0.875rem * var(--font-size-scale)) !important;
+}
+
+[data-font-size] .text-base {
+  font-size: calc(1rem * var(--font-size-scale)) !important;
+}
+
+[data-font-size] .text-lg {
+  font-size: calc(1.125rem * var(--font-size-scale)) !important;
+}
+
+[data-font-size] .text-xl {
+  font-size: calc(1.25rem * var(--font-size-scale)) !important;
+}
+
+[data-font-size] .text-2xl {
+  font-size: calc(1.5rem * var(--font-size-scale)) !important;
+}
+
+/* Elderly Mode - Optimized settings for elderly users */
+.elderly-mode {
+  font-weight: 500 !important;
+  letter-spacing: 0.015em !important;
+  line-height: 1.65 !important;
+}
+
+.elderly-mode h1,
+.elderly-mode h2,
+.elderly-mode h3,
+.elderly-mode h4,
+.elderly-mode h5,
+.elderly-mode h6 {
+  font-weight: 600 !important;
+  letter-spacing: 0.01em !important;
+}
+
+.elderly-mode button,
+.elderly-mode a,
+.elderly-mode [role="button"] {
+  font-weight: 600 !important;
+}
+
+.elderly-mode p,
+.elderly-mode span,
+.elderly-mode label {
+  line-height: 1.7 !important;
+}
+
+/* Elderly mode with increased spacing */
+.elderly-mode .space-y-2 > * + * {
+  margin-top: 0.75rem !important;
+}
+
+.elderly-mode .space-y-3 > * + * {
+  margin-top: 1rem !important;
+}
+
+.elderly-mode .space-y-4 > * + * {
+  margin-top: 1.25rem !important;
+}
+
+/* Larger touch targets in elderly mode */
+.elderly-mode button,
+.elderly-mode [role="button"],
+.elderly-mode a,
+.elderly-mode input[type="button"],
+.elderly-mode input[type="submit"] {
+  min-height: 48px !important;
+  min-width: 48px !important;
+}
+
+/* High Contrast Mode */
+.high-contrast {
+  --background: #000000 !important;
+  --foreground: #ffffff !important;
+  --card: #000000 !important;
+  --card-foreground: #ffffff !important;
+  --popover: #000000 !important;
+  --popover-foreground: #ffffff !important;
+  --primary: #ffff00 !important; /* Bright yellow for high contrast */
+  --primary-foreground: #000000 !important;
+  --secondary: #333333 !important;
+  --secondary-foreground: #ffffff !important;
+  --muted: #333333 !important;
+  --muted-foreground: #cccccc !important;
+  --accent: #ffff00 !important;
+  --accent-foreground: #000000 !important;
+  --destructive: #ff0000 !important; /* Bright red */
+  --destructive-foreground: #ffffff !important;
+  --border: #ffffff !important;
+  --input: #333333 !important;
+  --ring: #ffff00 !important;
+}
+
+.high-contrast * {
+  border-color: currentColor !important;
+  background-clip: padding-box !important;
+}
+
+.high-contrast a {
+  color: #00ff00 !important; /* Bright green for links */
+  text-decoration: underline !important;
+}
+
+.high-contrast a:visited {
+  color: #ff00ff !important; /* Magenta for visited links */
+}
+
+.high-contrast button {
+  background-color: #ffff00 !important;
+  color: #000000 !important;
+  border: 2px solid #ffffff !important;
+  font-weight: bold !important;
+}
+
+.high-contrast button:hover,
+.high-contrast button:focus {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  outline: 3px solid #ffff00 !important;
+}
+
+.high-contrast input,
+.high-contrast textarea,
+.high-contrast select {
+  background-color: #333333 !important;
+  color: #ffffff !important;
+  border: 2px solid #ffffff !important;
+}
+
+.high-contrast input:focus,
+.high-contrast textarea:focus,
+.high-contrast select:focus {
+  outline: 3px solid #ffff00 !important;
+  background-color: #000000 !important;
+}
+
+/* Reduced Motion Support */
+.reduce-motion *,
+.reduce-motion *::before,
+.reduce-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+  animation-fill-mode: forwards !important;
+}
+
+/* Respect user's motion preference from OS */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+    animation-fill-mode: forwards !important;
+  }
+}
+
+/* Large Touch Targets */
+.large-buttons button,
+.large-buttons [role="button"],
+.large-buttons a,
+.large-buttons input[type="button"],
+.large-buttons input[type="submit"],
+.large-buttons .clickable {
+  min-height: 44px !important;
+  min-width: 44px !important;
+  padding: 12px 16px !important;
+  font-size: calc(1rem * var(--font-size-scale, 1)) !important;
+  line-height: 1.5 !important;
+}
+
+.large-buttons .btn,
+.large-buttons .button {
+  min-height: 44px !important;
+  padding: 12px 20px !important;
+}
+
+/* Ensure touch targets are spaced appropriately */
+.large-buttons button + button,
+.large-buttons [role="button"] + [role="button"] {
+  margin-left: 8px !important;
+}
+
+/* Focus indicators for better keyboard navigation */
+.large-buttons *:focus {
+  outline: 3px solid var(--ring) !important;
+  outline-offset: 2px !important;
+}
+
+/* Enhanced focus indicators for form elements */
+input:focus,
+textarea:focus,
+select:focus,
+[role="combobox"]:focus,
+[role="textbox"]:focus {
+  outline: 2px solid var(--ring) !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--ring) !important;
+}
+
+/* Remove focus indicators from command/search inputs */
+[data-slot="command-input"]:focus,
+[data-slot="command-input-wrapper"] input:focus {
+  outline: none !important;
+  outline-offset: 0 !important;
+  box-shadow: none !important;
+}
+
+/* High contrast focus indicators */
+.high-contrast input:focus,
+.high-contrast textarea:focus,
+.high-contrast select:focus,
+.high-contrast button:focus,
+.high-contrast a:focus,
+.high-contrast [role="button"]:focus {
+  outline: 4px solid #ffff00 !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 0 2px #000000, 0 0 0 6px #ffff00 !important;
+}
+
+/* Ensure sufficient spacing for accessibility */
+.accessible-spacing * + * {
+  margin-top: calc(0.5rem * var(--font-size-scale, 1)) !important;
+}
+
+/* Enhanced visibility for disabled elements */
+[disabled],
+[aria-disabled="true"] {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
+
+.high-contrast [disabled],
+.high-contrast [aria-disabled="true"] {
+  background-color: #666666 !important;
+  color: #cccccc !important;
+  border-color: #999999 !important;
+}
+
+/* Better visibility for required fields */
+[required]::after,
+[aria-required="true"]::after {
+  content: " *" !important;
+  color: var(--destructive) !important;
+  font-weight: bold !important;
+}
+
+.high-contrast [required]::after,
+.high-contrast [aria-required="true"]::after {
+  color: #ff0000 !important;
+}
+
+/* Skip link for keyboard navigation */
+.skip-link {
+  position: absolute !important;
+  top: -40px !important;
+  left: 6px !important;
+  background: var(--primary) !important;
+  color: var(--primary-foreground) !important;
+  padding: 8px !important;
+  z-index: 1000 !important;
+  text-decoration: none !important;
+  border-radius: 4px !important;
+  font-weight: bold !important;
+}
+
+.skip-link:focus {
+  top: 6px !important;
+}
+
+.high-contrast .skip-link {
+  background: #ffff00 !important;
+  color: #000000 !important;
+  border: 2px solid #ffffff !important;
+}
+
+/* Screen reader only content */
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* When focused, show screen reader content */
+.sr-only:focus {
+  position: static !important;
+  width: auto !important;
+  height: auto !important;
+  padding: inherit !important;
+  margin: inherit !important;
+  overflow: visible !important;
+  clip: auto !important;
+  white-space: normal !important;
+}

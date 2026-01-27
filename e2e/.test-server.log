@@ -1,0 +1,7 @@
+[2025-12-06T20:33:31.793Z] [E2E Server] Starting test server...
+[2025-12-06T20:33:31.795Z] [E2E Server] Config path: /Users/jdsingh/Projects/firefly/e2e/.testcontainer-config.json
+[2025-12-06T20:33:31.795Z] [E2E Server] Project dir: /Users/jdsingh/Projects/firefly
+[2025-12-06T20:33:31.795Z] [E2E Server] ⚠️ No test config found at: /Users/jdsingh/Projects/firefly/e2e/.testcontainer-config.json
+[2025-12-06T20:33:31.795Z] [E2E Server] Using DATABASE_URL from environment: mongodb://localhost:27017/firefly-dev
+[2025-12-06T20:33:31.795Z] [E2E Server] Starting Next.js with INTEGRATION_TEST_MODE=true
+[2025-12-06T20:33:31.795Z] [E2E Server] Full DATABASE_URL being passed to Next.js: mongodb://localhost:27017/firefly-dev

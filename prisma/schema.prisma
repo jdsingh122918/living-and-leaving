@@ -1,0 +1,1079 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  VOLUNTEER
+  MEMBER
+}
+
+enum FamilyRole {
+  PRIMARY_CONTACT
+  FAMILY_ADMIN
+  MEMBER
+}
+
+enum MessageType {
+  DIRECT           // Direct message between two users
+  FAMILY_CHAT      // Family group chat
+  ANNOUNCEMENT     // System/admin announcements
+}
+
+enum MessageStatus {
+  SENT
+  DELIVERED
+  READ
+}
+
+enum NotificationType {
+  MESSAGE
+  CARE_UPDATE
+  SYSTEM_ANNOUNCEMENT
+  FAMILY_ACTIVITY
+  EMERGENCY_ALERT
+}
+
+// Notification delivery tracking status
+enum DeliveryStatus {
+  PENDING    // Notification created, awaiting delivery
+  DELIVERED  // Successfully delivered via SSE
+  FAILED     // SSE delivery failed
+  POLLED     // Picked up via polling fallback
+}
+
+enum DocumentSource {
+  UPLOAD        // Uploaded specifically for this note
+  LIBRARY       // Selected from existing documents
+}
+
+model User {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  clerkId       String    @unique
+  email         String    @unique
+  firstName     String?
+  lastName      String?
+  role          UserRole  @default(MEMBER)
+  familyId      String?   @db.ObjectId
+  familyRole    FamilyRole? @default(MEMBER)
+  family        Family?   @relation(fields: [familyId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  createdById   String?   @db.ObjectId
+  createdBy     User?     @relation("UserCreator", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  createdUsers  User[]    @relation("UserCreator")
+  createdFamilies Family[] @relation("FamilyCreator")
+  phoneNumber   String?
+  phoneVerified Boolean   @default(false)
+  emailVerified Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Message relations
+  sentMessages       Message[] @relation("MessageSender")
+  conversations      ConversationParticipant[]
+  messageStatuses    MessageUserStatus[]
+  notifications      Notification[]
+  notificationPrefs  NotificationPreferences?
+
+  // Document relations
+  uploadedDocuments  Document[] @relation("DocumentUploader")
+
+  // Tag and Category relations
+  createdTags        Tag[] @relation("TagCreator")
+  createdCategories  Category[] @relation("CategoryCreator")
+
+  // Forum relations (Session 010)
+  createdForums      Forum[] @relation("ForumCreator")
+  forumMemberships   ForumMember[] @relation("ForumMembership")
+  posts              Post[] @relation("PostAuthor")
+  replies            Reply[] @relation("ReplyAuthor")
+  votes              Vote[] @relation("UserVotes")
+
+  // Resources relations
+  createdResources   Resource[] @relation("ResourceCreator")
+  submittedResources Resource[] @relation("ResourceSubmitter")
+  approvedResources  Resource[] @relation("ResourceApprover")
+  resourceRatings    ResourceRating[] @relation("ResourceRatings")
+  resourceShares     ResourceShare[] @relation("ResourceShareReceiver")
+  sharedResources    ResourceShare[] @relation("ResourceShareSender")
+
+  // Document and tag relations
+  resourceDocumentAttachments ResourceDocument[] @relation("ResourceDocumentAttacher")
+  resourceFormResponses ResourceFormResponse[] @relation("ResourceFormResponses")
+
+  // Volunteer-Family assignment relations
+  volunteerAssignments    VolunteerFamilyAssignment[] @relation("VolunteerAssignments")
+  createdFamilyAssignments VolunteerFamilyAssignment[] @relation("CreatedFamilyAssignments")
+
+  // Template assignment relations
+  assignedTemplates            TemplateAssignment[] @relation("AssignedTemplates")
+  createdTemplateAssignments   TemplateAssignment[] @relation("CreatedTemplateAssignments")
+
+  @@index([familyId])
+  @@index([role])
+  @@map("users")
+}
+
+model Family {
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  name             String
+  description      String?
+  createdById      String   @db.ObjectId
+  primaryContactId String?  @db.ObjectId
+  createdBy        User     @relation("FamilyCreator", fields: [createdById], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  members          User[]
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Message relations
+  conversations    Conversation[]
+
+  // Document relations
+  documents        Document[] @relation("DocumentFamily")
+
+  // Tag and Category relations
+  tags             Tag[] @relation("TagFamily")
+  categories       Category[] @relation("CategoryFamily")
+
+  // Forum relations (Session 010)
+  forums           Forum[] @relation("ForumFamily")
+
+  // Resources relations
+  resources        Resource[] @relation("FamilyResources")
+
+  // Volunteer assignment relations
+  volunteerAssignments VolunteerFamilyAssignment[] @relation("FamilyVolunteers")
+
+  @@index([createdById])
+  @@index([primaryContactId])
+  @@map("families")
+}
+
+// Junction table for Volunteer-Family assignments (many-to-many relationship)
+model VolunteerFamilyAssignment {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  volunteerId String   @db.ObjectId
+  familyId    String   @db.ObjectId
+  assignedAt  DateTime @default(now())
+  assignedBy  String   @db.ObjectId  // Admin who made the assignment
+  role        String   @default("manager")  // Future: different assignment types
+  isActive    Boolean  @default(true)  // Allow deactivating assignments
+
+  // Relations
+  volunteer   User     @relation("VolunteerAssignments", fields: [volunteerId], references: [id], onDelete: Cascade)
+  family      Family   @relation("FamilyVolunteers", fields: [familyId], references: [id], onDelete: Cascade)
+  assigner    User     @relation("CreatedFamilyAssignments", fields: [assignedBy], references: [id], onDelete: NoAction)
+
+  @@unique([volunteerId, familyId])
+  @@index([volunteerId])
+  @@index([familyId])
+  @@index([assignedBy])
+  @@index([isActive])
+  @@map("volunteer_family_assignments")
+}
+
+// Template Assignment model for assigning templates to members
+model TemplateAssignment {
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  resourceId   String    @db.ObjectId
+  assigneeId   String    @db.ObjectId
+  assignedBy   String    @db.ObjectId
+  assignedAt   DateTime  @default(now())
+  status       String    @default("pending") // pending, started, completed
+  startedAt    DateTime?
+  completedAt  DateTime?
+  notes        String?
+
+  // Relations
+  resource     Resource  @relation("TemplateAssignments", fields: [resourceId], references: [id], onDelete: Cascade)
+  assignee     User      @relation("AssignedTemplates", fields: [assigneeId], references: [id], onDelete: Cascade)
+  assigner     User      @relation("CreatedTemplateAssignments", fields: [assignedBy], references: [id], onDelete: NoAction)
+
+  @@unique([resourceId, assigneeId])
+  @@index([resourceId])
+  @@index([assigneeId])
+  @@index([assignedBy])
+  @@index([status])
+  @@map("template_assignments")
+}
+
+// Conversation model - represents different types of conversations
+model Conversation {
+  id            String      @id @default(auto()) @map("_id") @db.ObjectId
+  title         String?     // Optional conversation title
+  type          MessageType // DIRECT, FAMILY_CHAT, ANNOUNCEMENT, CARE_UPDATE
+  familyId      String?     @db.ObjectId // For family-specific conversations
+  isActive      Boolean     @default(true)
+  createdBy     String      @db.ObjectId
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  // Relations
+  family        Family?                   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  participants  ConversationParticipant[]
+  messages      Message[]
+
+  @@index([familyId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("conversations")
+}
+
+// Join table for conversation participants
+model ConversationParticipant {
+  id             String       @id @default(auto()) @map("_id") @db.ObjectId
+  conversationId String       @db.ObjectId
+  userId         String       @db.ObjectId
+  joinedAt       DateTime     @default(now())
+  leftAt         DateTime?
+  canWrite       Boolean      @default(true) // Permission to send messages
+  canManage      Boolean      @default(false) // Permission to manage conversation
+
+  // Relations
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@index([userId])
+  @@index([conversationId, leftAt]) // Optimized for active participant queries
+  @@map("conversation_participants")
+}
+
+// Message model - represents individual messages
+model Message {
+  id             String              @id @default(auto()) @map("_id") @db.ObjectId
+  content        String
+  conversationId String              @db.ObjectId
+  senderId       String              @db.ObjectId
+  replyToId      String?             @db.ObjectId // For threaded conversations
+  isEdited       Boolean             @default(false)
+  editedAt       DateTime?
+  isDeleted      Boolean             @default(false)
+  deletedAt      DateTime?
+  attachments    String[]            @default([]) // File URLs/paths
+  metadata       Json?               // Additional message data (mentions, formatting, etc.)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  // Relations
+  conversation   Conversation        @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User                @relation("MessageSender", fields: [senderId], references: [id], onDelete: NoAction)
+  replyTo        Message?            @relation("MessageReply", fields: [replyToId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  replies        Message[]           @relation("MessageReply")
+  userStatuses   MessageUserStatus[]
+
+  @@index([conversationId])
+  @@index([senderId])
+  @@index([createdAt])
+  @@map("messages")
+}
+
+// Message read status per user
+model MessageUserStatus {
+  id        String        @id @default(auto()) @map("_id") @db.ObjectId
+  messageId String        @db.ObjectId
+  userId    String        @db.ObjectId
+  status    MessageStatus @default(SENT)
+  readAt    DateTime?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  // Relations
+  message   Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId])
+  @@index([userId, status])
+  @@map("message_user_status")
+}
+
+// Notification system
+model Notification {
+  id           String           @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String           @db.ObjectId
+  type         NotificationType
+  title        String
+  message      String
+  data         Json?            // Additional notification data
+  isRead       Boolean          @default(false)
+  readAt       DateTime?
+  isActionable Boolean          @default(false) // Requires user action
+  actionUrl    String?          // URL for action
+  expiresAt    DateTime?        // For time-sensitive notifications
+
+  // Rich notification media support (Session: Rich Notification Templates)
+  imageUrl       String?        // Hero image URL (external or Document path)
+  thumbnailUrl   String?        // Thumbnail for preview rendering
+  richMessage    String?        // Markdown-formatted message (optional)
+
+  // Enhanced call-to-action support
+  ctaLabel       String?        // Primary CTA button text (e.g., "View Update", "Reply Now")
+  secondaryUrl   String?        // Secondary action URL
+  secondaryLabel String?        // Secondary CTA button text
+
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  // Relations
+  user         User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deliveryLogs NotificationDeliveryLog[]
+
+  @@index([userId])
+  @@index([type])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+// Notification delivery tracking for debugging and monitoring
+model NotificationDeliveryLog {
+  id              String         @id @default(auto()) @map("_id") @db.ObjectId
+  notificationId  String         @db.ObjectId
+  userId          String         @db.ObjectId
+
+  // Timing metrics
+  createdAt       DateTime       @default(now())
+  dispatchedAt    DateTime?
+  deliveredAt     DateTime?
+
+  // Delivery status
+  status          DeliveryStatus @default(PENDING)
+  wasConnected    Boolean        @default(false)
+  connectionId    String?
+  sseError        String?
+  latencyMs       Int?
+
+  // Relations
+  notification    Notification   @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+
+  @@index([notificationId])
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("notification_delivery_logs")
+}
+
+// User notification preferences
+model NotificationPreferences {
+  id                     String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId                 String  @unique @db.ObjectId
+
+  // Email preferences
+  emailEnabled           Boolean @default(true)
+  emailMessages          Boolean @default(true)
+  emailCareUpdates       Boolean @default(true)
+  emailAnnouncements     Boolean @default(true)
+  emailFamilyActivity    Boolean @default(false)
+  emailEmergencyAlerts   Boolean @default(true)
+
+  // In-app preferences
+  inAppEnabled           Boolean @default(true)
+  inAppMessages          Boolean @default(true)
+  inAppCareUpdates       Boolean @default(true)
+  inAppAnnouncements     Boolean @default(true)
+  inAppFamilyActivity    Boolean @default(true)
+  inAppEmergencyAlerts   Boolean @default(true)
+
+  // Sound preferences
+  soundEnabled           Boolean @default(true)
+  soundVolume            Float   @default(0.5)
+
+  // Timing preferences
+  quietHoursEnabled      Boolean @default(false)
+  quietHoursStart        String? // "22:00" format
+  quietHoursEnd          String? // "08:00" format
+  timezone               String? // User's timezone
+
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  // Relations
+  user                   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preferences")
+}
+
+// Document types (Session 010: Extended for multimedia)
+enum DocumentType {
+  MEDICAL
+  INSURANCE
+  CARE_PLAN
+  MEDICATION
+  LEGAL
+  FINANCIAL
+  PERSONAL
+  PHOTO
+  VIDEO
+  AUDIO        // Audio files (MP3, WAV, OGG, etc.) - NEW
+  DOCUMENT     // General documents (PDF, Word, etc.) - NEW for clarity
+  ARCHIVE      // ZIP, RAR, etc. - NEW
+  OTHER
+}
+
+enum DocumentStatus {
+  ACTIVE
+  ARCHIVED
+  DELETED
+  DRAFT
+  PROCESSING
+}
+
+
+// Document model for file management
+model Document {
+  id               String         @id @default(auto()) @map("_id") @db.ObjectId
+  title            String
+  description      String?
+  filePath         String?        // Path to the file in storage (category/filename) - DEPRECATED, use fileData
+  fileName         String         // Storage filename
+  fileData         Bytes?         // Binary file data stored in database
+  originalFileName String?        // Original uploaded filename
+  fileSize         Int?           // File size in bytes
+  mimeType         String?        // MIME type of the file
+  type             DocumentType   @default(OTHER)
+  status           DocumentStatus @default(ACTIVE)
+  uploadedBy       String         @db.ObjectId
+  familyId         String?        @db.ObjectId
+  tags             String[]       @default([]) // Tags for organization
+
+  // Multimedia metadata (Session 010: Added for audio/video support)
+  duration         Float?         // Duration in seconds (for audio/video)
+  width            Int?           // Width in pixels (for images/video)
+  height           Int?           // Height in pixels (for images/video)
+  thumbnailPath    String?        // Path to generated thumbnail
+  previewPath      String?        // Path to preview/low-res version
+
+  metadata         Json?          // Additional document metadata (bitrate, codec, etc.)
+  isPublic         Boolean        @default(false) // Whether document is publicly accessible
+  expiresAt        DateTime?      // For time-sensitive documents
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  // Relations
+  uploadedByUser   User    @relation("DocumentUploader", fields: [uploadedBy], references: [id], onDelete: NoAction)
+  family           Family? @relation("DocumentFamily", fields: [familyId], references: [id], onDelete: SetNull)
+
+
+  // Forum relations (Session 010)
+  postDocuments    PostDocument[] @relation("PostDocuments")
+  replyDocuments   ReplyDocument[] @relation("ReplyDocuments")
+
+  // Resources relations
+  resourceDocuments ResourceDocument[] @relation("ResourceDocuments")
+
+  @@index([uploadedBy])
+  @@index([familyId])
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+  @@index([tags])
+  @@map("documents")
+}
+
+// Category model for organizing tags hierarchically
+model Category {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  description String?
+  color       String?   // Hex color code for UI display
+  icon        String?   // Icon name or emoji
+  parentId    String?   @db.ObjectId // For nested categories
+  familyId    String?   @db.ObjectId // Family-scoped categories
+  isSystemCategory Boolean @default(false) // System vs user-defined categories
+  isActive    Boolean   @default(true)
+  createdBy   String    @db.ObjectId
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  parent      Category? @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  children    Category[] @relation("CategoryHierarchy")
+  family      Family?   @relation("CategoryFamily", fields: [familyId], references: [id], onDelete: SetNull)
+  createdByUser User    @relation("CategoryCreator", fields: [createdBy], references: [id], onDelete: NoAction)
+  tags        Tag[]     @relation("CategoryTags")
+
+  // Resources relations
+  resources   Resource[] @relation("ResourceCategory")
+
+  @@unique([name, familyId]) // Unique category names within family scope
+  @@index([familyId])
+  @@index([parentId])
+  @@index([createdBy])
+  @@index([isActive])
+  @@map("categories")
+}
+
+// Tag model for labeling resources
+model Tag {
+  id          String     @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  description String?
+  color       String?    // Hex color code for UI display
+  categoryId  String?    @db.ObjectId
+  familyId    String?    @db.ObjectId // Family-scoped tags
+  isSystemTag Boolean    @default(false) // System vs user-defined tags
+  isActive    Boolean    @default(true)
+  usageCount  Int        @default(0) // Track how many times this tag is used
+  createdBy   String     @db.ObjectId
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  // Relations
+  category      Category?     @relation("CategoryTags", fields: [categoryId], references: [id], onDelete: SetNull)
+  family        Family?       @relation("TagFamily", fields: [familyId], references: [id], onDelete: SetNull)
+  createdByUser User          @relation("TagCreator", fields: [createdBy], references: [id], onDelete: NoAction)
+  resources     ResourceTag[] @relation("ResourceTags")
+
+  @@unique([name, familyId]) // Unique tag names within family scope
+  @@index([familyId])
+  @@index([categoryId])
+  @@index([createdBy])
+  @@index([isActive])
+  @@index([usageCount])
+  @@map("tags")
+}
+
+
+// ====================================
+// FORUM SYSTEM MODELS (Session 010)
+// ====================================
+
+// Forum visibility and access control
+enum ForumVisibility {
+  PUBLIC       // All authenticated users can see
+  FAMILY       // Limited to specific family members
+  ROLE_BASED   // Limited to specific user roles
+  PRIVATE      // Invite-only access
+}
+
+// Post types for different forum content
+enum PostType {
+  DISCUSSION   // Standard discussion post
+  QUESTION     // Q&A format with best answer
+  ANNOUNCEMENT // Official announcements (admin/volunteer only)
+  RESOURCE     // Sharing resources and files
+  POLL         // Poll/voting post (future enhancement)
+}
+
+// Vote types for posts and replies
+enum VoteType {
+  UPVOTE
+  DOWNVOTE
+}
+
+// Forum model - main forum categories (like subreddits)
+model Forum {
+  id              String            @id @default(auto()) @map("_id") @db.ObjectId
+  title           String
+  description     String?
+  slug            String            @unique // URL-friendly identifier (generated from title)
+  icon            String?           // Emoji or icon name for UI
+  color           String?           // Hex color for theming
+  visibility      ForumVisibility   @default(PUBLIC)
+  familyId        String?           @db.ObjectId // For family-scoped forums
+  allowedRoles    String[]          @default([]) // For role-based visibility
+  createdBy       String            @db.ObjectId
+  moderators      String[]          @db.ObjectId // User IDs who can moderate
+  rules           String?           // Forum rules/guidelines
+  settings        Json?             // Forum-specific settings (theme, auto-moderation, etc.)
+  isActive        Boolean           @default(true)
+  isArchived      Boolean           @default(false)
+
+  // Denormalized counts for performance
+  postCount       Int               @default(0)
+  memberCount     Int               @default(0)
+
+  // Activity tracking
+  lastActivityAt  DateTime          @default(now())
+  lastPostAt      DateTime?
+  lastPostBy      String?           @db.ObjectId
+
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  // Relations
+  family          Family?           @relation("ForumFamily", fields: [familyId], references: [id], onDelete: SetNull)
+  creator         User              @relation("ForumCreator", fields: [createdBy], references: [id], onDelete: NoAction)
+  posts           Post[]
+  members         ForumMember[]
+  categories      ForumCategory[]
+
+  @@index([familyId])
+  @@index([visibility])
+  @@index([isActive, isArchived])
+  @@index([createdBy])
+  @@index([lastActivityAt])
+  @@index([postCount])
+  @@map("forums")
+}
+
+// Forum categories - organize posts within forums
+model ForumCategory {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  forumId     String    @db.ObjectId
+  name        String
+  description String?
+  slug        String    // URL-friendly, unique within forum
+  color       String?   // Hex color for UI theming
+  icon        String?   // Icon or emoji
+  order       Int       @default(0) // Display order
+  postCount   Int       @default(0) // Denormalized count
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  forum       Forum     @relation(fields: [forumId], references: [id], onDelete: Cascade)
+  posts       Post[]
+
+  @@unique([forumId, slug]) // Unique slug within each forum
+  @@index([forumId, order]) // For ordered listing
+  @@index([forumId, isActive])
+  @@map("forum_categories")
+}
+
+// Forum membership - track which users are members of which forums
+model ForumMember {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  forumId         String    @db.ObjectId
+  userId          String    @db.ObjectId
+  role            String    @default("member") // member, moderator, admin
+  joinedAt        DateTime  @default(now())
+  lastViewedAt    DateTime  @default(now()) // For unread count calculation
+
+  // Activity counters
+  postCount       Int       @default(0)
+  replyCount      Int       @default(0)
+
+  // Notification preferences for this forum
+  notifications   Boolean   @default(true)
+
+  // Relations
+  forum           Forum     @relation(fields: [forumId], references: [id], onDelete: Cascade)
+  user            User      @relation("ForumMembership", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([forumId, userId]) // One membership per user per forum
+  @@index([userId]) // For user's forum list
+  @@index([forumId, role]) // For moderator queries
+  @@index([lastViewedAt]) // For activity tracking
+  @@map("forum_members")
+}
+
+// Post model - main content in forums
+model Post {
+  id              String         @id @default(auto()) @map("_id") @db.ObjectId
+  forumId         String         @db.ObjectId
+  categoryId      String?        @db.ObjectId
+  authorId        String         @db.ObjectId
+  title           String
+  content         String         // Markdown content
+  slug            String         // URL-friendly, unique within forum
+  type            PostType       @default(DISCUSSION)
+
+  // Moderation flags
+  isPinned        Boolean        @default(false) // Sticky posts
+  isLocked        Boolean        @default(false) // Prevent new replies
+  isDeleted       Boolean        @default(false) // Soft delete
+  deletedAt       DateTime?
+  deletedBy       String?        @db.ObjectId
+  deleteReason    String?        // Optional deletion reason
+
+  // Content metadata
+  attachments     String[]       @default([]) // File paths/URLs
+  tags            String[]       @default([]) // Post tags for filtering
+  metadata        Json?          // Additional data (mentions, formatting, etc.)
+
+  // Engagement metrics (denormalized for performance)
+  viewCount       Int            @default(0)
+  replyCount      Int            @default(0)
+  upvoteCount     Int            @default(0)
+  downvoteCount   Int            @default(0)
+  score           Int            @default(0) // upvotes - downvotes
+
+  // Activity tracking
+  lastReplyAt     DateTime?
+  lastReplyBy     String?        @db.ObjectId
+
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  editedAt        DateTime?      // Track when content was last edited
+
+  // Relations
+  forum           Forum          @relation(fields: [forumId], references: [id], onDelete: Cascade)
+  category        ForumCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  author          User           @relation("PostAuthor", fields: [authorId], references: [id], onDelete: NoAction)
+  replies         Reply[]
+  votes           Vote[]
+  documents       PostDocument[] // Link to Document model for rich file metadata
+
+  @@unique([forumId, slug]) // Unique slug within forum
+  @@index([forumId, isPinned, lastReplyAt]) // For forum post listing (pinned first)
+  @@index([categoryId])
+  @@index([authorId])
+  @@index([createdAt])
+  @@index([score]) // For sorting by popularity
+  @@index([tags]) // For tag filtering
+  @@index([isDeleted, isLocked])
+  @@map("posts")
+}
+
+// Reply model - responses to posts (supports threading)
+model Reply {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  postId        String    @db.ObjectId
+  authorId      String    @db.ObjectId
+  content       String    // Markdown content
+  parentId      String?   @db.ObjectId // For nested replies (max 3 levels)
+  depth         Int       @default(0) // Reply nesting depth (0, 1, 2)
+
+  // File attachments
+  attachments   String[]  @default([])
+  metadata      Json?     // Additional data (mentions, formatting, etc.)
+
+  // Moderation
+  isDeleted     Boolean   @default(false) // Soft delete
+  deletedAt     DateTime?
+  deletedBy     String?   @db.ObjectId
+  deleteReason  String?   // Optional deletion reason
+
+  // Engagement metrics
+  upvoteCount   Int       @default(0)
+  downvoteCount Int       @default(0)
+  score         Int       @default(0) // upvotes - downvotes
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  editedAt      DateTime? // Track content edits
+
+  // Relations
+  post          Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author        User      @relation("ReplyAuthor", fields: [authorId], references: [id], onDelete: NoAction)
+  parent        Reply?    @relation("ReplyThread", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  children      Reply[]   @relation("ReplyThread")
+  votes         Vote[]
+  documents     ReplyDocument[]
+
+  @@index([postId, depth, createdAt]) // For threaded reply display
+  @@index([authorId])
+  @@index([parentId]) // For nested reply queries
+  @@index([score]) // For sorting by popularity
+  @@index([isDeleted])
+  @@map("replies")
+}
+
+// Vote model - upvotes and downvotes for posts and replies
+model Vote {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String    @db.ObjectId
+  postId      String?   @db.ObjectId
+  replyId     String?   @db.ObjectId
+  voteType    VoteType
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  user        User      @relation("UserVotes", fields: [userId], references: [id], onDelete: Cascade)
+  post        Post?     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  reply       Reply?    @relation(fields: [replyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])   // One vote per user per post
+  @@unique([userId, replyId])  // One vote per user per reply
+  @@index([userId])            // For user's voting history
+  @@index([postId, voteType])  // For vote count calculations
+  @@index([replyId, voteType]) // For vote count calculations
+  @@map("votes")
+}
+
+// Junction table for Post-Document relationships
+model PostDocument {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  postId      String    @db.ObjectId
+  documentId  String    @db.ObjectId
+  order       Int       @default(0) // Display order of attachments
+  createdAt   DateTime  @default(now())
+
+  // Relations
+  post        Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  document    Document  @relation("PostDocuments", fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, documentId]) // Prevent duplicate attachments
+  @@index([postId, order])       // For ordered attachment display
+  @@index([documentId])          // For document usage tracking
+  @@map("post_documents")
+}
+
+// Junction table for Reply-Document relationships
+model ReplyDocument {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  replyId     String    @db.ObjectId
+  documentId  String    @db.ObjectId
+  order       Int       @default(0) // Display order of attachments
+  createdAt   DateTime  @default(now())
+
+  // Relations
+  reply       Reply     @relation(fields: [replyId], references: [id], onDelete: Cascade)
+  document    Document  @relation("ReplyDocuments", fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([replyId, documentId]) // Prevent duplicate attachments
+  @@index([replyId, order])       // For ordered attachment display
+  @@index([documentId])           // For document usage tracking
+  @@map("reply_documents")
+}
+
+// ====================================
+// RESOURCES SYSTEM MODELS
+// ====================================
+
+// Resource visibility and sharing options
+enum ResourceVisibility {
+  PRIVATE      // Only visible to creator
+  FAMILY       // Visible to family members
+  SHARED       // Shared with specific users
+  PUBLIC       // Visible to all authenticated users
+}
+
+
+// ====================================
+// RESOURCES SYSTEM MODELS
+// ====================================
+
+// Resource types for categorization
+enum ResourceType {
+  DOCUMENT     // PDF, Word, etc.
+  LINK         // External URL
+  VIDEO        // Video file or embedded
+  AUDIO        // Audio file
+  IMAGE        // Image file
+  TOOL         // Software tool or app
+  CONTACT      // Contact information
+  SERVICE      // Service provider info
+  OTHER        // Other/miscellaneous
+}
+
+// Resource curation status
+enum ResourceStatus {
+  DRAFT        // Being prepared
+  PENDING      // Awaiting approval
+  APPROVED     // Approved for sharing
+  FEATURED     // Featured/highlighted resource
+  ARCHIVED     // Archived but accessible
+  REJECTED     // Rejected/not approved
+}
+
+
+
+
+
+// Unified Resource model - handles all types of resources
+model Resource {
+  id              String       @id @default(auto()) @map("_id") @db.ObjectId
+  title           String
+  description     String?      // Optional description
+  body            String?      // Main content (markdown/rich text)
+
+  // Resource type categorization
+  resourceType    ResourceType // Type of resource (DOCUMENT, LINK, VIDEO, etc.)
+
+  // Organization fields
+  visibility      ResourceVisibility @default(PRIVATE)
+  familyId        String?      @db.ObjectId
+  categoryId      String?      @db.ObjectId
+  tags            String[]     @default([])
+  attachments     String[]     @default([]) // Legacy field for migration
+
+  // Ownership and access
+  createdBy       String       @db.ObjectId
+  sharedWith      String[]     @db.ObjectId @default([]) // User IDs for shared resources
+
+  // Feature flags
+  hasCuration     Boolean      @default(false) // Enable curation workflow
+  hasRatings      Boolean      @default(false) // Enable rating system
+  hasSharing      Boolean      @default(false) // Enable advanced sharing
+
+  // Archive and deletion (simplified)
+  isArchived      Boolean      @default(false)
+  isDeleted       Boolean      @default(false)
+  deletedAt       DateTime?
+
+  // System flag
+  isSystemGenerated Boolean    @default(false) // System-created resources (not visible to MEMBER)
+
+  // Resource fields
+  url             String?      // External URL for links/videos
+  targetAudience  String[]     @default([]) // Target user roles
+  status          ResourceStatus? // Curation workflow status
+  submittedBy     String?      @db.ObjectId // Different from createdBy for resources
+  approvedBy      String?      @db.ObjectId
+  approvedAt      DateTime?
+  featuredBy      String?      @db.ObjectId
+  featuredAt      DateTime?
+  isVerified      Boolean      @default(false)
+  lastVerifiedAt  DateTime?
+  externalMeta    Json?        // Metadata for external resources
+
+  // Engagement metrics
+  viewCount       Int          @default(0)
+  downloadCount   Int          @default(0)
+  shareCount      Int          @default(0)
+  rating          Float?       // Average rating (1-5)
+  ratingCount     Int          @default(0) // Number of ratings
+
+  // Timestamps
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  // Relations
+  creator         User         @relation("ResourceCreator", fields: [createdBy], references: [id], onDelete: NoAction)
+  family          Family?      @relation("FamilyResources", fields: [familyId], references: [id], onDelete: SetNull)
+  category        Category?    @relation("ResourceCategory", fields: [categoryId], references: [id], onDelete: SetNull)
+
+  // Document attachments
+  documents       ResourceDocument[]
+
+  // Resource sharing
+  shares          ResourceShare[]
+
+  // Tags
+  structuredTags  ResourceTag[]
+
+  // Resource-specific relations
+  ratings         ResourceRating[]
+  formResponses   ResourceFormResponse[]
+
+  // Template assignments
+  templateAssignments TemplateAssignment[] @relation("TemplateAssignments")
+
+  // Optional relations for workflow
+  submitter       User?        @relation("ResourceSubmitter", fields: [submittedBy], references: [id], onDelete: SetNull)
+  approver        User?        @relation("ResourceApprover", fields: [approvedBy], references: [id], onDelete: SetNull)
+
+  // Indexes for performance
+  @@index([createdBy])
+  @@index([familyId])
+  @@index([visibility])
+  @@index([resourceType])
+  @@index([status])
+  @@index([tags])
+  @@index([isArchived, isDeleted])
+  @@index([isSystemGenerated])   // For system-generated filtering
+  @@index([rating, ratingCount]) // For resource sorting by rating
+  @@index([viewCount])           // For popularity sorting
+  @@index([createdAt])
+  @@index([hasCuration])         // For curation workflow
+  @@index([hasRatings])          // For rating queries
+  @@map("resources")
+}
+
+// Resource-Document junction table
+model ResourceDocument {
+  id          String         @id @default(auto()) @map("_id") @db.ObjectId
+  resourceId  String         @db.ObjectId
+  documentId  String         @db.ObjectId
+  order       Int            @default(0) // Display order
+  isMain      Boolean        @default(false) // Main document for this resource
+  source      DocumentSource @default(UPLOAD) // Upload new vs select existing
+  createdBy   String         @db.ObjectId // Who attached the document
+  createdAt   DateTime       @default(now())
+
+  // Relations
+  resource    Resource       @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  document    Document       @relation("ResourceDocuments", fields: [documentId], references: [id], onDelete: Cascade)
+  attachedBy  User           @relation("ResourceDocumentAttacher", fields: [createdBy], references: [id], onDelete: NoAction)
+
+  @@unique([resourceId, documentId])
+  @@index([resourceId, order])
+  @@index([documentId])
+  @@index([isMain])
+  @@map("resource_documents")
+}
+
+// Resource sharing model
+model ResourceShare {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  resourceId  String    @db.ObjectId
+  userId      String?   @db.ObjectId // Specific user (null for public shares)
+  sharedBy    String    @db.ObjectId
+
+  // Resource sharing tracking
+  shareMethod String?   // 'link', 'email', 'forum_post', etc.
+  shareData   Json?     // Additional share metadata
+
+  sharedAt    DateTime  @default(now())
+
+  // Relations
+  resource    Resource  @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  user        User?     @relation("ResourceShareReceiver", fields: [userId], references: [id], onDelete: Cascade)
+  sharer      User      @relation("ResourceShareSender", fields: [sharedBy], references: [id], onDelete: NoAction)
+
+  @@unique([resourceId, userId]) // One share record per user per resource (when userId specified)
+  @@index([resourceId])
+  @@index([userId])
+  @@index([sharedBy])
+  @@map("resource_shares")
+}
+
+// Resource tags
+model ResourceTag {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  resourceId  String    @db.ObjectId
+  tagId       String    @db.ObjectId
+  createdAt   DateTime  @default(now())
+
+  // Relations
+  resource    Resource  @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  tag         Tag       @relation("ResourceTags", fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([resourceId, tagId])
+  @@index([resourceId])
+  @@index([tagId])
+  @@map("resource_tags")
+}
+
+// Resource ratings
+model ResourceRating {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  resourceId  String    @db.ObjectId
+  userId      String    @db.ObjectId
+  rating      Int       // 1-5 stars
+  review      String?   // Optional written review
+  isHelpful   Boolean?  // Did this help the user
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  resource    Resource  @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  user        User      @relation("ResourceRatings", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([resourceId, userId]) // One rating per user per resource
+  @@index([resourceId, rating]) // For calculating averages
+  @@index([userId])            // For user's rating history
+  @@map("resource_ratings")
+}
+
+// Form responses for interactive resources (advance directives, assessments)
+model ResourceFormResponse {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  resourceId  String    @db.ObjectId
+  userId      String    @db.ObjectId
+  formData    Json      // Stores form field responses as structured JSON
+  completedAt DateTime? // When form was fully completed
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  resource    Resource  @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  user        User      @relation("ResourceFormResponses", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([resourceId, userId]) // One form response per user per resource
+  @@index([resourceId])
+  @@index([userId])
+  @@index([completedAt])       // For tracking completion status
+  @@map("resource_form_responses")
+}
