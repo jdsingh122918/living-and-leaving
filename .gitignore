@@ -75,3 +75,4 @@ e2e/.testcontainer-config.json
 
 # Docker port state (auto-generated)
 .docker-ports
+.playwright-mcp/

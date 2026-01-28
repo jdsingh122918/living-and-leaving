@@ -49,10 +49,10 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  /* Villages Primary Sage Green #5B7555 */
-  --primary: oklch(0.50 0.08 145);
+  /* Living & Leaving Primary Purple/Magenta */
+  --primary: oklch(0.34 0.11 305);
   --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.97 0 0);
+  --secondary: oklch(0.97 0.02 342);
   --secondary-foreground: oklch(0.145 0 0);
   --muted: oklch(0.97 0 0);
   --muted-foreground: oklch(0.556 0 0);
@@ -61,52 +61,52 @@
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
-  --ring: oklch(0.50 0.08 145); /* Ring color matches Villages primary */
-  /* Villages Green Color Palette */
-  --villages-sage: oklch(0.50 0.08 145); /* #5B7555 - Primary Sage Green */
-  --villages-deep-teal: oklch(0.40 0.08 165); /* #2D5A4A - Deep Teal-Green */
-  --villages-forest: oklch(0.50 0.10 160); /* #3D7A5A - Forest Green */
-  --villages-sea: oklch(0.72 0.08 140); /* #8FBC8F - Dark Sea Green */
-  --villages-moss: oklch(0.58 0.06 145); /* #6B8E6B - Moss Green */
-  --villages-olive: oklch(0.35 0.05 145); /* #2F4F2F - Dark Olive */
-  /* Legacy PPCC aliases for compatibility */
-  --ppcc-orange: var(--villages-sage);
-  --ppcc-pink: var(--villages-deep-teal);
-  --ppcc-teal: var(--villages-forest);
-  --ppcc-purple: var(--villages-sea);
-  --ppcc-blue: var(--villages-moss);
-  --ppcc-gray: var(--villages-olive);
+  --ring: oklch(0.34 0.11 305); /* Ring color matches Living & Leaving primary */
+  /* Living & Leaving Color Palette - Purple/Magenta Tones */
+  --brand-primary: oklch(0.34 0.11 305); /* Primary purple/magenta */
+  --brand-primary-light: oklch(0.54 0.11 305); /* Lighter variant for dark mode */
+  --brand-secondary: oklch(0.97 0.02 342); /* Soft pink secondary */
+  --brand-accent: oklch(0.45 0.12 305); /* Accent purple */
+  --brand-muted: oklch(0.75 0.06 305); /* Muted purple */
+  --brand-deep: oklch(0.25 0.10 305); /* Deep purple */
+  /* Legacy aliases for compatibility */
+  --villages-sage: var(--brand-primary);
+  --villages-deep-teal: var(--brand-deep);
+  --villages-forest: var(--brand-accent);
+  --villages-sea: var(--brand-muted);
+  --villages-moss: var(--brand-muted);
+  --villages-olive: var(--brand-deep);
   /* Status Colors - Light Mode */
-  --status-pending: oklch(0.58 0.06 145); /* Moss Green - for pending/assigned states */
-  --status-active: oklch(0.50 0.08 145); /* Villages Sage - for in progress states */
+  --status-pending: oklch(0.45 0.08 305); /* Purple - for pending/assigned states */
+  --status-active: oklch(0.34 0.11 305); /* Living & Leaving Primary - for in progress states */
   --status-success: oklch(0.65 0.15 140); /* Green - for completed states */
   --status-warning: oklch(0.75 0.15 80); /* Yellow - for high priority/warning */
   --status-error: oklch(0.577 0.245 27.325); /* Red - matches destructive color */
-  --status-info: oklch(0.50 0.10 160); /* Forest Green - for informational states */
+  --status-info: oklch(0.45 0.12 305); /* Purple accent - for informational states */
   --status-neutral: oklch(0.556 0 0); /* Gray - for cancelled/neutral states */
-  /* Healthcare Category Colors - Light Mode (All Green Tones) */
-  --healthcare-medical: var(--villages-deep-teal); /* Medical & Healthcare Services */
-  --healthcare-mental: var(--villages-sea); /* Mental Health & Supportive Programs */
-  --healthcare-home: var(--villages-forest); /* Home & Community-Based Care */
-  --healthcare-equipment: var(--villages-moss); /* Medical Equipment & Adaptive Technology */
-  --healthcare-basic: var(--villages-sage); /* Basic Needs & Community Resources */
-  --healthcare-financial: var(--villages-forest); /* Financial Resources & Health Insurance */
-  --healthcare-legal: var(--villages-olive); /* Legal & Advocacy */
-  --healthcare-education: var(--villages-moss); /* Education & Family Resources */
-  /* Chart colors using Villages palette */
-  --chart-1: var(--villages-sage);
-  --chart-2: var(--villages-forest);
-  --chart-3: var(--villages-moss);
-  --chart-4: var(--villages-sea);
-  --chart-5: var(--villages-deep-teal);
+  /* Healthcare Category Colors - Light Mode (Purple/Magenta Tones) */
+  --healthcare-medical: var(--brand-deep); /* Medical & Healthcare Services */
+  --healthcare-mental: var(--brand-muted); /* Mental Health & Supportive Programs */
+  --healthcare-home: var(--brand-accent); /* Home & Community-Based Care */
+  --healthcare-equipment: var(--brand-muted); /* Medical Equipment & Adaptive Technology */
+  --healthcare-basic: var(--brand-primary); /* Basic Needs & Community Resources */
+  --healthcare-financial: var(--brand-accent); /* Financial Resources & Health Insurance */
+  --healthcare-legal: var(--brand-deep); /* Legal & Advocacy */
+  --healthcare-education: var(--brand-muted); /* Education & Family Resources */
+  /* Chart colors using Living & Leaving palette */
+  --chart-1: var(--brand-primary);
+  --chart-2: var(--brand-accent);
+  --chart-3: var(--brand-muted);
+  --chart-4: var(--brand-primary-light);
+  --chart-5: var(--brand-deep);
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.50 0.08 145); /* Villages Sage for sidebar primary */
+  --sidebar-primary: oklch(0.34 0.11 305); /* Living & Leaving primary for sidebar */
   --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent: oklch(0.97 0.02 342);
   --sidebar-accent-foreground: oklch(0.145 0 0);
   --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.50 0.08 145); /* Ring color matches Villages primary */
+  --sidebar-ring: oklch(0.34 0.11 305); /* Ring color matches Living & Leaving primary */
 }
 
 .dark {
@@ -116,10 +116,10 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  /* Villages Primary Sage Green - Dark Mode (brighter for contrast) */
-  --primary: oklch(0.62 0.08 145);
+  /* Living & Leaving Primary Purple/Magenta - Dark Mode (brighter for contrast) */
+  --primary: oklch(0.54 0.11 305);
   --primary-foreground: oklch(0.145 0 0);
-  --secondary: oklch(0.269 0 0);
+  --secondary: oklch(0.269 0.01 342);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
   --muted-foreground: oklch(0.708 0 0);
@@ -128,52 +128,52 @@
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.62 0.08 145); /* Ring color matches Villages primary dark mode */
-  /* Villages Green Color Palette - Dark Mode (brighter for contrast) */
-  --villages-sage: oklch(0.62 0.08 145); /* #7A9A73 - Light Sage for dark mode */
-  --villages-deep-teal: oklch(0.52 0.08 165); /* Brighter Deep Teal-Green */
-  --villages-forest: oklch(0.60 0.10 160); /* Brighter Forest Green */
-  --villages-sea: oklch(0.78 0.08 140); /* Brighter Dark Sea Green */
-  --villages-moss: oklch(0.68 0.06 145); /* Brighter Moss Green */
-  --villages-olive: oklch(0.48 0.05 145); /* Brighter Dark Olive */
-  /* Legacy PPCC aliases for backward compatibility */
-  --ppcc-orange: var(--villages-sage);
-  --ppcc-pink: var(--villages-deep-teal);
-  --ppcc-teal: var(--villages-forest);
-  --ppcc-purple: var(--villages-sea);
-  --ppcc-blue: var(--villages-moss);
-  --ppcc-gray: var(--villages-olive);
+  --ring: oklch(0.54 0.11 305); /* Ring color matches Living & Leaving primary dark mode */
+  /* Living & Leaving Color Palette - Dark Mode (brighter for contrast) */
+  --brand-primary: oklch(0.54 0.11 305); /* Brighter primary for dark mode */
+  --brand-primary-light: oklch(0.64 0.11 305); /* Even lighter variant */
+  --brand-secondary: oklch(0.35 0.01 342); /* Dark mode secondary */
+  --brand-accent: oklch(0.55 0.12 305); /* Brighter accent purple */
+  --brand-muted: oklch(0.80 0.06 305); /* Brighter muted purple */
+  --brand-deep: oklch(0.40 0.10 305); /* Brighter deep purple */
+  /* Legacy aliases for backward compatibility */
+  --villages-sage: var(--brand-primary);
+  --villages-deep-teal: var(--brand-deep);
+  --villages-forest: var(--brand-accent);
+  --villages-sea: var(--brand-muted);
+  --villages-moss: var(--brand-muted);
+  --villages-olive: var(--brand-deep);
   /* Status Colors - Dark Mode (brighter for contrast) */
-  --status-pending: oklch(0.68 0.06 145); /* Villages Moss for pending */
-  --status-active: oklch(0.62 0.08 145); /* Villages Sage for active */
+  --status-pending: oklch(0.55 0.08 305); /* Purple for pending */
+  --status-active: oklch(0.54 0.11 305); /* Living & Leaving Primary for active */
   --status-success: oklch(0.70 0.15 140); /* Bright green for success */
   --status-warning: oklch(0.80 0.15 80); /* Yellow for warnings */
   --status-error: oklch(0.704 0.191 22.216); /* Red - matches dark mode destructive */
-  --status-info: oklch(0.60 0.10 160); /* Villages Forest for info */
+  --status-info: oklch(0.55 0.12 305); /* Purple accent for info */
   --status-neutral: oklch(0.708 0 0); /* Light gray for neutral */
-  /* Healthcare Category Colors - Dark Mode (All Green Tones) */
-  --healthcare-medical: var(--villages-deep-teal); /* Medical & Healthcare Services */
-  --healthcare-mental: var(--villages-sea); /* Mental Health & Supportive Programs */
-  --healthcare-home: var(--villages-forest); /* Home & Community-Based Care */
-  --healthcare-equipment: var(--villages-moss); /* Medical Equipment & Adaptive Technology */
-  --healthcare-basic: var(--villages-sage); /* Basic Needs & Community Resources */
-  --healthcare-financial: var(--villages-forest); /* Financial Resources & Health Insurance */
-  --healthcare-legal: var(--villages-olive); /* Legal & Advocacy */
-  --healthcare-education: var(--villages-moss); /* Education & Family Resources */
-  /* Chart colors using Villages palette - dark mode versions */
-  --chart-1: var(--villages-sage);
-  --chart-2: var(--villages-forest);
-  --chart-3: var(--villages-moss);
-  --chart-4: var(--villages-sea);
-  --chart-5: var(--villages-deep-teal);
+  /* Healthcare Category Colors - Dark Mode (Purple/Magenta Tones) */
+  --healthcare-medical: var(--brand-deep); /* Medical & Healthcare Services */
+  --healthcare-mental: var(--brand-muted); /* Mental Health & Supportive Programs */
+  --healthcare-home: var(--brand-accent); /* Home & Community-Based Care */
+  --healthcare-equipment: var(--brand-muted); /* Medical Equipment & Adaptive Technology */
+  --healthcare-basic: var(--brand-primary); /* Basic Needs & Community Resources */
+  --healthcare-financial: var(--brand-accent); /* Financial Resources & Health Insurance */
+  --healthcare-legal: var(--brand-deep); /* Legal & Advocacy */
+  --healthcare-education: var(--brand-muted); /* Education & Family Resources */
+  /* Chart colors using Living & Leaving palette - dark mode versions */
+  --chart-1: var(--brand-primary);
+  --chart-2: var(--brand-accent);
+  --chart-3: var(--brand-muted);
+  --chart-4: var(--brand-primary-light);
+  --chart-5: var(--brand-deep);
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.62 0.08 145); /* Villages Sage for dark mode sidebar */
+  --sidebar-primary: oklch(0.54 0.11 305); /* Living & Leaving primary for dark mode sidebar */
   --sidebar-primary-foreground: oklch(0.145 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent: oklch(0.269 0.01 342);
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.62 0.08 145); /* Ring color matches Villages primary dark mode */
+  --sidebar-ring: oklch(0.54 0.11 305); /* Ring color matches Living & Leaving primary dark mode */
 }
 
 @layer base {
@@ -185,7 +185,7 @@
   }
 }
 
-/* PPCC Brand Guidelines - Print Typography Fallback */
+/* Living & Leaving Brand Guidelines - Print Typography Fallback */
 @media print {
   body {
     font-family: 'Helvetica Neue', Arial, sans-serif;
