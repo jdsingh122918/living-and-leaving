@@ -7,12 +7,12 @@
 import { BrandConfig } from "./lib/brand/types";
 
 const brandConfig: Partial<BrandConfig> = {
-  // Uncomment and customize for your brand:
-  name: "Villages",
-  shortName: "VIL",
-  tagline: "It takes a village",
-  domain: "demo.villages.com",
-  supportEmail: "support@villages.com",
+  name: "Living & Leaving",
+  shortName: "L&L",
+  tagline: "Living fully, leaving gracefully",
+  description: "Supporting families through end of life care with compassion, resources, and community",
+  domain: "livingandleaving.com",
+  supportEmail: "support@livingandleaving.com",
   //
   logos: {
     light: "/brand/logo-light.png",
@@ -21,19 +21,18 @@ const brandConfig: Partial<BrandConfig> = {
   },
   //
   colors: {
-    primary: "oklch(0.50 0.08 145)", // Villages Sage Green #5B7555
+    primary: "oklch(0.34 0.11 305)",
     primaryForeground: "oklch(1 0 0)",
+    secondary: "oklch(0.97 0.02 342)",
   },
   //
-  // features: {
-  //   chat: true,
-  //   forums: true,
-  //   // ... enable/disable features
-  // },
+  features: {
+    forums: false,
+  },
   //
   email: {
-    fromAddress: "info@villages.com",
-    fromName: "Villages Team",
+    fromAddress: "noreply@livingandleaving.com",
+    fromName: "Living & Leaving Care Team",
   },
 };
 
