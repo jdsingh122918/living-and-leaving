@@ -139,35 +139,57 @@ export async function GET(request: NextRequest) {
 
     console.log("✅ Users retrieved:", { count: users.length, filters });
 
+    // For volunteers without a direct familyId, look up their family assignments
+    const volunteerIds = users
+      .filter((u) => u.role === "VOLUNTEER" && !u.familyId)
+      .map((u) => u.id);
+
+    const volunteerFamilyMap = new Map<string, { id: string; name: string }>();
+    if (volunteerIds.length > 0) {
+      for (const vid of volunteerIds) {
+        const families = await familyRepository.getFamiliesByVolunteer(vid);
+        if (families.length > 0) {
+          volunteerFamilyMap.set(vid, {
+            id: families[0].id,
+            name: families[0].name,
+          });
+        }
+      }
+    }
+
     // Format response
-    const formattedUsers = users.map((u) => ({
-      id: u.id,
-      clerkId: u.clerkId,
-      email: u.email,
-      firstName: u.firstName,
-      lastName: u.lastName,
-      name: u.firstName ? `${u.firstName} ${u.lastName || ""}`.trim() : u.email,
-      role: u.role,
-      familyId: u.familyId,
-      family: u.family
-        ? {
-            id: u.family.id,
-            name: u.family.name,
-          }
-        : null,
-      phoneNumber: u.phoneNumber,
-      phoneVerified: u.phoneVerified,
-      emailVerified: u.emailVerified,
-      createdAt: u.createdAt,
-      createdBy: u.createdBy
-        ? {
-            id: u.createdBy.id,
-            name: u.createdBy.firstName
-              ? `${u.createdBy.firstName} ${u.createdBy.lastName || ""}`.trim()
-              : u.createdBy.email,
-          }
-        : null,
-    }));
+    const formattedUsers = users.map((u) => {
+      // Use direct family relation, or fall back to volunteer assignment
+      const family = u.family
+        ? { id: u.family.id, name: u.family.name }
+        : volunteerFamilyMap.get(u.id) || null;
+
+      return {
+        id: u.id,
+        clerkId: u.clerkId,
+        email: u.email,
+        firstName: u.firstName,
+        lastName: u.lastName,
+        name: u.firstName
+          ? `${u.firstName} ${u.lastName || ""}`.trim()
+          : u.email,
+        role: u.role,
+        familyId: u.familyId,
+        family,
+        phoneNumber: u.phoneNumber,
+        phoneVerified: u.phoneVerified,
+        emailVerified: u.emailVerified,
+        createdAt: u.createdAt,
+        createdBy: u.createdBy
+          ? {
+              id: u.createdBy.id,
+              name: u.createdBy.firstName
+                ? `${u.createdBy.firstName} ${u.createdBy.lastName || ""}`.trim()
+                : u.createdBy.email,
+            }
+          : null,
+      };
+    });
 
     return NextResponse.json({
       users: formattedUsers,
