@@ -156,7 +156,7 @@ const getPostCardColors = (post: Post) => {
   // Priority 3: Post states (pinned gets special treatment)
   if (post.isPinned) {
     return {
-      border: 'border-l-[var(--ppcc-orange)]',
+      border: 'border-l-[var(--brand-primary-light)]',
       background: 'bg-orange-50 dark:bg-orange-950/20',
       hover: 'hover:bg-orange-100 dark:hover:bg-orange-950/30'
     };

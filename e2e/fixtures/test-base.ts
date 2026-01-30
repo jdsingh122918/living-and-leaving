@@ -9,7 +9,7 @@ import { Page, Locator } from '@playwright/test';
 
 // Common test data generators
 export const generateUniqueId = () => `test-${Date.now()}-${Math.random().toString(36).substring(7)}`;
-export const generateEmail = () => `test-${Date.now()}@test.firefly.local`;
+export const generateEmail = () => `test-${Date.now()}@test.livingandleaving.local`;
 export const generateName = (prefix: string) => `${prefix} ${Date.now()}`;
 
 // Common selectors

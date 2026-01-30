@@ -47,6 +47,6 @@ export default async function MemberForumsPage() {
 }
 
 export const metadata = {
-  title: 'Forums | Villages',
+  title: 'Forums | Living & Leaving',
   description: 'Community discussions and support forums',
 }

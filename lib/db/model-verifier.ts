@@ -1,5 +1,5 @@
 /**
- * Database Model Verification Module for Villages Platform
+ * Database Model Verification Module for Living & Leaving Platform
  *
  * This module provides comprehensive validation of all Prisma models against the MongoDB database,
  * including schema validation, data integrity checks, and index optimization.

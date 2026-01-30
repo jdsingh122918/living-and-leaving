@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background: linear-gradient(135deg, #5B7555 0%, #3D5A4A 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
           <h1 style="margin: 0; font-size: 28px; font-weight: 700;">🎯 New Feedback Received</h1>
-          <p style="margin: 10px 0 0 0; opacity: 0.9; font-size: 16px;">From the Villages platform</p>
+          <p style="margin: 10px 0 0 0; opacity: 0.9; font-size: 16px;">From the Living &amp; Leaving platform</p>
         </div>
 
         <div style="background: white; padding: 30px; border-radius: 0 0 8px 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
@@ -204,7 +204,7 @@ export async function POST(request: NextRequest) {
           }
 
           <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; margin-top: 25px; text-align: center; color: #64748b; font-size: 12px;">
-            <p style="margin: 0;">Sent from Villages Platform</p>
+            <p style="margin: 0;">Sent from Living &amp; Leaving Platform</p>
             <p style="margin: 5px 0 0 0;">Generated on ${new Date().toLocaleString()}</p>
           </div>
         </div>
@@ -238,7 +238,7 @@ ${emailAttachments.map((att) => `- ${att.filename}`).join("\n")}
     : ""
 }
 
-Sent from Villages Platform
+Sent from Living & Leaving Platform
 Generated on ${new Date().toLocaleString()}
     `.trim();
 
@@ -263,14 +263,14 @@ Generated on ${new Date().toLocaleString()}
       provider: "resend",
       apiKey: resendApiKey,
       fromEmail: "noreply@feedback.thanacare.org",
-      fromName: "Villages Feedback",
+      fromName: "Living & Leaving Feedback",
       baseUrl: "https://api.resend.com",
       supportEmail: feedbackEmail,
     });
 
     console.log("📧 Sending email with attachments:", {
       to: feedbackEmail,
-      subject: `[Villages Feedback] ${validatedData.title}`,
+      subject: `[Living & Leaving Feedback] ${validatedData.title}`,
       attachmentCount: emailAttachments.length,
       attachments: emailAttachments.map((a) => ({
         filename: a.filename,
@@ -281,7 +281,7 @@ Generated on ${new Date().toLocaleString()}
 
     const emailResult = await resendProvider.sendEmail({
       to: feedbackEmail,
-      subject: `[Villages Feedback] ${validatedData.title}`,
+      subject: `[Living & Leaving Feedback] ${validatedData.title}`,
       html: emailHtml,
       text: emailText,
       attachments: emailAttachments,

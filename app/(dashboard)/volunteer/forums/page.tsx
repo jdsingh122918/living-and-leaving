@@ -47,6 +47,6 @@ export default async function VolunteerForumsPage() {
 }
 
 export const metadata = {
-  title: 'Forums | Villages Volunteer',
+  title: 'Forums | Living & Leaving',
   description: 'Community discussions and support forums',
 }

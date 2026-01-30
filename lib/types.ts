@@ -1,5 +1,5 @@
 /**
- * Type definitions for Villages Platform
+ * Type definitions for Living & Leaving Platform
  *
  * This file re-exports all types from the comprehensive types/index.ts
  * Maintains backward compatibility for imports from "@/lib/types"

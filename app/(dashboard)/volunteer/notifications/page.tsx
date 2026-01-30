@@ -47,6 +47,6 @@ export default async function VolunteerNotificationsPage() {
 }
 
 export const metadata = {
-  title: 'Notifications | Villages Volunteer',
+  title: 'Notifications | Living & Leaving',
   description: 'Stay updated with family activities and important announcements',
 }

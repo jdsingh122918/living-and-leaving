@@ -1,6 +1,6 @@
 # Page Object Models
 
-This directory contains all Page Object Models (POMs) for the Firefly E2E tests using Playwright.
+This directory contains all Page Object Models (POMs) for the Living & Leaving E2E tests using Playwright.
 
 ## Structure
 

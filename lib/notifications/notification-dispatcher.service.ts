@@ -247,7 +247,7 @@ export class NotificationDispatcher {
                       announcementContent: data.message,
                       announcementUrl: data.actionUrl || "#",
                       authorName:
-                        (emailData.authorName as string) || "Villages Team",
+                        (emailData.authorName as string) || "Living & Leaving Team",
                       publishDate: new Date().toISOString(),
                       priority:
                         (emailData.priority as
@@ -279,7 +279,7 @@ export class NotificationDispatcher {
                       announcementTitle: data.title,
                       announcementContent: data.message,
                       announcementUrl: data.actionUrl || "#",
-                      authorName: "Villages",
+                      authorName: "Living & Leaving",
                       publishDate: new Date().toISOString(),
                     });
               }

@@ -107,7 +107,7 @@ export function AssignTemplateModal({
       <DialogContent className="sm:max-w-[520px]">
         <DialogHeader className="space-y-2">
           <DialogTitle className="flex items-center gap-2 text-lg">
-            <Send className="h-5 w-5 text-[hsl(var(--ppcc-purple))]" />
+            <Send className="h-5 w-5 text-[hsl(var(--brand-primary))]" />
             Share Template
           </DialogTitle>
           <DialogDescription className="text-sm leading-relaxed">

@@ -442,10 +442,10 @@ function generateEmailHtml(data: {
       }
       <p><strong>The completed form is attached to this email as a PDF document.</strong></p>
       <p>If you have any questions about this document, please contact ${data.senderName} directly.</p>
-      <p>Best regards,<br>The Villages Team</p>
+      <p>Best regards,<br>The Living &amp; Leaving Team</p>
     </div>
     <div class="email-footer">
-      <p>This email was sent through the Villages End of Life Care Platform.</p>
+      <p>This email was sent through the Living &amp; Leaving platform.</p>
       <p style="margin-top: 10px; font-size: 11px; color: #999;">
         The attached document may contain personal health information. Please handle with care.
       </p>
@@ -465,7 +465,7 @@ function generateEmailText(data: {
   shareDate: string;
 }): string {
   return `
-Shared Document - Villages
+Shared Document - Living & Leaving
 
 Hello,
 
@@ -485,10 +485,10 @@ The completed form is attached to this email as a PDF document.
 If you have any questions about this document, please contact ${data.senderName} directly.
 
 Best regards,
-The Villages Team
+The Living & Leaving Team
 
 ---
-This email was sent through the Villages End of Life Care Platform.
+This email was sent through the Living & Leaving platform.
 The attached document may contain personal health information. Please handle with care.
   `.trim();
 }

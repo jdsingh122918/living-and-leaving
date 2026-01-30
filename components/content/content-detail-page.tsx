@@ -460,7 +460,7 @@ const ContentDetailPage: React.FC<ContentDetailPageProps> = ({
             <Button
               variant="outline"
               onClick={() => setShowAssignModal(true)}
-              className="min-h-[44px] bg-[hsl(var(--ppcc-purple))/0.1] border-[hsl(var(--ppcc-purple))/0.3] hover:bg-[hsl(var(--ppcc-purple))/0.2] text-[hsl(var(--ppcc-purple))]"
+              className="min-h-[44px] bg-[hsl(var(--brand-primary))/0.1] border-[hsl(var(--brand-primary))/0.3] hover:bg-[hsl(var(--brand-primary))/0.2] text-[hsl(var(--brand-primary))]"
             >
               <Send className="h-4 w-4 mr-2" />
               Assign

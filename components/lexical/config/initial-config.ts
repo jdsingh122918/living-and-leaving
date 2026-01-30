@@ -18,7 +18,7 @@ export interface EditorConfigOptions {
  */
 export function createEditorConfig(options: EditorConfigOptions = {}): InitialConfigType {
   const {
-    namespace = "FireflyEditor",
+    namespace = "LivingLeavingEditor",
     editable = true,
     onError = (error: Error) => {
       console.error("[Lexical Error]:", error);

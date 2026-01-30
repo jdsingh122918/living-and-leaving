@@ -6,7 +6,7 @@ export default function AdminForumCreationPage() {
 
 export async function generateMetadata() {
   return {
-    title: 'Create New Forum | Villages Admin',
+    title: 'Create New Forum | Living & Leaving Admin',
     description: 'Create a new forum for discussions and conversations',
   }
 }

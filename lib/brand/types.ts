@@ -4,8 +4,8 @@
  */
 export interface BrandConfig {
   // Core Identity
-  name: string; // "Villages" → "Partner Care"
-  shortName: string; // "PPCC" → "PC"
+  name: string; // Display name for the platform
+  shortName: string; // Abbreviated name
   tagline: string; // "End of Life Care Platform"
   description: string; // For meta tags and SEO
 
@@ -30,9 +30,9 @@ export interface BrandConfig {
     primaryForeground: string; // Text on primary
     secondary?: string;
     accent?: string;
-    // Extended palette (optional - Villages Green Theme)
+    // Extended palette (optional - Brand Color Theme)
     palette?: {
-      // Villages Green Palette
+      // Brand Color Palette
       sage?: string; // oklch(0.50 0.08 145) - #5B7555 Primary Sage Green
       deepTeal?: string; // oklch(0.40 0.08 165) - #2D5A4A Deep Teal-Green
       forest?: string; // oklch(0.50 0.10 160) - #3D7A5A Forest Green

@@ -152,7 +152,7 @@ export default async function MemberDashboard() {
         </p>
       </div>
 
-      {/* Quick Info Cards - Firefly Style */}
+      {/* Quick Info Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {/* Forum Card */}
         <Link href="/member/forums">
@@ -163,7 +163,7 @@ export default async function MemberDashboard() {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground">
-                Ask questions, share information and connect with your Villages community. Join a forum conversation or start your own!
+                Ask questions, share information and connect with your community. Join a forum conversation or start your own!
               </p>
             </CardContent>
           </Card>
@@ -178,7 +178,7 @@ export default async function MemberDashboard() {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground mb-3">
-                Chat with PPCC staff, volunteers or other Villages Participants
+                Chat with your care team, volunteers, or other community members
               </p>
               <div className="flex items-center gap-6">
                 <div>
@@ -221,10 +221,10 @@ export default async function MemberDashboard() {
 
         {/* Notifications Card */}
         <Link href="/member/notifications">
-          <Card className="border-l-4 border-l-[var(--ppcc-orange)] bg-[hsl(var(--ppcc-orange)/0.05)] hover:bg-[hsl(var(--ppcc-orange)/0.08)] transition-colors cursor-pointer h-full">
+          <Card className="border-l-4 border-l-[var(--healthcare-financial)] bg-[hsl(var(--healthcare-financial)/0.05)] hover:bg-[hsl(var(--healthcare-financial)/0.08)] transition-colors cursor-pointer h-full">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Notifications</CardTitle>
-              <Calendar className="h-4 w-4 text-[hsl(var(--ppcc-orange))]" />
+              <Calendar className="h-4 w-4 text-[hsl(var(--healthcare-financial))]" />
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground mb-3">
@@ -262,7 +262,7 @@ export default async function MemberDashboard() {
                 <div>
                   <h3 className="font-medium">{user.family.name}</h3>
                   <p className="text-sm text-muted-foreground">
-                    Include those close to you in your Villages profile
+                    Include those close to you in your profile
                   </p>
                 </div>
 
@@ -338,7 +338,7 @@ export default async function MemberDashboard() {
               <span>Digital Care Plan Book</span>
             </CardTitle>
             <CardDescription>
-              This area is intended to safely store important information about your child&apos;s medical history, treatment plans, preferences, contacts and more! All information can be downloaded as a PDF and shared to others as needed.
+              This area is intended to safely store important information about medical history, treatment plans, preferences, contacts and more! All information can be downloaded as a PDF and shared to others as needed.
             </CardDescription>
           </CardHeader>
           <CardContent>

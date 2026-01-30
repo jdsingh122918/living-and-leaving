@@ -47,6 +47,6 @@ export default async function AdminNotificationsPage() {
 }
 
 export const metadata = {
-  title: 'Notifications | Villages Admin',
+  title: 'Notifications | Living & Leaving Admin',
   description: 'View and manage your notifications',
 }

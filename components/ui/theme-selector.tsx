@@ -3,7 +3,7 @@
  *
  * Provides comprehensive theme selection with support for:
  * - Light/Dark/System theme modes
- * - Multiple color themes (Villages, Rose, Blue, Green, etc.)
+ * - Multiple color themes (Default, Rose, Blue, Green, etc.)
  * - Visual theme previews with color swatches
  * - Persistent theme preferences
  */
@@ -63,7 +63,7 @@ export interface ColorTheme {
 export const COLOR_THEMES: ColorTheme[] = [
   {
     id: 'villages',
-    name: 'Villages',
+    name: 'Default',
     description: 'Sage green healthcare theme',
     preview: {
       primary: '#5B7555',

@@ -15,7 +15,7 @@ export function PDFFooter({ showPrivacy = true }: PDFFooterProps) {
   return (
     <View style={styles.footer} fixed>
       <View>
-        <Text style={styles.footerText}>Villages End of Life Care Platform</Text>
+        <Text style={styles.footerText}>Living & Leaving</Text>
         {showPrivacy && (
           <Text style={[styles.footerText, { marginTop: 2 }]}>
             This document contains personal health information

@@ -460,7 +460,7 @@ async function createCalendarEvent(event: {
   const icsContent = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Villages//Notification Calendar//EN',
+    'PRODID:-//Living & Leaving//Notification Calendar//EN',
     'BEGIN:VEVENT',
     `DTSTART:${formatDate(startDate)}`,
     `DTEND:${formatDate(endDate)}`,

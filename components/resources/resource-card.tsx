@@ -78,18 +78,18 @@ interface ResourceCardProps {
 
 
 const getStatusColor = (status: string, isFeatured: boolean) => {
-  if (isFeatured) return "bg-[hsl(var(--ppcc-blue)/0.1)] text-[hsl(var(--ppcc-blue))] border-[hsl(var(--ppcc-blue)/0.3)]";
+  if (isFeatured) return "bg-[hsl(var(--brand-accent)/0.1)] text-[hsl(var(--brand-accent))] border-[hsl(var(--brand-accent)/0.3)]";
   switch (status) {
     case 'APPROVED':
-      return "bg-[hsl(var(--ppcc-teal)/0.1)] text-[hsl(var(--ppcc-teal))] border-[hsl(var(--ppcc-teal)/0.3)]";
+      return "bg-[hsl(var(--brand-accent)/0.1)] text-[hsl(var(--brand-accent))] border-[hsl(var(--brand-accent)/0.3)]";
     case 'PENDING':
-      return "bg-[hsl(var(--ppcc-orange)/0.1)] text-[hsl(var(--ppcc-orange))] border-[hsl(var(--ppcc-orange)/0.3)]";
+      return "bg-[hsl(var(--brand-primary-light)/0.1)] text-[hsl(var(--brand-primary-light))] border-[hsl(var(--brand-primary-light)/0.3)]";
     case 'DRAFT':
-      return "bg-[hsl(var(--ppcc-gray)/0.1)] text-[hsl(var(--ppcc-gray))] border-[hsl(var(--ppcc-gray)/0.3)]";
+      return "bg-[hsl(var(--brand-deep)/0.1)] text-[hsl(var(--brand-deep))] border-[hsl(var(--brand-deep)/0.3)]";
     case 'REJECTED':
-      return "bg-[hsl(var(--ppcc-pink)/0.1)] text-[hsl(var(--ppcc-pink))] border-[hsl(var(--ppcc-pink)/0.3)]";
+      return "bg-[hsl(var(--brand-muted)/0.1)] text-[hsl(var(--brand-muted))] border-[hsl(var(--brand-muted)/0.3)]";
     default:
-      return "bg-[hsl(var(--ppcc-gray)/0.1)] text-[hsl(var(--ppcc-gray))] border-[hsl(var(--ppcc-gray)/0.3)]";
+      return "bg-[hsl(var(--brand-deep)/0.1)] text-[hsl(var(--brand-deep))] border-[hsl(var(--brand-deep)/0.3)]";
   }
 };
 
@@ -98,7 +98,7 @@ const getResourceCardColors = (resource: Resource) => {
   const resourceIsTemplate = isTemplate(resource);
   if (resourceIsTemplate) {
     return {
-      border: 'border-l-[var(--ppcc-purple)]',
+      border: 'border-l-[var(--brand-primary)]',
       background: 'bg-background dark:bg-background',
       hover: 'hover:bg-accent/50 dark:hover:bg-accent/50'
     };
@@ -161,21 +161,21 @@ const getResourceCardColors = (resource: Resource) => {
   // Priority 2: Resource status (Featured > Approved > Pending > Others)
   if (resource.isFeatured) {
     return {
-      border: 'border-l-[var(--ppcc-blue)]',
+      border: 'border-l-[var(--brand-accent)]',
       background: 'bg-blue-50 dark:bg-blue-950/20',
       hover: 'hover:bg-blue-100 dark:hover:bg-blue-950/30'
     };
   }
   if (resource.status === 'APPROVED') {
     return {
-      border: 'border-l-[var(--ppcc-teal)]',
+      border: 'border-l-[var(--brand-accent)]',
       background: 'bg-teal-50 dark:bg-teal-950/20',
       hover: 'hover:bg-teal-100 dark:hover:bg-teal-950/30'
     };
   }
   if (resource.status === 'PENDING') {
     return {
-      border: 'border-l-[var(--ppcc-orange)]',
+      border: 'border-l-[var(--brand-primary-light)]',
       background: 'bg-orange-50 dark:bg-orange-950/20',
       hover: 'hover:bg-orange-100 dark:hover:bg-orange-950/30'
     };
@@ -249,7 +249,7 @@ export function ResourceCard({ resource, userRole, showActions = false }: Resour
         {/* Single Priority Badge */}
         <div className="flex items-center gap-2">
           {isTemplateResource ? (
-            <Badge data-testid="resource-type-badge" variant="secondary" className="bg-[hsl(var(--ppcc-purple)/0.1)] text-[hsl(var(--ppcc-purple))] border-[hsl(var(--ppcc-purple)/0.3)]">
+            <Badge data-testid="resource-type-badge" variant="secondary" className="bg-[hsl(var(--brand-primary)/0.1)] text-[hsl(var(--brand-primary))] border-[hsl(var(--brand-primary)/0.3)]">
               <ScrollText className="h-3 w-3 mr-1" />
               Template
             </Badge>

@@ -1,7 +1,7 @@
 import { BrandConfig } from "./types";
 
 /**
- * Default Villages brand configuration
+ * Default brand configuration
  * This is used when no brand.config.ts exists or as fallback
  */
 export const defaultBrandConfig: BrandConfig = {
@@ -22,7 +22,7 @@ export const defaultBrandConfig: BrandConfig = {
   },
 
   colors: {
-    primary: "oklch(0.50 0.08 145)", // Villages Sage Green #5B7555
+    primary: "oklch(0.50 0.08 145)", // Sage Green #5B7555
     primaryForeground: "oklch(1 0 0)", // White
     palette: {
       sage: "oklch(0.50 0.08 145)", // #5B7555 - Primary Sage Green

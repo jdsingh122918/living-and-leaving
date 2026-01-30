@@ -53,7 +53,7 @@ export default async function MemberForumDetailPage({ params }: ForumDetailPageP
 export async function generateMetadata({ params: _params }: ForumDetailPageProps) {
   await _params // Await params to satisfy Next.js 15+ requirement
   return {
-    title: `Forum | Villages`,
+    title: `Forum | Living & Leaving`,
     description: 'View forum discussions and posts',
   }
 }

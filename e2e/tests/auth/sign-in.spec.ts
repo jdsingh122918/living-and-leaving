@@ -14,7 +14,7 @@ test.describe('Sign-In Flow', { tag: '@smoke' }, () => {
 
   test('should display sign-in form correctly', async ({ page }) => {
     // Verify page title
-    await expect(page).toHaveTitle(/Sign In|Firefly/);
+    await expect(page).toHaveTitle(/Sign In|Living & Leaving/);
 
     // Verify email input is present
     const emailInput = page.locator('input[name="identifier"], input[type="email"]').first();

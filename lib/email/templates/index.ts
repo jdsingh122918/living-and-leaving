@@ -1,7 +1,7 @@
 import { EmailTemplate } from "../types";
 import { NotificationType } from "@/lib/types";
 
-// Base template styles - Villages Green Theme
+// Base template styles
 const baseStyles = `
 <style>
   .email-container {
@@ -82,7 +82,7 @@ export const messageNotificationTemplate: EmailTemplate = {
     <div class="email-container">
       <div class="email-header">
         <h1>💬 New Message</h1>
-        <p>You have received a new message in Villages</p>
+        <p>You have received a new message in Living &amp; Leaving</p>
       </div>
       <div class="email-body">
         <h2>Hello {{recipientName}},</h2>
@@ -106,7 +106,7 @@ export const messageNotificationTemplate: EmailTemplate = {
         <p><em>You have {{messageCount}} unread message(s) in this conversation.</em></p>
         {{/if}}
 
-        <p>Best regards,<br>The Villages Team</p>
+        <p>Best regards,<br>The Living &amp; Leaving Team</p>
       </div>
       <div class="email-footer">
         <p>This email was sent to help you stay connected with your care community.</p>
@@ -117,7 +117,7 @@ export const messageNotificationTemplate: EmailTemplate = {
     </div>
   `,
   textTemplate: `
-New Message - Villages
+New Message - Living & Leaving
 
 Hello {{recipientName}},
 
@@ -137,7 +137,7 @@ You have {{messageCount}} unread message(s) in this conversation.
 {{/if}}
 
 Best regards,
-The Villages Team
+The Living & Leaving Team
 
 ---
 Unsubscribe: {{unsubscribeUrl}}
@@ -233,7 +233,7 @@ export const careUpdateNotificationTemplate: EmailTemplate = {
 
         <p>If you have any questions about this update, please don't hesitate to reach out to your care coordinator.</p>
 
-        <p>With care,<br>The Villages Team</p>
+        <p>With care,<br>The Living &amp; Leaving Team</p>
       </div>
       <div class="email-footer">
         <p>This update helps keep everyone informed about important care developments.</p>
@@ -244,7 +244,7 @@ export const careUpdateNotificationTemplate: EmailTemplate = {
     </div>
   `,
   textTemplate: `
-Care Update - Villages
+Care Update - Living & Leaving
 
 Hello {{recipientName}},
 
@@ -261,7 +261,7 @@ View full update: {{updateUrl}}
 If you have any questions about this update, please don't hesitate to reach out to your care coordinator.
 
 With care,
-The Villages Team
+The Living & Leaving Team
 
 ---
 Unsubscribe: {{unsubscribeUrl}}
@@ -362,7 +362,7 @@ export const emergencyAlertTemplate: EmailTemplate = {
 
         <p><strong>Please take immediate action as appropriate for this emergency.</strong></p>
 
-        <p>Villages Emergency System</p>
+        <p>Living &amp; Leaving Emergency System</p>
       </div>
       <div class="email-footer">
         <p>This is an automated emergency notification. Emergency alerts cannot be unsubscribed from.</p>
@@ -373,7 +373,7 @@ export const emergencyAlertTemplate: EmailTemplate = {
     </div>
   `,
   textTemplate: `
-🚨 EMERGENCY ALERT - Villages
+🚨 EMERGENCY ALERT - Living & Leaving
 
 {{recipientName}},
 
@@ -394,7 +394,7 @@ Emergency Contact Information:
 
 Please take immediate action as appropriate for this emergency.
 
-Villages Emergency System
+Living & Leaving Emergency System
 
 ---
 Support: {{baseUrl}}/support
@@ -469,7 +469,7 @@ export const systemAnnouncementTemplate: EmailTemplate = {
     <div class="email-container">
       <div class="email-header">
         <h1>📢 Announcement</h1>
-        <p>Important news from Villages</p>
+        <p>Important news from Living &amp; Leaving</p>
       </div>
       <div class="email-body">
         <h2>Hello {{recipientName}},</h2>
@@ -496,10 +496,10 @@ export const systemAnnouncementTemplate: EmailTemplate = {
 
         <p>Thank you for being part of our care community.</p>
 
-        <p>Best regards,<br>The Villages Team</p>
+        <p>Best regards,<br>The Living &amp; Leaving Team</p>
       </div>
       <div class="email-footer">
-        <p>Stay informed about important updates and improvements to Villages.</p>
+        <p>Stay informed about important updates and improvements to Living &amp; Leaving.</p>
         <div class="unsubscribe">
           <p><a href="{{unsubscribeUrl}}">Unsubscribe from announcements</a> | <a href="{{baseUrl}}/support">Contact Support</a></p>
         </div>
@@ -507,7 +507,7 @@ export const systemAnnouncementTemplate: EmailTemplate = {
     </div>
   `,
   textTemplate: `
-Announcement - Villages
+Announcement - Living & Leaving
 
 Hello {{recipientName}},
 
@@ -532,7 +532,7 @@ Read full announcement: {{announcementUrl}}
 Thank you for being part of our care community.
 
 Best regards,
-The Villages Team
+The Living & Leaving Team
 
 ---
 Unsubscribe: {{unsubscribeUrl}}
@@ -602,13 +602,13 @@ Support: {{baseUrl}}/support
 export const feedbackNotificationTemplate: EmailTemplate = {
   id: "feedback-notification",
   name: "Feedback Notification",
-  subject: "🎯 [Villages Feedback] {{feedbackTitle}}",
+  subject: "🎯 [Living & Leaving Feedback] {{feedbackTitle}}",
   htmlTemplate: `
     ${baseStyles}
     <div class="email-container">
       <div class="email-header">
         <h1>🎯 New Feedback Received</h1>
-        <p>From the Villages platform</p>
+        <p>From the Living &amp; Leaving platform</p>
       </div>
       <div class="email-body">
         <h2>{{feedbackTitle}}</h2>
@@ -661,8 +661,8 @@ export const feedbackNotificationTemplate: EmailTemplate = {
         </div>
       </div>
       <div class="email-footer">
-        <p>This feedback was submitted through the Villages End of Life Care Platform.</p>
-        <p style="margin-top: 10px;">The Villages Team</p>
+        <p>This feedback was submitted through the Living &amp; Leaving platform.</p>
+        <p style="margin-top: 10px;">The Living &amp; Leaving Team</p>
       </div>
     </div>
   `,
@@ -692,7 +692,7 @@ Attachments ({{attachmentCount}}):
 
 ---
 Generated on {{submissionDate}}
-Sent from Villages End of Life Care Platform
+Sent from Living & Leaving Platform
   `,
   variables: [
     {
@@ -805,10 +805,10 @@ export const formPdfShareTemplate: EmailTemplate = {
 
         <p>If you have any questions about this document, please contact {{senderName}} directly.</p>
 
-        <p>Best regards,<br>The Villages Team</p>
+        <p>Best regards,<br>The Living &amp; Leaving Team</p>
       </div>
       <div class="email-footer">
-        <p>This email was sent through the Villages End of Life Care Platform.</p>
+        <p>This email was sent through the Living &amp; Leaving platform.</p>
         <p style="margin-top: 10px; font-size: 11px; color: #999;">
           The attached document may contain personal health information. Please handle with care.
         </p>
@@ -816,7 +816,7 @@ export const formPdfShareTemplate: EmailTemplate = {
     </div>
   `,
   textTemplate: `
-Shared Document - Villages
+Shared Document - Living & Leaving
 
 Hello,
 
@@ -843,10 +843,10 @@ The completed form is attached to this email as a PDF document.
 If you have any questions about this document, please contact {{senderName}} directly.
 
 Best regards,
-The Villages Team
+The Living & Leaving Team
 
 ---
-This email was sent through the Villages End of Life Care Platform.
+This email was sent through the Living & Leaving platform.
 The attached document may contain personal health information. Please handle with care.
   `,
   variables: [
@@ -924,7 +924,7 @@ export const familyActivityTemplate: EmailTemplate = {
 
         <p>Stay connected with your care community.</p>
 
-        <p>Warm regards,<br>The Villages Team</p>
+        <p>Warm regards,<br>The Living &amp; Leaving Team</p>
       </div>
       <div class="email-footer">
         <p>Family activity notifications help keep everyone connected and informed.</p>
@@ -935,7 +935,7 @@ export const familyActivityTemplate: EmailTemplate = {
     </div>
   `,
   textTemplate: `
-Family Activity - Villages
+Family Activity - Living & Leaving
 
 Hello {{recipientName}},
 
@@ -954,7 +954,7 @@ View activity: {{activityUrl}}
 Stay connected with your care community.
 
 Warm regards,
-The Villages Team
+The Living & Leaving Team
 
 ---
 Unsubscribe: {{unsubscribeUrl}}

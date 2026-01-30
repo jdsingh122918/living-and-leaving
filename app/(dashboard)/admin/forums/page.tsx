@@ -47,6 +47,6 @@ export default async function AdminForumsPage() {
 }
 
 export const metadata = {
-  title: 'Forums | Villages Admin',
+  title: 'Forums | Living & Leaving Admin',
   description: 'Community discussions and support forums',
 }

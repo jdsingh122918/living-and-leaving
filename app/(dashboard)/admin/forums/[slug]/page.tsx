@@ -53,7 +53,7 @@ export default async function AdminForumDetailPage({ params }: ForumDetailPagePr
 export async function generateMetadata({ params: _params }: ForumDetailPageProps) {
   await _params // Await params to satisfy Next.js 15+ requirement
   return {
-    title: `Forum | Villages Admin`,
+    title: `Forum | Living & Leaving Admin`,
     description: 'View forum discussions and posts',
   }
 }

@@ -79,7 +79,7 @@ async function mockLogin(
   // Pre-set cookie consent to prevent cookie banner from appearing during tests
   // This must be before page.goto() as addInitScript runs before any page script
   await page.context().addInitScript(() => {
-    localStorage.setItem('firefly_cookie_consent', JSON.stringify({
+    localStorage.setItem('ll_cookie_consent', JSON.stringify({
       accepted: true,
       timestamp: Date.now()
     }));

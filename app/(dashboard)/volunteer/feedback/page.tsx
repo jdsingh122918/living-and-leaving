@@ -62,7 +62,7 @@ export default function FeedbackPage() {
             <div>
               <h3 className="font-semibold mb-1">We Value Your Input</h3>
               <p className="text-sm text-muted-foreground">
-                Help us improve Villages by sharing your feedback. Whether it&apos;s a bug report,
+                Help us improve Living &amp; Leaving by sharing your feedback. Whether it&apos;s a bug report,
                 feature suggestion, or general comment, we want to hear from you.
               </p>
             </div>

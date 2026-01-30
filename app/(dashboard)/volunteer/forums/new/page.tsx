@@ -6,7 +6,7 @@ export default function VolunteerForumCreationPage() {
 
 export async function generateMetadata() {
   return {
-    title: 'Create New Forum | Villages Volunteer',
+    title: 'Create New Forum | Living & Leaving',
     description: 'Create a new forum for discussions and conversations',
   }
 }

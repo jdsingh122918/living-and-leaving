@@ -107,7 +107,7 @@ shortName: YP
 
       const config = getBrandConfig();
 
-      // Should have default Villages config
+      // Should have default brand config
       expect(config.name).toBe('Villages');
       expect(config.shortName).toBe('VIL');
     });

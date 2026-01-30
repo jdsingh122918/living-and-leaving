@@ -450,7 +450,7 @@ export function ResourceDetailPage({ resourceId, userRole, userId }: ResourceDet
               {/* Status and Badges */}
               <div className="flex items-center gap-2 flex-wrap">
                 {isTemplateResource && (
-                  <Badge className="bg-[hsl(var(--ppcc-purple)/0.1)] text-[hsl(var(--ppcc-purple))] border-[hsl(var(--ppcc-purple)/0.3)]">
+                  <Badge className="bg-[hsl(var(--brand-primary)/0.1)] text-[hsl(var(--brand-primary))] border-[hsl(var(--brand-primary)/0.3)]">
                     <ScrollText className="h-3 w-3 mr-1" />
                     Advance Directive Template
                   </Badge>
@@ -521,17 +521,17 @@ export function ResourceDetailPage({ resourceId, userRole, userId }: ResourceDet
               {isTemplateResource && resource.externalMeta?.formSchema && (
                 <Collapsible open={previewOpen} onOpenChange={setPreviewOpen}>
                   <CollapsibleTrigger className="w-full">
-                    <div className="flex items-center justify-between p-3 rounded-lg border bg-[hsl(var(--ppcc-purple)/0.05)] hover:bg-[hsl(var(--ppcc-purple)/0.1)] transition-colors cursor-pointer">
+                    <div className="flex items-center justify-between p-3 rounded-lg border bg-[hsl(var(--brand-primary)/0.05)] hover:bg-[hsl(var(--brand-primary)/0.1)] transition-colors cursor-pointer">
                       <div className="flex items-center gap-2">
                         {previewOpen ? (
-                          <ChevronDown className="h-4 w-4 text-[hsl(var(--ppcc-purple))]" />
+                          <ChevronDown className="h-4 w-4 text-[hsl(var(--brand-primary))]" />
                         ) : (
-                          <ChevronRight className="h-4 w-4 text-[hsl(var(--ppcc-purple))]" />
+                          <ChevronRight className="h-4 w-4 text-[hsl(var(--brand-primary))]" />
                         )}
-                        <LayoutList className="h-4 w-4 text-[hsl(var(--ppcc-purple))]" />
-                        <span className="font-medium text-sm text-[hsl(var(--ppcc-purple))]">Form Structure Preview</span>
+                        <LayoutList className="h-4 w-4 text-[hsl(var(--brand-primary))]" />
+                        <span className="font-medium text-sm text-[hsl(var(--brand-primary))]">Form Structure Preview</span>
                       </div>
-                      <Badge variant="outline" className="text-[10px] border-[hsl(var(--ppcc-purple)/0.3)] text-[hsl(var(--ppcc-purple))] bg-[hsl(var(--ppcc-purple)/0.1)]">
+                      <Badge variant="outline" className="text-[10px] border-[hsl(var(--brand-primary)/0.3)] text-[hsl(var(--brand-primary))] bg-[hsl(var(--brand-primary)/0.1)]">
                         {Object.keys(resource.externalMeta.formSchema.sections || {}).length} sections
                       </Badge>
                     </div>

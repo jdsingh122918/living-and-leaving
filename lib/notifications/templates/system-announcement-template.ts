@@ -21,7 +21,7 @@ export const systemAnnouncementTemplate: NotificationTemplate = {
   title: "{{announcementTitle}}",
   message: "{{announcementContent}}",
   richMessage:
-    "## {{announcementTitle}}\n\n{{announcementContent}}\n\n*From the Villages Team*",
+    "## {{announcementTitle}}\n\n{{announcementContent}}\n\n*From the Living & Leaving Team*",
   ctaLabel: "Learn More",
   ctaUrl: "{{actionUrl}}",
 };

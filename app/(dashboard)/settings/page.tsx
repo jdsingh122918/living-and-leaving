@@ -26,6 +26,6 @@ export default async function SettingsPage() {
 }
 
 export const metadata = {
-  title: 'Settings | Villages',
+  title: 'Settings | Living & Leaving',
   description: 'Manage your account settings and preferences',
 }

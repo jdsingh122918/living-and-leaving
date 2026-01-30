@@ -108,7 +108,7 @@ export function SettingsContent({ userRole: _userRole }: SettingsContentProps) {
             <CardContent className="pt-6">
               <div className="text-sm text-muted-foreground space-y-2">
                 <p>
-                  <strong>Available themes:</strong> Villages (default), Rose, Blue, Violet, Orange, Yellow, and High Contrast.
+                  <strong>Available themes:</strong> Default, Rose, Blue, Violet, Orange, Yellow, and High Contrast.
                 </p>
                 <p>
                   Theme preferences are saved to your device and will persist across sessions.

@@ -26,10 +26,10 @@ export function FormPDFDocument({
   return (
     <Document
       title={resourceTitle}
-      author="Villages Care Platform"
+      author="Living & Leaving"
       subject={`${resourceTitle} - ${memberName}`}
-      keywords="healthcare, advance directive, villages, end of life care"
-      creator="Villages Care"
+      keywords="healthcare, advance directive, living and leaving, end of life care"
+      creator="Living & Leaving"
       producer="React-PDF"
     >
       <Page size="LETTER" style={styles.page}>

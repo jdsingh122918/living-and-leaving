@@ -10,21 +10,21 @@ const prisma = new PrismaClient();
 // Test users with known Clerk IDs for testing mode
 const TEST_USERS = [
   {
-    email: 'admin@test.firefly.local',
+    email: 'admin@test.livingandleaving.local',
     firstName: 'Test',
     lastName: 'Admin',
     role: 'ADMIN' as const,
     clerkId: 'test_admin_001',
   },
   {
-    email: 'volunteer@test.firefly.local',
+    email: 'volunteer@test.livingandleaving.local',
     firstName: 'Test',
     lastName: 'Volunteer',
     role: 'VOLUNTEER' as const,
     clerkId: 'test_volunteer_001',
   },
   {
-    email: 'member@test.firefly.local',
+    email: 'member@test.livingandleaving.local',
     firstName: 'Test',
     lastName: 'Member',
     role: 'MEMBER' as const,

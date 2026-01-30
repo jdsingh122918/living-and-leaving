@@ -47,6 +47,6 @@ export default async function MemberNotificationsPage() {
 }
 
 export const metadata = {
-  title: 'Notifications | Villages Member',
+  title: 'Notifications | Living & Leaving',
   description: 'Keep up with important updates and messages from your care team',
 }

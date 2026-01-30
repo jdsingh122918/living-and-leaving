@@ -19,7 +19,7 @@ function getTestDatabaseUrl(): string {
 }
 
 /**
- * Playwright configuration for Firefly E2E tests
+ * Playwright configuration for Living & Leaving E2E tests
  * Uses Testcontainers for MongoDB and Clerk Testing Mode for auth
  */
 export default defineConfig({

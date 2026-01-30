@@ -68,7 +68,7 @@ export default async function globalSetup() {
 
     // Get connection string and add database name
     const connectionUri = mongoContainer.getConnectionString();
-    const testDatabaseUrl = `${connectionUri}/firefly-test?retryWrites=true&w=majority&directConnection=true`;
+    const testDatabaseUrl = `${connectionUri}/living-leaving-test?retryWrites=true&w=majority&directConnection=true`;
 
     console.log(`✅ MongoDB container started`);
     console.log(`   Connection: ${testDatabaseUrl}\n`);

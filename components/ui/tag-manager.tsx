@@ -44,16 +44,16 @@ import {
   DropdownMenuTrigger,
 } from "./dropdown-menu";
 
-// Color options for tags and categories - Villages Green Palette
+// Color options for tags and categories - Brand Color Palette
 const colorOptions = [
-  "#5B7555", // Villages Sage Green (Primary)
-  "#2D5A4A", // Villages Deep Teal-Green
-  "#3D7A5A", // Villages Forest Green
-  "#8FBC8F", // Villages Dark Sea Green
-  "#6B8E6B", // Villages Moss Green
-  "#4A6741", // Villages Hunter Green
-  "#2F4F2F", // Villages Dark Olive
-  "#7A9A73", // Villages Light Sage
+  "#5B7555", // Sage Green (Primary)
+  "#2D5A4A", // Deep Teal-Green
+  "#3D7A5A", // Forest Green
+  "#8FBC8F", // Dark Sea Green
+  "#6B8E6B", // Moss Green
+  "#4A6741", // Hunter Green
+  "#2F4F2F", // Dark Olive
+  "#7A9A73", // Light Sage
   "#228B22", // Forest Green
   "#64748b", // Slate (neutral)
 ];

@@ -138,7 +138,7 @@ export async function notifySystemAnnouncement(
       announcementTitle: data.announcementTitle,
       announcementContent: data.announcementContent,
       announcementUrl: data.announcementUrl || "#",
-      authorName: data.authorName || "Villages Team",
+      authorName: data.authorName || "Living & Leaving Team",
       publishDate: new Date().toISOString(),
       priority: data.priority || "normal",
     },
@@ -317,7 +317,7 @@ export const NotificationHelpers = {
    */
   async welcomeNewUser(userId: string) {
     await notifySystemAnnouncement(userId, {
-      announcementTitle: "Welcome to Villages!",
+      announcementTitle: "Welcome to Living & Leaving!",
       announcementContent:
         "Get started by setting up your family profile and inviting family members to join.",
       priority: "normal",

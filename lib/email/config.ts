@@ -237,7 +237,7 @@ export class EmailConfigManager {
           provider: {
             provider: "nodemailer" as const,
             fromEmail: "dev@villages.localhost",
-            fromName: "Villages (Dev)",
+            fromName: "Living & Leaving (Dev)",
             baseUrl: "http://localhost:3000",
             supportEmail: "support@villages.localhost",
           },
@@ -262,7 +262,7 @@ export class EmailConfigManager {
           provider: {
             provider: "resend" as const,
             fromEmail: "staging@villages.care",
-            fromName: "Villages (Staging)",
+            fromName: "Living & Leaving (Staging)",
             baseUrl: "https://staging.villages.care",
             supportEmail: "support@villages.care",
           },
@@ -287,7 +287,7 @@ export class EmailConfigManager {
           provider: {
             provider: "resend" as const,
             fromEmail: "noreply@villages.care",
-            fromName: "Villages",
+            fromName: "Living & Leaving",
             baseUrl: "https://app.villages.care",
             supportEmail: "support@villages.care",
           },

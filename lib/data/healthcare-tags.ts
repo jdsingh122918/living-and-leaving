@@ -2,7 +2,7 @@
  * Comprehensive Healthcare Service Tags Configuration
  *
  * This file defines the predefined system tags and categories that are automatically
- * available in the Villages End of Life Care Platform. These tags help organize
+ * available in the platform. These tags help organize
  * and categorize healthcare services, resources, and care management activities.
  */
 
@@ -18,7 +18,7 @@ export const HEALTHCARE_CATEGORIES: HealthcareCategory[] = [
   {
     name: "Basic Needs & Daily Living",
     description: "Essential daily living support, finances, and basic needs",
-    color: "#5B7555", // Villages Sage Green (Primary)
+    color: "#5B7555", // Sage Green (Primary)
     icon: "🛡️",
     tags: [
       "Basic Human Needs (Food, Clothing, Housing, Goods)",
@@ -34,14 +34,14 @@ export const HEALTHCARE_CATEGORIES: HealthcareCategory[] = [
   {
     name: "Education",
     description: "Educational services and developmental support",
-    color: "#6B8E6B", // Villages Moss Green
+    color: "#6B8E6B", // Moss Green
     icon: "📚",
     tags: ["Early Intervention/Developmental Services", "Education"],
   },
   {
     name: "Home & Community-based Care",
     description: "Home healthcare services and community-based support",
-    color: "#3D7A5A", // Villages Forest Green
+    color: "#3D7A5A", // Forest Green
     icon: "🏠",
     tags: [
       "Case Management/Care Coordination",
@@ -53,14 +53,14 @@ export const HEALTHCARE_CATEGORIES: HealthcareCategory[] = [
   {
     name: "Legal & Advocacy",
     description: "Legal services, advocacy, and protective services",
-    color: "#2F4F2F", // Villages Dark Olive
+    color: "#2F4F2F", // Dark Olive
     icon: "⚖️",
     tags: ["Adoption, Foster Care & CYF", "Advocacy", "Legal Aid"],
   },
   {
     name: "Medical & Healthcare Services",
     description: "Core medical services and healthcare professionals",
-    color: "#2D5A4A", // Villages Deep Teal-Green
+    color: "#2D5A4A", // Deep Teal-Green
     icon: "🏥",
     tags: [
       "Disabilities",
@@ -80,7 +80,7 @@ export const HEALTHCARE_CATEGORIES: HealthcareCategory[] = [
   {
     name: "Medical Equipment & Supportive Technology",
     description: "Medical devices, adaptive equipment, and technology",
-    color: "#4A6741", // Villages Hunter Green
+    color: "#4A6741", // Hunter Green
     icon: "🔧",
     tags: [
       "Adaptive Care Equipment & Technology",
@@ -91,7 +91,7 @@ export const HEALTHCARE_CATEGORIES: HealthcareCategory[] = [
   {
     name: "Mental Health & Supportive Programs",
     description: "Mental health, behavioral support, and therapeutic programs",
-    color: "#8FBC8F", // Villages Dark Sea Green
+    color: "#8FBC8F", // Dark Sea Green
     icon: "🧠",
     tags: [
       "Behavioral Support",
@@ -122,16 +122,16 @@ export const ALL_HEALTHCARE_TAGS = HEALTHCARE_CATEGORIES.flatMap((category) =>
 );
 
 /**
- * Color palette for healthcare categories - Villages Green Palette
+ * Color palette for healthcare categories - Brand Color Palette
  */
 export const HEALTHCARE_COLORS = {
-  BASIC_NEEDS: "#5B7555", // Villages Sage Green (Primary)
-  EDUCATION: "#6B8E6B", // Villages Moss Green
-  HOME_CARE: "#3D7A5A", // Villages Forest Green
-  LEGAL: "#2F4F2F", // Villages Dark Olive
-  MEDICAL: "#2D5A4A", // Villages Deep Teal-Green
-  EQUIPMENT: "#4A6741", // Villages Hunter Green
-  MENTAL_HEALTH: "#8FBC8F", // Villages Dark Sea Green
+  BASIC_NEEDS: "#5B7555", // Sage Green (Primary)
+  EDUCATION: "#6B8E6B", // Moss Green
+  HOME_CARE: "#3D7A5A", // Forest Green
+  LEGAL: "#2F4F2F", // Dark Olive
+  MEDICAL: "#2D5A4A", // Deep Teal-Green
+  EQUIPMENT: "#4A6741", // Hunter Green
+  MENTAL_HEALTH: "#8FBC8F", // Dark Sea Green
 } as const;
 
 /**

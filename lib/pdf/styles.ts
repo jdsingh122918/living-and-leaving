@@ -5,16 +5,16 @@
 
 import { StyleSheet } from "@react-pdf/renderer";
 
-// Color palette for healthcare documents - Villages Green Theme
+// Color palette for healthcare documents - Brand Theme
 export const colors = {
-  primary: "#2D5A4A", // Villages Deep Teal-Green - professional healthcare
+  primary: "#2D5A4A", // Deep Teal-Green - professional healthcare
   secondary: "#2d3748", // Dark gray
   text: "#1a202c", // Near black
   textMuted: "#718096", // Gray for secondary text
   border: "#e2e8f0", // Light gray borders
   background: "#f7fafc", // Off white background
-  accent: "#5B7555", // Villages Sage Green accent
-  success: "#3D7A5A", // Villages Forest Green for completed
+  accent: "#5B7555", // Sage Green accent
+  success: "#3D7A5A", // Forest Green for completed
   white: "#ffffff",
 };
 

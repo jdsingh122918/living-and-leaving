@@ -143,7 +143,7 @@ export function ResourceTableView({
                     {isTemplateResource && (
                       <Badge
                         variant="secondary"
-                        className="mt-1 bg-[hsl(var(--ppcc-purple)/0.1)] text-[hsl(var(--ppcc-purple))] border-[hsl(var(--ppcc-purple)/0.3)]"
+                        className="mt-1 bg-[hsl(var(--brand-primary)/0.1)] text-[hsl(var(--brand-primary))] border-[hsl(var(--brand-primary)/0.3)]"
                       >
                         Template
                       </Badge>

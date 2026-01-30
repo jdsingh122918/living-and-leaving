@@ -179,12 +179,12 @@ const ContentCard: React.FC<ContentCardProps> = ({
 
   const getStatusBadge = () => {
     const statusConfig = {
-      [ResourceStatus.DRAFT]: { color: 'bg-[var(--ppcc-gray)]', label: 'Draft' },
-      [ResourceStatus.PENDING]: { color: 'bg-[var(--ppcc-orange)]', label: 'Pending' },
-      [ResourceStatus.APPROVED]: { color: 'bg-[var(--ppcc-teal)]', label: 'Approved' },
-      [ResourceStatus.FEATURED]: { color: 'bg-[var(--ppcc-blue)]', label: 'Featured' },
-      [ResourceStatus.ARCHIVED]: { color: 'bg-[var(--ppcc-gray)]', label: 'Archived' },
-      [ResourceStatus.REJECTED]: { color: 'bg-[var(--ppcc-pink)]', label: 'Rejected' }
+      [ResourceStatus.DRAFT]: { color: 'bg-[var(--brand-deep)]', label: 'Draft' },
+      [ResourceStatus.PENDING]: { color: 'bg-[var(--brand-primary-light)]', label: 'Pending' },
+      [ResourceStatus.APPROVED]: { color: 'bg-[var(--brand-accent)]', label: 'Approved' },
+      [ResourceStatus.FEATURED]: { color: 'bg-[var(--brand-accent)]', label: 'Featured' },
+      [ResourceStatus.ARCHIVED]: { color: 'bg-[var(--brand-deep)]', label: 'Archived' },
+      [ResourceStatus.REJECTED]: { color: 'bg-[var(--brand-muted)]', label: 'Rejected' }
     };
 
     // Check if this is a template
@@ -198,7 +198,7 @@ const ContentCard: React.FC<ContentCardProps> = ({
       <div className="flex flex-wrap gap-1.5 overflow-hidden">
         {/* Template badge - highest priority */}
         {isTemplateContent && (
-          <Badge variant="secondary" className="bg-[hsl(var(--ppcc-purple)/0.1)] text-[hsl(var(--ppcc-purple))] border-[hsl(var(--ppcc-purple)/0.3)] flex items-center gap-1 text-xs">
+          <Badge variant="secondary" className="bg-[hsl(var(--brand-primary)/0.1)] text-[hsl(var(--brand-primary))] border-[hsl(var(--brand-primary)/0.3)] flex items-center gap-1 text-xs">
             <ScrollText className="h-3 w-3" />
             Template
           </Badge>
@@ -290,7 +290,7 @@ const ContentCard: React.FC<ContentCardProps> = ({
 
     if (isTemplateContent) {
       return {
-        border: 'border-l-[var(--ppcc-purple)]',
+        border: 'border-l-[var(--brand-primary)]',
         background: 'bg-background dark:bg-background',
         hover: 'hover:bg-accent/50 dark:hover:bg-accent/50'
       };
@@ -346,28 +346,28 @@ const ContentCard: React.FC<ContentCardProps> = ({
     // Priority 2: Content status (Resources)
     if (content.status === ResourceStatus.FEATURED) {
         return {
-          border: 'border-l-[var(--ppcc-blue)]',
+          border: 'border-l-[var(--brand-accent)]',
           background: 'bg-blue-50 dark:bg-blue-950/20',
           hover: 'hover:bg-blue-100 dark:hover:bg-blue-950/30'
         };
       }
       if (content.status === ResourceStatus.APPROVED) {
         return {
-          border: 'border-l-[var(--ppcc-teal)]',
+          border: 'border-l-[var(--brand-accent)]',
           background: 'bg-teal-50 dark:bg-teal-950/20',
           hover: 'hover:bg-teal-100 dark:hover:bg-teal-950/30'
         };
       }
       if (content.status === ResourceStatus.PENDING) {
         return {
-          border: 'border-l-[var(--ppcc-orange)]',
+          border: 'border-l-[var(--brand-primary-light)]',
           background: 'bg-orange-50 dark:bg-orange-950/20',
           hover: 'hover:bg-orange-100 dark:hover:bg-orange-950/30'
         };
       }
     // Draft/other resource statuses
     return {
-      border: 'border-l-[var(--ppcc-purple)]',
+      border: 'border-l-[var(--brand-primary)]',
       background: 'bg-purple-50 dark:bg-purple-950/20',
       hover: 'hover:bg-purple-100 dark:hover:bg-purple-950/30'
     };
@@ -376,7 +376,7 @@ const ContentCard: React.FC<ContentCardProps> = ({
   // Default fallback styling function
   const getDefaultStyling = () => {
     return {
-      border: 'border-l-[var(--ppcc-blue)]',
+      border: 'border-l-[var(--brand-accent)]',
       background: 'bg-blue-50 dark:bg-blue-950/20',
       hover: 'hover:bg-blue-100 dark:hover:bg-blue-950/30'
     };

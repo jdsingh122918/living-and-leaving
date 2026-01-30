@@ -37,6 +37,6 @@ export default async function AdminAnnouncementsPage() {
 }
 
 export const metadata = {
-  title: 'Announcements | Admin | Villages',
+  title: 'Announcements | Admin | Living & Leaving',
   description: 'Create and manage system announcements for all users',
 }
