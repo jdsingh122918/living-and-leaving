@@ -3,7 +3,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { parse, YAMLParseError as YAMLLibParseError } from 'yaml';
-import type { BrandConfig } from './types';
+import type { BrandConfigInput } from './types';
 
 /**
  * Custom error for YAML parsing failures
@@ -62,10 +62,10 @@ export function validateConfig(config: Record<string, unknown>): boolean {
 
 /**
  * Load brand configuration from config/brand.yaml
- * @returns Partial<BrandConfig> if file exists, null if not found
+ * @returns BrandConfigInput if file exists, null if not found
  * @throws YAMLParseError if YAML syntax is invalid
  */
-export function loadYamlBrandConfig(): Partial<BrandConfig> | null {
+export function loadYamlBrandConfig(): BrandConfigInput | null {
   // Check if config file exists
   if (!fs.existsSync(YAML_PATH)) {
     return null;
@@ -90,7 +90,7 @@ export function loadYamlBrandConfig(): Partial<BrandConfig> | null {
     // Validate top-level keys
     validateConfig(parsed);
 
-    return parsed as Partial<BrandConfig>;
+    return parsed as BrandConfigInput;
   } catch (error) {
     if (error instanceof YAMLLibParseError) {
       throw new YAMLParseError(

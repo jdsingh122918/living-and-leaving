@@ -1,4 +1,4 @@
-import { BrandConfig } from './types';
+import { BrandConfig, BrandConfigInput } from './types';
 import { defaultBrandConfig } from './defaults';
 import partnerConfig from '@brand-config';
 
@@ -7,16 +7,16 @@ let brandConfig: BrandConfig | null = null;
 
 // Server-side only: YAML config loaded once at startup
 let yamlConfigLoaded = false;
-let yamlConfig: Partial<BrandConfig> | null = null;
+let yamlConfig: BrandConfigInput | null = null;
 
 // For testing: allows injecting a mock YAML loader
-let yamlLoaderOverride: (() => Partial<BrandConfig> | null) | null = null;
+let yamlLoaderOverride: (() => BrandConfigInput | null) | null = null;
 
 /**
  * For testing only: override the YAML loader function
  */
 export function _setYamlLoaderForTesting(
-  loader: (() => Partial<BrandConfig> | null) | null
+  loader: (() => BrandConfigInput | null) | null
 ): void {
   yamlLoaderOverride = loader;
 }
@@ -25,7 +25,7 @@ export function _setYamlLoaderForTesting(
  * Load YAML config (server-side only)
  * This is a separate function to isolate the dynamic import
  */
-function loadYamlConfigOnServer(): Partial<BrandConfig> | null {
+function loadYamlConfigOnServer(): BrandConfigInput | null {
   if (yamlConfigLoaded) {
     return yamlConfig;
   }
@@ -100,8 +100,8 @@ export function getBrandConfig(): BrandConfig {
  */
 function mergeConfigs(
   defaults: BrandConfig,
-  partner: Partial<BrandConfig>,
-  yaml: Partial<BrandConfig>
+  partner: BrandConfigInput,
+  yaml: BrandConfigInput
 ): BrandConfig {
   // First merge: defaults + partner
   const withPartner = mergeTwoConfigs(defaults, partner);
@@ -112,7 +112,7 @@ function mergeConfigs(
 /**
  * Deep merge two configs, with override taking precedence
  */
-function mergeTwoConfigs(base: BrandConfig, override: Partial<BrandConfig>): BrandConfig {
+function mergeTwoConfigs(base: BrandConfig, override: BrandConfigInput): BrandConfig {
   return {
     ...base,
     ...override,

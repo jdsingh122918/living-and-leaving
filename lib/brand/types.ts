@@ -96,3 +96,12 @@ export interface FeatureFlags {
   // Email Features
   emailNotifications: boolean;
 }
+
+/**
+ * Input type for partner brand overrides (brand.config.ts / brand.yaml).
+ * All fields are optional; features can be partially specified
+ * and will be merged with defaults at runtime.
+ */
+export type BrandConfigInput = Partial<Omit<BrandConfig, 'features'>> & {
+  features?: Partial<FeatureFlags>;
+};

@@ -4,9 +4,9 @@
  * This file is customized by each partner after forking.
  * See docs/PARTNER_SETUP.md for instructions.
  */
-import { BrandConfig } from "./lib/brand/types";
+import { BrandConfigInput } from "./lib/brand/types";
 
-const brandConfig: Partial<BrandConfig> = {
+const brandConfig: BrandConfigInput = {
   name: "Living & Leaving",
   shortName: "L&L",
   tagline: "Living fully, leaving gracefully",
