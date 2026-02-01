@@ -58,7 +58,8 @@ async function testModeMiddleware(request: NextRequest): Promise<NextResponse> {
     if (path.startsWith("/api/")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    return NextResponse.redirect(new URL("/sign-in", request.url));
+    // Redirect to test login page (sign-in page requires ClerkProvider)
+    return NextResponse.redirect(new URL("/api/auth/test-login", request.url));
   }
 
   // API routes just need authentication
