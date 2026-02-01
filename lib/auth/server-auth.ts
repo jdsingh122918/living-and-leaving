@@ -121,6 +121,10 @@ export async function auth() {
         },
       };
     }
+
+    // Test mode but no credentials — return unauthenticated
+    // (don't fall through to Clerk which would fail without clerkMiddleware)
+    return { userId: null, sessionClaims: null };
   }
 
   // Fall back to real Clerk auth
@@ -160,6 +164,9 @@ export async function currentUser() {
         };
       }
     }
+
+    // Test mode but no credentials — return null (not authenticated)
+    return null;
   }
 
   // Fall back to real Clerk currentUser
