@@ -6,12 +6,14 @@
 #   - staging:  Production-like build (1GB memory limit)
 #   - webhooks: ngrok tunnel for Clerk webhooks
 #   - seed:     Database seeding
+#   - localdev: Local development without Clerk (test users)
 #
 # Usage:
 #   ./docker/scripts/start.sh dev       # Development mode
 #   ./docker/scripts/start.sh staging   # Production-like mode
 #   ./docker/scripts/start.sh webhooks  # Dev + ngrok
 #   ./docker/scripts/start.sh seed      # Seed database
+#   ./docker/scripts/start.sh localdev   # Local dev without Clerk
 # =============================================================================
 
 name: villages
@@ -198,6 +200,85 @@ services:
       - villages-network
     profiles:
       - seed
+
+  # ===========================================================================
+  # Next.js Application - Local Dev Mode (no Clerk, test users)
+  # ===========================================================================
+  app-localdev:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: dev
+    container_name: villages-app-localdev
+    ports:
+      - "${VILLAGES_APP_PORT:-3000}:3000"
+    volumes:
+      - .:/app:cached
+      - /app/node_modules
+      - next_cache:/app/.next
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=mongodb://mongodb:27017/villages-dev?retryWrites=true&w=majority&replicaSet=rs0&directConnection=true
+      - INTEGRATION_TEST_MODE=true
+      - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_localdev_placeholder
+      - CLERK_SECRET_KEY=sk_test_localdev_placeholder
+      - CLERK_WEBHOOK_SECRET=whsec_localdev_placeholder
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - WATCHPACK_POLLING=true
+      - CHOKIDAR_USEPOLLING=true
+    depends_on:
+      mongodb-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    restart: unless-stopped
+    stop_grace_period: 30s
+    networks:
+      - villages-network
+    profiles:
+      - localdev
+
+  # ===========================================================================
+  # Test User & Tag Seeder (one-shot service for localdev)
+  # ===========================================================================
+  db-seed-users:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: dev
+    container_name: villages-db-seed-users
+    command: >
+      sh -c "
+        echo '========================================' &&
+        echo 'Seeding Test Users' &&
+        echo '========================================' &&
+        echo '' &&
+        echo '[1/2] Running Prisma schema push...' &&
+        npx prisma db push --skip-generate &&
+        echo '' &&
+        echo '[2/2] Seeding test users...' &&
+        npx tsx scripts/seed-test-users.ts &&
+        echo '' &&
+        echo 'Database seeding complete!' &&
+        echo '========================================'
+      "
+    environment:
+      - DATABASE_URL=mongodb://mongodb:27017/villages-dev?retryWrites=true&w=majority&replicaSet=rs0&directConnection=true
+    volumes:
+      - .:/app:cached
+      - /app/node_modules
+    depends_on:
+      mongodb-init:
+        condition: service_completed_successfully
+    networks:
+      - villages-network
+    profiles:
+      - localdev
+    restart: "no"
 
 # =============================================================================
 # Volumes

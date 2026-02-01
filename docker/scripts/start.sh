@@ -7,6 +7,7 @@
 #   ./docker/scripts/start.sh staging   # Production-like build
 #   ./docker/scripts/start.sh webhooks  # Dev + ngrok for Clerk webhooks
 #   ./docker/scripts/start.sh seed      # Seed database
+#   ./docker/scripts/start.sh localdev   # Local dev without Clerk (test users)
 #   ./docker/scripts/start.sh stop      # Stop all containers
 #   ./docker/scripts/start.sh clean     # Stop and remove volumes
 #   ./docker/scripts/start.sh logs      # View logs
@@ -192,9 +193,49 @@ case $PROFILE in
         echo -e "${GREEN}Database seeding complete!${NC}"
         ;;
 
+    localdev)
+        echo -e "${GREEN}Starting local development environment (no Clerk required)...${NC}"
+        echo ""
+        resolve_ports || exit 1
+        export_port_env
+
+        # Start MongoDB + app with test mode
+        docker compose --profile localdev up -d --build
+
+        echo ""
+        echo -e "${CYAN}Waiting for MongoDB to be ready...${NC}"
+        # Wait for mongodb-init to complete
+        docker compose wait villages-mongodb-init 2>/dev/null || sleep 10
+
+        echo -e "${CYAN}Seeding test users and healthcare data...${NC}"
+        # Run the seed service (it will exit when done)
+        docker compose run --rm db-seed-users
+
+        save_port_state
+        echo ""
+        echo -e "${GREEN}============================================${NC}"
+        echo -e "${GREEN}  Local Development Environment Ready!${NC}"
+        echo -e "${GREEN}============================================${NC}"
+        echo ""
+        echo -e "${CYAN}Application:${NC}  http://localhost:$APP_PORT"
+        echo -e "${CYAN}Database:${NC}     villages-dev"
+        echo ""
+        echo -e "${CYAN}Test User Login URLs:${NC}"
+        echo -e "  Admin:      ${GREEN}http://localhost:$APP_PORT/api/auth/test-login?user=test_admin_001${NC}"
+        echo -e "  Volunteer:  ${GREEN}http://localhost:$APP_PORT/api/auth/test-login?user=test_volunteer_001${NC}"
+        echo -e "  Member:     ${GREEN}http://localhost:$APP_PORT/api/auth/test-login?user=test_member_001${NC}"
+        echo ""
+        echo -e "  Logout:     http://localhost:$APP_PORT/api/auth/test-login?action=logout"
+        echo ""
+        echo "Commands:"
+        echo "  ./docker/scripts/start.sh logs app-localdev  - View application logs"
+        echo "  ./docker/scripts/start.sh stop               - Stop containers"
+        echo "  ./docker/scripts/start.sh status             - Show container status"
+        ;;
+
     stop)
         echo -e "${YELLOW}Stopping all containers...${NC}"
-        docker compose --profile dev --profile staging --profile webhooks down
+        docker compose --profile dev --profile staging --profile webhooks --profile localdev down
         clear_port_state
         echo ""
         echo -e "${GREEN}All containers stopped.${NC}"
@@ -204,7 +245,7 @@ case $PROFILE in
 
     clean)
         echo -e "${RED}Stopping and removing all containers and volumes...${NC}"
-        docker compose --profile dev --profile staging --profile webhooks down -v --remove-orphans
+        docker compose --profile dev --profile staging --profile webhooks --profile localdev down -v --remove-orphans
         clear_port_state
         echo ""
         echo -e "${GREEN}Cleanup complete.${NC}"
@@ -241,6 +282,7 @@ case $PROFILE in
         echo "  staging   Start staging environment (production-like build)"
         echo "  webhooks  Start development with ngrok for Clerk webhooks"
         echo "  seed      Seed the database with healthcare tags"
+        echo "  localdev   Start local dev without Clerk (uses test users)"
         echo "  stop      Stop all containers (preserves data)"
         echo "  clean     Stop containers and remove all data"
         echo "  logs      View logs (optional: specify service name)"
@@ -248,6 +290,7 @@ case $PROFILE in
         echo ""
         echo "Examples:"
         echo "  ./docker/scripts/start.sh dev"
+        echo "  ./docker/scripts/start.sh localdev"
         echo "  ./docker/scripts/start.sh logs mongodb"
         exit 1
         ;;
