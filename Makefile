@@ -1,18 +1,95 @@
 # Villages Makefile
-# E2E Test Commands with parallelism support
+# Local Development & E2E Test Commands
 
+.PHONY: localdev localdev-stop localdev-clean localdev-logs localdev-status localdev-seed
+.PHONY: dev staging seed stop clean logs status
 .PHONY: test-smoke test-e2e test-e2e-parallel test-e2e-shard test-e2e-ui test-e2e-report clean-e2e help
 
 # Default target
 help:
-	@echo "Available targets:"
-	@echo "  test-smoke        - Run smoke tests (~3-5 min, critical path only)"
-	@echo "  test-e2e          - Run full test suite (sequential, stable)"
-	@echo "  test-e2e-parallel - Run full test suite (4 workers, experimental)"
-	@echo "  test-e2e-shard    - Run sharded tests for CI (usage: make test-e2e-shard SHARD=1/4)"
-	@echo "  test-e2e-ui       - Run tests in interactive UI mode"
-	@echo "  test-e2e-report   - Open HTML test report"
-	@echo "  clean-e2e         - Clean up E2E test resources (processes, containers, files)"
+	@echo ""
+	@echo "Local Development (no Clerk required):"
+	@echo "  make localdev       - Start local dev environment with test users"
+	@echo "  make localdev-stop  - Stop local dev (keep data)"
+	@echo "  make localdev-clean - Stop local dev and remove all data"
+	@echo "  make localdev-logs  - Tail application logs"
+	@echo "  make localdev-seed  - Re-seed test users into running environment"
+	@echo "  make localdev-status - Show container status"
+	@echo ""
+	@echo "Docker (requires Clerk keys in .env.local):"
+	@echo "  make dev            - Start dev environment with hot reload"
+	@echo "  make staging        - Start staging environment"
+	@echo "  make seed           - Seed healthcare tags"
+	@echo "  make stop           - Stop all containers"
+	@echo "  make clean          - Stop all containers and remove data"
+	@echo "  make logs           - Tail application logs"
+	@echo "  make status         - Show container status"
+	@echo ""
+	@echo "E2E Tests:"
+	@echo "  make test-smoke        - Run smoke tests (~3-5 min, critical path only)"
+	@echo "  make test-e2e          - Run full test suite (sequential, stable)"
+	@echo "  make test-e2e-parallel - Run full test suite (4 workers, experimental)"
+	@echo "  make test-e2e-shard    - Run sharded tests for CI (usage: make test-e2e-shard SHARD=1/4)"
+	@echo "  make test-e2e-ui       - Run tests in interactive UI mode"
+	@echo "  make test-e2e-report   - Open HTML test report"
+	@echo "  make clean-e2e         - Clean up E2E test resources"
+
+# =============================================================================
+# Local Development (no Clerk required)
+# =============================================================================
+
+# Start local dev: MongoDB + app + test users, no Clerk keys needed
+localdev:
+	./docker/scripts/start.sh localdev
+
+# Stop local dev containers (data preserved in volumes)
+localdev-stop:
+	./docker/scripts/localdev-stop.sh
+
+# Stop local dev and remove all data
+localdev-clean:
+	./docker/scripts/localdev-stop.sh clean
+
+# Tail local dev application logs
+localdev-logs:
+	./docker/scripts/start.sh logs app-localdev
+
+# Show container status and ports
+localdev-status:
+	./docker/scripts/start.sh status
+
+# Re-seed test users into a running localdev environment
+localdev-seed:
+	docker compose run --rm db-seed-users
+
+# =============================================================================
+# Docker (requires Clerk keys)
+# =============================================================================
+
+dev:
+	./docker/scripts/start.sh dev
+
+staging:
+	./docker/scripts/start.sh staging
+
+seed:
+	./docker/scripts/start.sh seed
+
+stop:
+	./docker/scripts/start.sh stop
+
+clean:
+	./docker/scripts/start.sh clean
+
+logs:
+	./docker/scripts/start.sh logs
+
+status:
+	./docker/scripts/start.sh status
+
+# =============================================================================
+# E2E Tests
+# =============================================================================
 
 # Quick smoke tests (~3-5 min) - critical path validation
 # Tests auth, dashboards, and core features load correctly
