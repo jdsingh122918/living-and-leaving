@@ -220,6 +220,7 @@ services:
       - NODE_ENV=development
       - DATABASE_URL=mongodb://mongodb:27017/villages-dev?retryWrites=true&w=majority&replicaSet=rs0&directConnection=true
       - INTEGRATION_TEST_MODE=true
+      - NEXT_PUBLIC_INTEGRATION_TEST_MODE=true
       - NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_localdev_placeholder
       - CLERK_SECRET_KEY=sk_test_localdev_placeholder
       - CLERK_WEBHOOK_SECRET=whsec_localdev_placeholder

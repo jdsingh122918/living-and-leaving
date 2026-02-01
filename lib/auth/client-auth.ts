@@ -8,6 +8,11 @@
  *
  * Security: Bypass is ONLY available when test cookies are present
  * and we're in a browser context (not production deployment).
+ *
+ * When NEXT_PUBLIC_INTEGRATION_TEST_MODE=true, ClerkProvider is not
+ * rendered (see testable-clerk-provider.tsx), so Clerk hooks cannot
+ * be called. The hooks below check isTestEnv (a build-time constant)
+ * and skip Clerk hook calls entirely in that case.
  */
 
 import {
@@ -15,6 +20,9 @@ import {
   useUser as useClerkUser,
 } from "@clerk/nextjs";
 import { useSyncExternalStore, useMemo } from "react";
+
+// Build-time constant: when true, ClerkProvider is not available
+const isTestEnv = process.env.NEXT_PUBLIC_INTEGRATION_TEST_MODE === "true";
 
 // Test cookie names matching e2e/fixtures/auth.fixture.ts
 const TEST_USER_ID_COOKIE = "__test_user_id";
@@ -87,6 +95,10 @@ function getServerSnapshot(): {
  *
  * In test mode (when test cookies are present), returns mock auth state.
  * Otherwise falls back to real Clerk useAuth.
+ *
+ * When isTestEnv is true (build-time constant), Clerk hooks are skipped
+ * entirely because ClerkProvider is not rendered. The branch taken is
+ * always the same per build, so Rules of Hooks is satisfied.
  */
 export function useAuth() {
   const testMode = useSyncExternalStore(
@@ -95,11 +107,52 @@ export function useAuth() {
     getServerSnapshot,
   );
 
-  // Always call the Clerk hook to follow rules of hooks
-  // ClerkProvider is always present (TestableClerkProvider always renders it)
+  // When ClerkProvider is not available (test env), skip Clerk hooks entirely
+  if (isTestEnv) {
+    if (testMode.isTestMode) {
+      return {
+        isLoaded: true,
+        isSignedIn: true,
+        userId: testMode.userId,
+        sessionId: `test-session-${testMode.userId}`,
+        sessionClaims: {
+          metadata: { role: testMode.role },
+          sub: testMode.userId,
+        },
+        orgId: null,
+        orgRole: null,
+        orgSlug: null,
+        actor: null,
+        getToken: async () => `test-token-${testMode.userId}`,
+        signOut: async () => {
+          console.log("[useAuth] Mock signOut called");
+        },
+        has: () => true,
+      };
+    }
+    // Test env but no cookies yet (e.g. before login)
+    return {
+      isLoaded: true,
+      isSignedIn: false,
+      userId: null,
+      sessionId: null,
+      sessionClaims: null,
+      orgId: null,
+      orgRole: null,
+      orgSlug: null,
+      actor: null,
+      getToken: async () => null,
+      signOut: async () => {},
+      has: () => false,
+    };
+  }
+
+  // Normal mode: ClerkProvider IS available
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const clerkAuth = useClerkAuth();
 
   // Memoize mock auth to prevent unnecessary re-renders
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const mockAuth = useMemo(
     () => ({
       isLoaded: true,
@@ -142,9 +195,6 @@ export function useUser() {
     getServerSnapshot,
   );
 
-  // Always call the Clerk hook to follow rules of hooks
-  const clerkUser = useClerkUser();
-
   // Map test user IDs to user data
   const testUsers: Record<
     string,
@@ -167,7 +217,39 @@ export function useUser() {
     },
   };
 
+  // When ClerkProvider is not available (test env), skip Clerk hooks entirely
+  if (isTestEnv) {
+    if (testMode.isTestMode) {
+      const userData = testUsers[testMode.userId || ""] || {
+        firstName: "Test",
+        lastName: "User",
+        email: "test@test.villages.local",
+      };
+      return {
+        isLoaded: true,
+        isSignedIn: true,
+        user: {
+          id: testMode.userId,
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          fullName: `${userData.firstName} ${userData.lastName}`,
+          emailAddresses: [{ emailAddress: userData.email }],
+          primaryEmailAddress: { emailAddress: userData.email },
+          imageUrl: null,
+          publicMetadata: { role: testMode.role },
+        },
+      };
+    }
+    // Test env but no cookies yet
+    return { isLoaded: true, isSignedIn: false, user: null };
+  }
+
+  // Normal mode: ClerkProvider IS available
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const clerkUser = useClerkUser();
+
   // Memoize mock user to prevent unnecessary re-renders
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   const mockUser = useMemo(() => {
     const userData = testUsers[testMode.userId || ""] || {
       firstName: "Test",
