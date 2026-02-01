@@ -1,7 +1,5 @@
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { UserRole, canAccessRoute, getDefaultRoute } from "@/lib/auth/roles";
-import { prisma } from "@/lib/db/prisma";
 
 /**
  * NEXT.JS 16 COMPATIBILITY NOTE:
@@ -13,381 +11,303 @@ import { prisma } from "@/lib/db/prisma";
  * 2. clerkMiddleware provides stable authentication handling
  * 3. File naming is future-proof for when Clerk adds full proxy support
  *
- * TODO: Monitor Clerk releases for native proxy() function support
- * TODO: Migrate to `export function proxy()` when Clerk documentation confirms support
- *
- * See: https://nextjs.org/docs/messages/middleware-to-proxy
- * See: https://clerk.com/docs (check for proxy.ts examples)
+ * INTEGRATION_TEST_MODE:
+ * When enabled, Clerk imports are skipped entirely (via dynamic import) to
+ * avoid publishable key validation errors with placeholder keys. Auth is
+ * handled via test cookies (__test_user_id, __test_user_role).
  */
 
-// Define public routes that don't require authentication
-const isPublicRoute = createRouteMatcher([
-  "/",
-  "/sign-in(.*)",
-  "/verify(.*)",
-  "/api/webhooks/clerk(.*)",
-  "/api/debug/auth(.*)",
-  "/api/debug/database(.*)",
-  "/api/debug/sync-user(.*)",
-  "/api/debug/reset-database(.*)",
-  "/api/debug/webhook-test(.*)",
-  "/api/health(.*)", // Docker health checks
-]);
+const isTestMode = process.env.INTEGRATION_TEST_MODE === "true";
 
-// Define role-specific route matchers
-const isAdminRoute = createRouteMatcher(["/admin(.*)"]);
-const isVolunteerRoute = createRouteMatcher(["/volunteer(.*)"]);
-const isMemberRoute = createRouteMatcher(["/member(.*)"]);
+// Public route patterns (used by test mode middleware)
+const PUBLIC_ROUTE_PATTERNS = [
+  /^\/$/,
+  /^\/sign-in/,
+  /^\/verify/,
+  /^\/api\/webhooks\/clerk/,
+  /^\/api\/debug\//,
+  /^\/api\/health/,
+  /^\/api\/auth\/test-login/,
+];
 
-export default clerkMiddleware(async (auth, request) => {
+function isPublicPath(path: string): boolean {
+  return PUBLIC_ROUTE_PATTERNS.some((pattern) => pattern.test(path));
+}
+
+// =============================================================================
+// Test Mode Middleware (no Clerk dependency)
+// =============================================================================
+
+async function testModeMiddleware(request: NextRequest): Promise<NextResponse> {
   const path = request.nextUrl.pathname;
 
-  // Test mode: Extract mock authentication from test headers/cookies
-  const isTestMode = process.env.INTEGRATION_TEST_MODE === "true";
-  let userId: string | null = null;
-  let sessionClaims: any = null;
-
-  if (isTestMode) {
-    // Extract test user from test header or cookie
-    const testUserId =
-      request.headers.get("X-Test-User-Id") ||
-      request.cookies.get("__test_user_id")?.value;
-    const testUserRole =
-      request.headers.get("X-Test-User-Role") ||
-      request.cookies.get("__test_user_role")?.value;
-
-    if (testUserId && testUserRole) {
-      userId = testUserId;
-      sessionClaims = {
-        metadata: {
-          role: testUserRole,
-          userId: testUserId,
-        },
-        sub: testUserId,
-      };
-
-      console.log("🧪 Test Mode Auth:", {
-        path,
-        userId,
-        role: testUserRole,
-      });
-
-      // In test mode with test cookies, skip Clerk validation
-      // Continue with test auth instead of calling auth()
-    } else {
-      // Test mode but no test cookies - try Clerk auth (might fail, but that's ok)
-      try {
-        const authResult = await auth();
-        userId = authResult.userId;
-        sessionClaims = authResult.sessionClaims;
-      } catch (error) {
-        // Clerk validation failed in test mode - this is expected
-        console.log("🧪 Test Mode: Clerk auth failed (expected):", error);
-      }
-    }
-  } else {
-    // Normal mode: use Clerk auth
-    const authResult = await auth();
-    userId = authResult.userId;
-    sessionClaims = authResult.sessionClaims;
-  }
-
-  console.log("🔒 Middleware Debug:", {
-    path,
-    userId: userId ? "present" : "missing",
-    sessionClaims: sessionClaims ? "present" : "missing",
-    metadata: sessionClaims?.metadata,
-    testMode: isTestMode,
-  });
-
   // Allow public routes
-  if (isPublicRoute(request)) {
-    console.log("✅ Public route access:", path);
+  if (isPublicPath(path)) {
     return NextResponse.next();
   }
 
-  // Handle API routes specially - return JSON 401 instead of redirecting
-  if (path.startsWith("/api/")) {
-    // Require authentication for protected API routes
-    if (!userId) {
-      console.log("❌ API route unauthorized:", path);
+  // Read test credentials from headers or cookies
+  const userId =
+    request.headers.get("X-Test-User-Id") ||
+    request.cookies.get("__test_user_id")?.value;
+  const userRole = (request.headers.get("X-Test-User-Role") ||
+    request.cookies.get("__test_user_role")?.value) as UserRole | undefined;
+
+  // Not authenticated
+  if (!userId || !userRole) {
+    if (path.startsWith("/api/")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    // For API routes, check if user exists in database and auto-sync if needed
-    try {
-      const dbUser = await prisma.user.findUnique({
-        where: { clerkId: userId },
-        select: { role: true, id: true, email: true },
-      });
-
-      if (!dbUser) {
-        console.log(
-          "⚠️  API route: User not found in database, attempting auto-sync..."
-        );
-
-        try {
-          // Auto-sync user from Clerk to database
-          const clerkUser = await fetch(
-            `https://api.clerk.com/v1/users/${userId}`,
-            {
-              headers: {
-                Authorization: `Bearer ${process.env.CLERK_SECRET_KEY}`,
-                "Content-Type": "application/json",
-              },
-            }
-          ).then((res) => res.json());
-
-          if (clerkUser && clerkUser.email_addresses?.[0]?.email_address) {
-            // Import UserRepository locally to avoid circular dependencies
-            const { UserRepository } = await import(
-              "@/lib/db/repositories/user.repository"
-            );
-            const { UserRole } = await import("@/lib/auth/roles");
-            const userRepository = new UserRepository();
-
-            // Extract role from Clerk metadata or default to MEMBER
-            const role =
-              clerkUser.public_metadata?.role ||
-              clerkUser.private_metadata?.role ||
-              clerkUser.unsafe_metadata?.role ||
-              UserRole.MEMBER;
-
-            // Create user in database
-            const newUser = await userRepository.createUser({
-              clerkId: userId,
-              email: clerkUser.email_addresses[0].email_address,
-              firstName: clerkUser.first_name || undefined,
-              lastName: clerkUser.last_name || undefined,
-              role: role as UserRole,
-              phoneNumber:
-                clerkUser.phone_numbers?.[0]?.phone_number || undefined,
-            });
-
-            console.log("✅ API route auto-sync successful:", {
-              userId: newUser.id,
-              email: newUser.email,
-              role: newUser.role,
-            });
-          }
-        } catch (syncError) {
-          console.error("❌ API route auto-sync failed:", syncError);
-        }
-      } else {
-        console.log("✅ API route: User found in database:", {
-          userId: dbUser.id,
-          email: dbUser.email,
-          role: dbUser.role,
-        });
-      }
-    } catch (error) {
-      console.error("❌ API route database check failed:", error);
-    }
-
-    // API routes don't need role-based routing, just authentication
-    console.log("✅ API route authorized:", path);
-    return NextResponse.next();
-  }
-
-  // Require authentication for protected non-API routes
-  if (!userId) {
-    console.log("❌ No userId, redirecting to sign-in");
     return NextResponse.redirect(new URL("/sign-in", request.url));
   }
 
-  // Extract user role from session claims
-  // NOTE: This requires session token customization in Clerk Dashboard
-  const userRole = (sessionClaims?.metadata as { role?: string })
-    ?.role as UserRole;
-
-  // Enhanced logging for debugging session claims
-  console.log("👤 User role extracted:", {
-    userRole,
-    userRoleType: typeof userRole,
-    metadata: sessionClaims?.metadata,
-    hasSessionClaims: !!sessionClaims,
-    hasMetadata: !!sessionClaims?.metadata,
-  });
-
-  // Check if session token customization is missing
-  if (sessionClaims && !sessionClaims.metadata) {
-    console.error(
-      "⚠️  CONFIGURATION ERROR: Session token metadata is undefined!"
-    );
-    console.error(
-      "📋 Required fix: In Clerk Dashboard → Sessions → Customize session token"
-    );
-    console.error('📋 Add this JSON: {"metadata": {{user.public_metadata}}}');
-    console.error(
-      "🔄 After adding, users will need to sign out and back in for new tokens"
-    );
+  // API routes just need authentication
+  if (path.startsWith("/api/")) {
+    return NextResponse.next();
   }
 
-  // Enhanced fallback mechanism for missing or invalid roles
-  let finalUserRole = userRole;
+  // Handle dashboard redirect
+  if (path === "/dashboard") {
+    const defaultRoute = getDefaultRoute(userRole);
+    return NextResponse.redirect(new URL(defaultRoute, request.url));
+  }
 
-  if (!userRole) {
-    console.log(
-      "⚠️  No user role found in session token, attempting database fallback"
-    );
+  // Role-based access control
+  if (!canAccessRoute(userRole, path)) {
+    const defaultRoute = getDefaultRoute(userRole);
+    return NextResponse.redirect(new URL(defaultRoute, request.url));
+  }
 
-    try {
-      // Fallback: Query database for user role
-      const dbUser = await prisma.user.findUnique({
-        where: { clerkId: userId },
-        select: { role: true, id: true, email: true },
-      });
+  return NextResponse.next();
+}
 
-      if (dbUser?.role) {
-        finalUserRole = dbUser.role as UserRole;
-        console.log("✅ Database fallback successful:", {
-          userId: dbUser.id,
-          email: dbUser.email,
-          roleFromDb: finalUserRole,
-        });
-      } else {
-        console.log("⚠️  User not found in database, attempting auto-sync...");
+// =============================================================================
+// Clerk Middleware (lazy-loaded to avoid module-level key validation)
+// =============================================================================
 
-        try {
-          // Auto-sync user from Clerk to database
-          const clerkUser = await fetch(
-            `https://api.clerk.com/v1/users/${userId}`,
-            {
-              headers: {
-                Authorization: `Bearer ${process.env.CLERK_SECRET_KEY}`,
-                "Content-Type": "application/json",
-              },
-            }
-          ).then((res) => res.json());
+let _clerkHandler: ((req: NextRequest, event: any) => any) | null = null;
 
-          if (clerkUser && clerkUser.email_addresses?.[0]?.email_address) {
-            // Import UserRepository locally to avoid circular dependencies
-            const { UserRepository } = await import(
-              "@/lib/db/repositories/user.repository"
-            );
-            const { UserRole } = await import("@/lib/auth/roles");
-            const userRepository = new UserRepository();
+async function getClerkHandler() {
+  if (_clerkHandler) return _clerkHandler;
 
-            // Extract role from Clerk metadata or default to MEMBER
-            const role =
-              clerkUser.public_metadata?.role ||
-              clerkUser.private_metadata?.role ||
-              clerkUser.unsafe_metadata?.role ||
-              UserRole.MEMBER;
+  const { clerkMiddleware, createRouteMatcher } = await import(
+    "@clerk/nextjs/server"
+  );
+  const { prisma } = await import("@/lib/db/prisma");
 
-            // Create user in database
-            const newUser = await userRepository.createUser({
-              clerkId: userId,
-              email: clerkUser.email_addresses[0].email_address,
-              firstName: clerkUser.first_name || undefined,
-              lastName: clerkUser.last_name || undefined,
-              role: role as UserRole,
-              phoneNumber:
-                clerkUser.phone_numbers?.[0]?.phone_number || undefined,
-            });
+  const isPublicRoute = createRouteMatcher([
+    "/",
+    "/sign-in(.*)",
+    "/verify(.*)",
+    "/api/webhooks/clerk(.*)",
+    "/api/debug/auth(.*)",
+    "/api/debug/database(.*)",
+    "/api/debug/sync-user(.*)",
+    "/api/debug/reset-database(.*)",
+    "/api/debug/webhook-test(.*)",
+    "/api/health(.*)",
+    "/api/auth/test-login(.*)",
+  ]);
 
-            finalUserRole = newUser.role as UserRole;
-            console.log("✅ Auto-sync successful:", {
-              userId: newUser.id,
-              email: newUser.email,
-              roleFromSync: finalUserRole,
-            });
-          }
-        } catch (syncError) {
-          console.error("❌ Auto-sync failed:", syncError);
-        }
-      }
-    } catch (error) {
-      console.error("❌ Database fallback failed:", error);
+  const isAdminRoute = createRouteMatcher(["/admin(.*)"]);
+  const isVolunteerRoute = createRouteMatcher(["/volunteer(.*)"]);
+
+  _clerkHandler = clerkMiddleware(async (auth, request) => {
+    const path = request.nextUrl.pathname;
+
+    const authResult = await auth();
+    const userId = authResult.userId;
+    const sessionClaims = authResult.sessionClaims;
+
+    // Allow public routes
+    if (isPublicRoute(request)) {
+      return NextResponse.next();
     }
 
-    // If still no role after database fallback, apply default logic
-    if (!finalUserRole) {
-      console.log("🔄 No role found anywhere, applying default member access");
+    // Handle API routes - return JSON 401 instead of redirecting
+    if (path.startsWith("/api/")) {
+      if (!userId) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
 
-      // For new users without a role, default to member dashboard
-      if (path === "/dashboard") {
-        console.log("🔄 Redirecting to member dashboard (no role)");
+      // Auto-sync user to database if needed
+      try {
+        const dbUser = await prisma.user.findUnique({
+          where: { clerkId: userId },
+          select: { role: true, id: true, email: true },
+        });
+
+        if (!dbUser) {
+          try {
+            const clerkUser = await fetch(
+              `https://api.clerk.com/v1/users/${userId}`,
+              {
+                headers: {
+                  Authorization: `Bearer ${process.env.CLERK_SECRET_KEY}`,
+                  "Content-Type": "application/json",
+                },
+              }
+            ).then((res) => res.json());
+
+            if (clerkUser && clerkUser.email_addresses?.[0]?.email_address) {
+              const { UserRepository } = await import(
+                "@/lib/db/repositories/user.repository"
+              );
+              const { UserRole } = await import("@/lib/auth/roles");
+              const userRepository = new UserRepository();
+
+              const role =
+                clerkUser.public_metadata?.role ||
+                clerkUser.private_metadata?.role ||
+                clerkUser.unsafe_metadata?.role ||
+                UserRole.MEMBER;
+
+              await userRepository.createUser({
+                clerkId: userId,
+                email: clerkUser.email_addresses[0].email_address,
+                firstName: clerkUser.first_name || undefined,
+                lastName: clerkUser.last_name || undefined,
+                role: role as UserRole,
+                phoneNumber:
+                  clerkUser.phone_numbers?.[0]?.phone_number || undefined,
+              });
+            }
+          } catch (syncError) {
+            console.error("API route auto-sync failed:", syncError);
+          }
+        }
+      } catch (error) {
+        console.error("API route database check failed:", error);
+      }
+
+      return NextResponse.next();
+    }
+
+    // Require authentication for protected routes
+    if (!userId) {
+      return NextResponse.redirect(new URL("/sign-in", request.url));
+    }
+
+    // Extract role from session claims
+    const userRole = (sessionClaims?.metadata as { role?: string })
+      ?.role as UserRole;
+
+    let finalUserRole = userRole;
+
+    // Database fallback for missing role
+    if (!userRole) {
+      try {
+        const dbUser = await prisma.user.findUnique({
+          where: { clerkId: userId },
+          select: { role: true, id: true, email: true },
+        });
+
+        if (dbUser?.role) {
+          finalUserRole = dbUser.role as UserRole;
+        } else {
+          try {
+            const clerkUser = await fetch(
+              `https://api.clerk.com/v1/users/${userId}`,
+              {
+                headers: {
+                  Authorization: `Bearer ${process.env.CLERK_SECRET_KEY}`,
+                  "Content-Type": "application/json",
+                },
+              }
+            ).then((res) => res.json());
+
+            if (clerkUser && clerkUser.email_addresses?.[0]?.email_address) {
+              const { UserRepository } = await import(
+                "@/lib/db/repositories/user.repository"
+              );
+              const { UserRole } = await import("@/lib/auth/roles");
+              const userRepository = new UserRepository();
+
+              const role =
+                clerkUser.public_metadata?.role ||
+                clerkUser.private_metadata?.role ||
+                clerkUser.unsafe_metadata?.role ||
+                UserRole.MEMBER;
+
+              const newUser = await userRepository.createUser({
+                clerkId: userId,
+                email: clerkUser.email_addresses[0].email_address,
+                firstName: clerkUser.first_name || undefined,
+                lastName: clerkUser.last_name || undefined,
+                role: role as UserRole,
+                phoneNumber:
+                  clerkUser.phone_numbers?.[0]?.phone_number || undefined,
+              });
+
+              finalUserRole = newUser.role as UserRole;
+            }
+          } catch (syncError) {
+            console.error("Auto-sync failed:", syncError);
+          }
+        }
+      } catch (error) {
+        console.error("Database fallback failed:", error);
+      }
+
+      // Default to member if no role found
+      if (!finalUserRole) {
+        if (path === "/dashboard") {
+          return NextResponse.redirect(new URL("/member", request.url));
+        }
+        if (path.startsWith("/member")) {
+          return NextResponse.next();
+        }
         return NextResponse.redirect(new URL("/member", request.url));
       }
-
-      // Allow access to member routes for users without roles
-      if (path.startsWith("/member")) {
-        console.log("✅ Allowing access to member route (no role)");
-        return NextResponse.next();
-      }
-
-      // Redirect other routes to member dashboard
-      console.log("🔄 Redirecting to member dashboard (default)");
-      return NextResponse.redirect(new URL("/member", request.url));
     }
-  }
 
-  // Handle root dashboard redirect
-  if (path === "/dashboard") {
-    const defaultRoute = getDefaultRoute(finalUserRole);
-    console.log("🏠 Dashboard redirect:", { finalUserRole, defaultRoute });
-    return NextResponse.redirect(new URL(defaultRoute, request.url));
-  }
+    // Handle dashboard redirect
+    if (path === "/dashboard") {
+      const defaultRoute = getDefaultRoute(finalUserRole);
+      return NextResponse.redirect(new URL(defaultRoute, request.url));
+    }
 
-  // Role-based access control using final resolved role
-  const hasRouteAccess = canAccessRoute(finalUserRole, path);
-  console.log("🔐 Route access check:", {
-    originalUserRole: userRole,
-    finalUserRole,
-    path,
-    hasRouteAccess,
-    source: userRole ? "session token" : "database fallback",
+    // Role-based access control
+    if (!canAccessRoute(finalUserRole, path)) {
+      const defaultRoute = getDefaultRoute(finalUserRole);
+      return NextResponse.redirect(new URL(defaultRoute, request.url));
+    }
+
+    if (isAdminRoute(request) && finalUserRole !== UserRole.ADMIN) {
+      const defaultRoute = getDefaultRoute(finalUserRole);
+      return NextResponse.redirect(new URL(defaultRoute, request.url));
+    }
+
+    if (
+      isVolunteerRoute(request) &&
+      finalUserRole !== UserRole.VOLUNTEER &&
+      finalUserRole !== UserRole.ADMIN
+    ) {
+      const defaultRoute = getDefaultRoute(finalUserRole);
+      return NextResponse.redirect(new URL(defaultRoute, request.url));
+    }
+
+    return NextResponse.next();
   });
 
-  if (!hasRouteAccess) {
-    const defaultRoute = getDefaultRoute(finalUserRole);
-    console.log("❌ Access denied, redirecting:", { to: defaultRoute });
-    return NextResponse.redirect(new URL(defaultRoute, request.url));
+  return _clerkHandler;
+}
+
+// =============================================================================
+// Middleware entry point
+// =============================================================================
+
+export default async function middleware(
+  request: NextRequest,
+  event: any
+): Promise<NextResponse> {
+  if (isTestMode) {
+    return testModeMiddleware(request);
   }
 
-  // Additional specific route checks using final role
-  if (isAdminRoute(request) && finalUserRole !== UserRole.ADMIN) {
-    console.log("❌ Admin route check failed:", {
-      finalUserRole,
-      expected: UserRole.ADMIN,
-    });
-    const defaultRoute = getDefaultRoute(finalUserRole);
-    return NextResponse.redirect(new URL(defaultRoute, request.url));
-  }
-
-  if (
-    isVolunteerRoute(request) &&
-    finalUserRole !== UserRole.VOLUNTEER &&
-    finalUserRole !== UserRole.ADMIN
-  ) {
-    console.log("❌ Volunteer route check failed:", {
-      finalUserRole,
-      allowedRoles: [UserRole.VOLUNTEER, UserRole.ADMIN],
-    });
-    const defaultRoute = getDefaultRoute(finalUserRole);
-    return NextResponse.redirect(new URL(defaultRoute, request.url));
-  }
-
-  // Check if user can access the requested route based on their role permissions
-  if (finalUserRole && !canAccessRoute(finalUserRole, path)) {
-    console.log("❌ Route access denied:", {
-      finalUserRole,
-      path,
-      redirectingTo: getDefaultRoute(finalUserRole),
-    });
-    const defaultRoute = getDefaultRoute(finalUserRole);
-    return NextResponse.redirect(new URL(defaultRoute, request.url));
-  }
-
-  console.log("✅ Access granted:", {
-    originalUserRole: userRole,
-    finalUserRole,
-    path,
-    roleSource: userRole ? "session token" : "database fallback",
-  });
-  return NextResponse.next();
-});
+  const handler = await getClerkHandler();
+  return handler(request, event);
+}
 
 export const config = {
   matcher: [
