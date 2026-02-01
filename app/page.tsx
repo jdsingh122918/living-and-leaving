@@ -12,6 +12,9 @@ export default async function HomePage() {
     redirect(defaultRoute)
   }
 
-  // If user is not authenticated, redirect to sign-in
+  // If user is not authenticated, redirect to sign-in (or test login in test mode)
+  if (process.env.INTEGRATION_TEST_MODE === 'true') {
+    redirect('/api/auth/test-login')
+  }
   redirect('/sign-in')
 }
