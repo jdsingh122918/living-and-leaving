@@ -1,4 +1,4 @@
-import { useUser } from "@clerk/nextjs";
+import { useUser } from "@/lib/auth/client-auth";
 import { useMemo, useCallback } from "react";
 import {
   AccessLevel,

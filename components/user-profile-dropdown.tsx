@@ -19,7 +19,6 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { useClerk } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
 
 interface UserInfo {
@@ -34,10 +33,22 @@ interface UserProfileDropdownProps {
   userRole?: UserRole
 }
 
+const isTestEnv = process.env.NEXT_PUBLIC_INTEGRATION_TEST_MODE === 'true'
+
 export function UserProfileDropdown({ user, userRole }: UserProfileDropdownProps) {
-  const { signOut } = useClerk()
   const router = useRouter()
   const [isMounted, setIsMounted] = useState(false)
+
+  // Only call useClerk when ClerkProvider is available (non-test mode)
+  // isTestEnv is a build-time constant so the branch is always the same
+  let clerkSignOut: ((callback?: () => void) => Promise<void>) | null = null
+  if (!isTestEnv) {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, react-hooks/rules-of-hooks
+    const { useClerk } = require('@clerk/nextjs')
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const { signOut } = useClerk()
+    clerkSignOut = signOut
+  }
 
   useEffect(() => {
     setIsMounted(true)
@@ -56,7 +67,13 @@ export function UserProfileDropdown({ user, userRole }: UserProfileDropdownProps
       : user?.email?.[0]?.toUpperCase() || 'U'
 
   const handleSignOut = async () => {
-    await signOut(() => router.push('/sign-in'))
+    if (isTestEnv) {
+      router.push('/api/auth/test-login?action=logout')
+      return
+    }
+    if (clerkSignOut) {
+      await clerkSignOut(() => router.push('/sign-in'))
+    }
   }
 
   if (!isMounted) {
