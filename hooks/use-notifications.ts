@@ -45,6 +45,16 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
   } = options;
 
   const { isSignedIn, getToken } = useAuth();
+
+  // Stabilize getToken with a ref to prevent useCallback invalidation
+  // Clerk's useAuth() returns a new getToken reference on every render,
+  // which would cause all dependent useCallbacks to recreate every render.
+  const getTokenRef = useRef(getToken);
+  useEffect(() => {
+    getTokenRef.current = getToken;
+  }, [getToken]);
+  const getTokenStable = useCallback(() => getTokenRef.current(), []);
+
   const [state, setState] = useState<NotificationHookState>({
     notifications: [],
     unreadCount: 0,
@@ -95,7 +105,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
       }
 
       try {
-        const token = await getToken();
+        const token = await getTokenStable();
         const response = await fetch("/api/users/me", {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -119,7 +129,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
     }
 
     fetchUserId();
-  }, [isSignedIn, getToken]);
+  }, [isSignedIn, getTokenStable]);
 
   // Fetch notifications from API
   const fetchNotifications = useCallback(
@@ -140,7 +150,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
       }
 
       try {
-        const token = await getToken();
+        const token = await getTokenStable();
         const searchParams = new URLSearchParams();
 
         if (queryOptions.isRead !== undefined) {
@@ -200,7 +210,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
         }));
       }
     },
-    [isSignedIn, getToken, limit]
+    [isSignedIn, getTokenStable, limit]
   );
 
   // Manual refresh function
@@ -210,7 +220,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
     setState((prev) => ({ ...prev, isRefreshing: true }));
 
     try {
-      const token = await getToken();
+      const token = await getTokenStable();
 
       const [notificationsResponse, countResponse] = await Promise.all([
         fetch(`/api/notifications?limit=${limit}`, {
@@ -266,7 +276,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
         error: error instanceof Error ? error.message : "Refresh failed",
       }));
     }
-  }, [isSignedIn, getToken, limit, state.unreadCount]);
+  }, [isSignedIn, getTokenStable, limit, state.unreadCount]);
 
   // Connect to Pusher notifications channel
   const connectToChannel = useCallback(() => {
@@ -420,7 +430,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
       if (!isSignedIn) return;
 
       try {
-        const token = await getToken();
+        const token = await getTokenStable();
         const response = await fetch(`/api/notifications/${notificationId}`, {
           method: "PUT",
           headers: {
@@ -455,7 +465,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
         throw error;
       }
     },
-    [isSignedIn, getToken]
+    [isSignedIn, getTokenStable]
   );
 
   // Mark all notifications as read
@@ -463,7 +473,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
     if (!isSignedIn) return;
 
     try {
-      const token = await getToken();
+      const token = await getTokenStable();
       const response = await fetch("/api/notifications", {
         method: "PUT",
         headers: {
@@ -501,7 +511,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
       console.error("❌ Failed to mark all notifications as read:", error);
       throw error;
     }
-  }, [isSignedIn, getToken]);
+  }, [isSignedIn, getTokenStable]);
 
   // Delete notification
   const deleteNotification = useCallback(
@@ -509,7 +519,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
       if (!isSignedIn) return;
 
       try {
-        const token = await getToken();
+        const token = await getTokenStable();
         const response = await fetch(`/api/notifications/${notificationId}`, {
           method: "DELETE",
           headers: {
@@ -541,7 +551,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
         throw error;
       }
     },
-    [isSignedIn, getToken]
+    [isSignedIn, getTokenStable]
   );
 
   // Initialize and cleanup
