@@ -830,6 +830,7 @@ model ReplyDocument {
 enum ResourceVisibility {
   PRIVATE      // Only visible to creator
   FAMILY       // Visible to family members
+  PUBLIC       // Visible to all members
 }
 
 
