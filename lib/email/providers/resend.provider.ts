@@ -22,14 +22,10 @@ export class ResendProvider implements EmailProvider {
 
   async sendEmail(request: EmailRequest): Promise<EmailResponse> {
     try {
-      console.log("📧 ResendProvider.sendEmail - Sending email:", {
-        to: Array.isArray(request.to)
-          ? request.to.length + " recipients"
-          : request.to,
+      console.log("📧 ResendProvider.sendEmail:", {
+        to: Array.isArray(request.to) ? request.to.length + " recipients" : request.to,
         subject: request.subject,
-        hasHtml: !!request.html,
-        hasText: !!request.text,
-        tags: request.tags,
+        attachments: request.attachments?.length || 0,
       });
 
       // Prepare the request payload for Resend API
@@ -77,70 +73,58 @@ export class ResendProvider implements EmailProvider {
 
       // Add attachments if provided
       if (request.attachments && request.attachments.length > 0) {
-        console.log("📧 Processing attachments for Resend:", {
-          count: request.attachments.length,
-          attachments: request.attachments.map(a => ({
-            filename: a.filename,
-            hasContent: !!a.content,
-            contentType: a.contentType,
-            contentLength: typeof a.content === 'string' ? a.content.length : (Buffer.isBuffer(a.content) ? a.content.length : 0),
-          })),
+        const validAttachments = request.attachments.filter((attachment) => {
+          const hasContent = attachment.content !== undefined && attachment.content !== null && attachment.content !== '';
+          const contentLength = Buffer.isBuffer(attachment.content)
+            ? attachment.content.length
+            : (typeof attachment.content === 'string' ? attachment.content.length : 0);
+
+          if (!hasContent || contentLength === 0) {
+            console.warn("📧 ❌ Filtering out attachment with missing/empty content:", attachment.filename);
+            return false;
+          }
+          return true;
         });
 
-        payload.attachments = request.attachments
-          .filter((attachment) => {
-            const hasContent = attachment.content !== undefined && attachment.content !== null && attachment.content !== '';
-            console.log("📧 DEBUG attachment filter check:", {
-              filename: attachment.filename,
-              hasContent,
-              contentType: typeof attachment.content,
-              contentIsUndefined: attachment.content === undefined,
-              contentIsNull: attachment.content === null,
-              contentIsEmpty: attachment.content === '',
-              contentLength: typeof attachment.content === 'string'
-                ? attachment.content.length
-                : (Buffer.isBuffer(attachment.content) ? attachment.content.length : 'N/A'),
-            });
-            if (!hasContent) {
-              console.warn("📧 ❌ Filtering out attachment with missing content:", attachment.filename);
-            }
-            return hasContent;
-          })
-          .map((attachment) => {
-            const base64Content = Buffer.isBuffer(attachment.content)
-              ? attachment.content.toString('base64')
-              : String(attachment.content);
+        if (validAttachments.length === 0) {
+          console.error("📧 ❌ All attachments were filtered out - none had valid content");
+          return {
+            success: false,
+            error: "Email attachments could not be processed. The PDF may have failed to generate.",
+            metadata: {
+              provider: "resend",
+              reason: "all_attachments_filtered",
+            },
+          };
+        }
 
-            const mappedAttachment: {
-              filename: string;
-              content: string;
-              content_type?: string;
-            } = {
-              filename: attachment.filename,
-              content: base64Content,
-            };
+        payload.attachments = validAttachments.map((attachment) => {
+          const base64Content = Buffer.isBuffer(attachment.content)
+            ? attachment.content.toString('base64')
+            : String(attachment.content);
 
-            // Resend API uses snake_case for content_type
-            if (attachment.contentType) {
-              mappedAttachment.content_type = attachment.contentType;
-            }
+          const mappedAttachment: {
+            filename: string;
+            content: string;
+            content_type?: string;
+          } = {
+            filename: attachment.filename,
+            content: base64Content,
+          };
 
-            console.log("📧 Mapped attachment:", {
-              filename: mappedAttachment.filename,
-              content_type: mappedAttachment.content_type,
-              contentLength: mappedAttachment.content.length,
-            });
+          if (attachment.contentType) {
+            mappedAttachment.content_type = attachment.contentType;
+          }
 
-            return mappedAttachment;
-          });
+          return mappedAttachment;
+        });
 
-        console.log("📧 Final attachments for Resend API:", {
+        console.log("📧 Attachments prepared for Resend API:", {
           count: payload.attachments.length,
-          attachments: payload.attachments.map(a => ({
+          files: payload.attachments.map(a => ({
             filename: a.filename,
-            contentLength: a.content?.length || 0,
             content_type: a.content_type,
-            contentPreview: a.content?.substring(0, 50) + '...',
+            sizeBytes: a.content.length,
           })),
         });
       }
@@ -150,13 +134,9 @@ export class ResendProvider implements EmailProvider {
         payload.headers = request.headers;
       }
 
-      // Debug: Log full payload structure (without full content for size)
-      console.log("📧 DEBUG Resend API payload:", {
-        to: payload.to,
+      console.log("📧 Sending via Resend API:", {
         from: payload.from,
-        subject: payload.subject,
-        hasHtml: !!payload.html,
-        hasText: !!payload.text,
+        to: payload.to,
         attachmentCount: payload.attachments?.length || 0,
       });
 
@@ -173,18 +153,28 @@ export class ResendProvider implements EmailProvider {
       const responseData = await response.json();
 
       if (!response.ok) {
+        const errorDetail = responseData.message || responseData.name || response.statusText;
+        const validationErrors = responseData.errors
+          ? ` Details: ${JSON.stringify(responseData.errors)}`
+          : '';
+
         console.error("❌ Resend API error:", {
           status: response.status,
           statusText: response.statusText,
           error: responseData,
+          from: payload.from,
+          to: payload.to,
+          attachmentCount: payload.attachments?.length || 0,
         });
 
         return {
           success: false,
-          error: `Resend API error: ${responseData.message || response.statusText}`,
+          error: `Email sending failed (${response.status}): ${errorDetail}${validationErrors}`,
           metadata: {
             status: response.status,
             resendError: responseData,
+            from: payload.from,
+            to: payload.to,
           },
         };
       }

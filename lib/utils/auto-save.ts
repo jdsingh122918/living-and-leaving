@@ -12,7 +12,7 @@
  */
 
 export interface AutoSaveStatus {
-  status: 'idle' | 'saving' | 'saved' | 'error' | 'conflict';
+  status: 'idle' | 'unsaved' | 'saving' | 'saved' | 'error' | 'conflict';
   lastSaved?: Date;
   error?: string;
 }
@@ -73,9 +73,9 @@ export class AutoSaveManager {
     // Save to localStorage immediately for backup
     this.saveToLocalStorage(data);
 
-    // Update status if we have changes
-    if (this.hasUnsavedChanges && this.status.status === 'idle') {
-      this.updateStatus({ status: 'idle' });
+    // Update status to reflect unsaved changes
+    if (this.hasUnsavedChanges && (this.status.status === 'idle' || this.status.status === 'saved')) {
+      this.updateStatus({ status: 'unsaved' });
     }
   }
 

@@ -140,6 +140,8 @@ function SaveStatusIcon({ status }: { status: AutoSaveStatus['status'] }) {
       return <Loader2 className={cn(iconProps.className, "animate-spin text-blue-600")} />;
     case 'saved':
       return <CheckCircle className={cn(iconProps.className, "text-green-600")} />;
+    case 'unsaved':
+      return <Clock className={cn(iconProps.className, "text-amber-500")} />;
     case 'error':
       return <AlertCircle className={cn(iconProps.className, "text-red-600")} />;
     case 'conflict':
@@ -172,6 +174,12 @@ function SaveStatusText({ status, compact = false }: { status: AutoSaveStatus; c
               }
             </span>
           )}
+        </span>
+      );
+    case 'unsaved':
+      return (
+        <span className={cn(baseClasses, "text-amber-600")}>
+          {compact ? 'Unsaved' : 'Unsaved changes'}
         </span>
       );
     case 'error':
@@ -217,8 +225,8 @@ export function FloatingSaveStatus({
   onRetry?: () => void;
   className?: string;
 }) {
-  if (status.status === 'idle' || status.status === 'saved') {
-    return null; // Don't show when idle or recently saved
+  if (status.status === 'idle') {
+    return null; // Don't show when idle
   }
 
   return (
@@ -271,6 +279,7 @@ export function SaveStatusBadge({
     switch (status.status) {
       case 'saving': return 'secondary';
       case 'saved': return 'default';
+      case 'unsaved': return 'secondary';
       case 'error': return 'destructive';
       case 'conflict': return 'secondary';
       default: return 'outline';

@@ -20,6 +20,13 @@ NC='\033[0m'
 cd "$(dirname "$0")/../.."
 PROJECT_ROOT="$(pwd)"
 
+# Load environment variables from .env.local (suppresses docker-compose warnings)
+if [ -f .env.local ]; then
+    set -a
+    source .env.local
+    set +a
+fi
+
 WATCHER_PID=""
 
 cleanup() {
@@ -80,15 +87,22 @@ docker compose up -d mongodb mongodb-init
 echo -e "  Waiting for replica set initialization..."
 docker compose wait villages-mongodb-init 2>/dev/null || sleep 10
 
-# Verify MongoDB is reachable from host
-if ! docker exec villages-mongodb mongosh --eval "rs.status().ok" --quiet 2>/dev/null; then
-    echo -e "${YELLOW}  Waiting for MongoDB to accept connections...${NC}"
-    for i in $(seq 1 15); do
-        if docker exec villages-mongodb mongosh --eval "rs.status().ok" --quiet 2>/dev/null; then
-            break
-        fi
-        sleep 2
-    done
+# Verify MongoDB is reachable from HOST (not just inside container)
+echo -e "  Waiting for MongoDB to accept host connections..."
+MONGO_READY=false
+for i in $(seq 1 30); do
+    if (echo > /dev/tcp/127.0.0.1/27017) 2>/dev/null; then
+        MONGO_READY=true
+        break
+    fi
+    sleep 1
+done
+
+if [ "$MONGO_READY" = false ]; then
+    echo -e "${RED}Error: MongoDB not reachable on localhost:27017 after 30s${NC}"
+    echo "  Check: docker ps | grep mongodb"
+    echo "  Check: docker logs villages-mongodb"
+    exit 1
 fi
 
 echo -e "  ${GREEN}MongoDB ready on localhost:27017${NC}"

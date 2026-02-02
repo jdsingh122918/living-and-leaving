@@ -154,6 +154,13 @@ export async function POST(
       );
     }
 
+    if (pdfResult.buffer.length === 0) {
+      return NextResponse.json(
+        { error: "Generated PDF is empty. Please try again." },
+        { status: 500 },
+      );
+    }
+
     // Initialize email service
     const emailService = await initializeEmailService();
 
@@ -220,6 +227,10 @@ export async function POST(
 
     const successCount = results.filter((r) => r.success).length;
     const failedCount = results.filter((r) => !r.success).length;
+    const failedDetails = results
+      .filter((r) => !r.success)
+      .map((r) => r.error)
+      .filter(Boolean);
 
     return NextResponse.json({
       success: successCount > 0,
@@ -230,6 +241,7 @@ export async function POST(
         failedCount === 0
           ? `Email sent successfully to ${successCount} recipient(s)`
           : `Email sent to ${successCount} recipient(s), failed for ${failedCount}`,
+      ...(failedDetails.length > 0 && { errorDetails: failedDetails }),
     });
   } catch (error) {
     console.error("Error sharing form response:", error);
