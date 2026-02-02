@@ -12,8 +12,6 @@ import {
   Edit,
   Trash2,
   Star,
-  Eye,
-  Calendar,
   Tag,
   Users,
   Pin,
@@ -21,10 +19,6 @@ import {
   FileText,
   Link,
   Download,
-  Share,
-  ThumbsUp,
-  MessageSquare,
-  CheckCircle,
   AlertCircle,
   Loader2,
   Send
@@ -55,7 +49,6 @@ export interface ContentDetailPageProps {
   showEditButton: boolean;
   showDeleteButton: boolean;
   showCurationControls: boolean;
-  allowRating: boolean;
 }
 
 interface ContentItem {
@@ -74,14 +67,6 @@ interface ContentItem {
   isSystemGenerated?: boolean;
   allowComments?: boolean;
   allowEditing?: boolean;
-  hasCuration?: boolean;
-  hasRatings?: boolean;
-  hasSharing?: boolean;
-  viewCount: number;
-  downloadCount?: number;
-  shareCount?: number;
-  rating?: number;
-  ratingCount?: number;
   tags?: string[];
   createdAt: string;
   updatedAt: string;
@@ -111,16 +96,6 @@ interface ContentItem {
       size: number;
     };
   }>;
-  ratings?: Array<{
-    id: string;
-    rating: number;
-    comment?: string;
-    user: {
-      id: string;
-      firstName?: string;
-      lastName?: string;
-    };
-  }>;
 }
 
 const ContentDetailPage: React.FC<ContentDetailPageProps> = ({
@@ -131,7 +106,6 @@ const ContentDetailPage: React.FC<ContentDetailPageProps> = ({
   showEditButton,
   showDeleteButton,
   showCurationControls,
-  allowRating
 }) => {
   const router = useRouter();
   const { toast } = useToast();
@@ -140,7 +114,6 @@ const ContentDetailPage: React.FC<ContentDetailPageProps> = ({
   const [content, setContent] = useState<ContentItem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [userRating, setUserRating] = useState<number>(0);
   const [showAssignModal, setShowAssignModal] = useState(false);
 
   // Check if user can assign templates
@@ -156,8 +129,7 @@ const ContentDetailPage: React.FC<ContentDetailPageProps> = ({
         includeCreator: 'true',
         includeFamily: 'true',
         includeCategory: 'true',
-        includeDocuments: 'true',
-        includeRatings: 'true'
+        includeDocuments: 'true'
       });
 
       const response = await fetch(`/api/resources/${contentId}?${params}`, {
@@ -237,40 +209,6 @@ const ContentDetailPage: React.FC<ContentDetailPageProps> = ({
     }
   };
 
-  const handleRate = async (rating: number) => {
-    try {
-      const response = await fetch(`/api/resources/${contentId}/rating`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ rating })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to rate content');
-      }
-
-      const data = await response.json();
-      if (data.success) {
-        setUserRating(rating);
-        await fetchContent(); // Refresh to get updated ratings
-        toast({
-          title: 'Success',
-          description: 'Rating submitted successfully'
-        });
-      } else {
-        throw new Error(data.error || 'Failed to rate content');
-      }
-    } catch (error) {
-      console.error('Error rating content:', error);
-      toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to submit rating',
-        variant: 'destructive'
-      });
-    }
-  };
-
   // Render helpers
   const getAuthorDisplay = (creator?: ContentItem['creator']) => {
     if (!creator) return { name: 'Unknown', initials: 'U' };
@@ -338,54 +276,6 @@ const ContentDetailPage: React.FC<ContentDetailPageProps> = ({
     }
 
     return badges.length > 0 ? badges : null;
-  };
-
-  const renderRatingSection = () => {
-    if (!content || !allowRating || !content.hasRatings) return null;
-
-    return (
-      <Card className="p-3">
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Star className="h-4 w-4 text-gray-700" />
-            <h3 className="font-medium text-gray-900">Rating</h3>
-          </div>
-
-          {content.rating && (
-            <div className="flex items-center gap-2">
-              <div className="flex">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star
-                    key={star}
-                    className={`h-4 w-4 ${star <= (content.rating || 0) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
-                  />
-                ))}
-              </div>
-              <span className="text-xs text-gray-600">
-                {content.rating?.toFixed(1)} ({content.ratingCount || 0})
-              </span>
-            </div>
-          )}
-
-          <div>
-            <p className="text-xs font-medium mb-2">Rate this content:</p>
-            <div className="flex gap-1">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  key={star}
-                  onClick={() => handleRate(star)}
-                  className="transition-colors hover:scale-110"
-                >
-                  <Star
-                    className={`h-4 w-4 ${star <= userRating ? 'text-yellow-400 fill-current' : 'text-gray-300 hover:text-yellow-300'}`}
-                  />
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </Card>
-    );
   };
 
   // Loading state
@@ -627,25 +517,6 @@ const ContentDetailPage: React.FC<ContentDetailPageProps> = ({
                     <span>{formatTimeAgo(content.updatedAt)}</span>
                   </div>
                 )}
-
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-600">Views</span>
-                  <span>{content.viewCount || 0}</span>
-                </div>
-
-                {content.downloadCount !== undefined && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Downloads</span>
-                    <span>{content.downloadCount}</span>
-                  </div>
-                )}
-
-                {content.shareCount !== undefined && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Shares</span>
-                    <span>{content.shareCount}</span>
-                  </div>
-                )}
               </div>
 
               {/* Organization */}
@@ -682,9 +553,6 @@ const ContentDetailPage: React.FC<ContentDetailPageProps> = ({
               )}
             </div>
           </Card>
-
-          {/* Rating - Compact */}
-          {renderRatingSection()}
         </div>
       </div>
 

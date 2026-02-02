@@ -18,8 +18,6 @@ import {
   Filter,
   X,
   Star,
-  Eye,
-  Users,
   RefreshCw,
   ChevronDown,
   ChevronUp
@@ -45,16 +43,11 @@ export interface HealthcareContentFiltersState {
   categoryId?: string;
 
   // Feature filters
-  hasCuration?: boolean;
-  hasRatings?: boolean;
   isPinned?: boolean;
   isVerified?: boolean;
 
-  // Rating filter
-  minRating?: number;
-
   // Sort options
-  sortBy?: 'createdAt' | 'updatedAt' | 'title' | 'viewCount' | 'rating';
+  sortBy?: 'createdAt' | 'updatedAt' | 'title';
   sortOrder?: 'asc' | 'desc';
 }
 
@@ -123,7 +116,7 @@ const HealthcareContentFilters: React.FC<HealthcareContentFiltersProps> = ({
     if (filters.visibility?.length) count++;
     if (filters.familyId) count++;
     if (filters.categoryId) count++;
-    if (filters.hasCuration || filters.hasRatings || filters.isPinned) count++;
+    if (filters.isPinned) count++;
     return count;
   };
 
@@ -349,8 +342,6 @@ const HealthcareContentFilters: React.FC<HealthcareContentFiltersProps> = ({
               <p className="text-xs font-medium text-gray-700">Features</p>
               <div className="grid grid-cols-1 gap-1.5">
                 {[
-                  { key: 'hasCuration', label: 'Has Curation', icon: Star },
-                  { key: 'hasRatings', label: 'Has Ratings', icon: Star },
                   { key: 'isPinned', label: 'Pinned', icon: Star }
                 ].map(feature => (
                   <label key={feature.key} className="flex items-center space-x-2 text-xs cursor-pointer">
@@ -382,8 +373,6 @@ const HealthcareContentFilters: React.FC<HealthcareContentFiltersProps> = ({
                     <SelectItem value="createdAt">Date Created</SelectItem>
                     <SelectItem value="updatedAt">Date Updated</SelectItem>
                     <SelectItem value="title">Title</SelectItem>
-                    <SelectItem value="viewCount">Views</SelectItem>
-                    <SelectItem value="rating">Rating</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select

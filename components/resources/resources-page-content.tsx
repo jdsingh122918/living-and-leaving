@@ -26,7 +26,6 @@ interface Resource {
   content: string;
   type: string;
   visibility: string;
-  status: string;
   familyId?: string;
   family?: {
     id: string;
@@ -42,13 +41,6 @@ interface Resource {
   tags: string[];
   externalUrl?: string;
   attachments: string[];
-  isFeatured: boolean;
-  isApproved: boolean;
-  averageRating: number;
-  totalRatings: number;
-  totalViews: number;
-  totalShares: number;
-  totalBookmarks: number;
   externalMeta?: Record<string, unknown>; // For template metadata
   createdAt: string;
   updatedAt: string;
@@ -58,8 +50,6 @@ interface Resource {
     email: string;
     role: string;
   };
-  userRating?: number;
-  userBookmark: boolean;
   documents: Array<{ id: string; name: string; url: string }>;
 }
 
@@ -289,8 +279,6 @@ export function ResourcesPageContent({ userRole, userId: _userId }: ResourcesPag
                   <SelectItem value="createdAt-asc">Oldest First</SelectItem>
                   <SelectItem value="title-asc">Title A-Z</SelectItem>
                   <SelectItem value="title-desc">Title Z-A</SelectItem>
-                  <SelectItem value="averageRating-desc">Highest Rated</SelectItem>
-                  <SelectItem value="totalViews-desc">Most Viewed</SelectItem>
                 </SelectContent>
               </Select>
             </div>

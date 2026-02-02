@@ -24,7 +24,6 @@ import {
   AlertCircle,
   Pin,
   Archive,
-  Eye,
   Calendar,
   Tag as TagIcon,
   FileText,
@@ -72,13 +71,9 @@ interface ContentItem {
   isFeatured?: boolean;
   allowComments?: boolean;
   allowEditing?: boolean;
-  hasCuration?: boolean;
-  hasRatings?: boolean;
-  hasSharing?: boolean;
   tags?: string[];
   familyId?: string;
   categoryId?: string;
-  viewCount: number;
   createdAt: string;
   updatedAt: string;
   creator?: {
@@ -112,9 +107,6 @@ interface FormData {
   isPinned: boolean;
   allowComments: boolean;
   allowEditing: boolean;
-  hasCuration: boolean;
-  hasRatings: boolean;
-  hasSharing: boolean;
 }
 
 const ContentEditPage: React.FC<ContentEditPageProps> = ({
@@ -151,9 +143,6 @@ const ContentEditPage: React.FC<ContentEditPageProps> = ({
     isPinned: false,
     allowComments: true,
     allowEditing: false,
-    hasCuration: false,
-    hasRatings: true,
-    hasSharing: true
   });
 
   // Fetch content data
@@ -201,9 +190,6 @@ const ContentEditPage: React.FC<ContentEditPageProps> = ({
           isPinned: contentData.isPinned || false,
           allowComments: contentData.allowComments ?? true,
           allowEditing: contentData.allowEditing || false,
-          hasCuration: contentData.hasCuration || false,
-          hasRatings: contentData.hasRatings ?? true,
-          hasSharing: contentData.hasSharing ?? true
         });
       } else {
         setError(data.error || 'Failed to load content');
@@ -332,9 +318,6 @@ const ContentEditPage: React.FC<ContentEditPageProps> = ({
         isPinned: formData.isPinned,
         allowComments: formData.allowComments,
         allowEditing: formData.allowEditing,
-        hasCuration: formData.hasCuration,
-        hasRatings: formData.hasRatings,
-        hasSharing: formData.hasSharing
       };
 
       const response = await fetch(`/api/resources/${contentId}`, {
@@ -570,10 +553,6 @@ const ContentEditPage: React.FC<ContentEditPageProps> = ({
                   <Calendar className="h-3 w-3" />
                   <span>Last updated {formatTimeAgo(content.updatedAt)}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Eye className="h-3 w-3" />
-                  <span>{content.viewCount || 0} views</span>
-                </div>
               </div>
             </div>
           </Card>
@@ -628,8 +607,6 @@ const ContentEditPage: React.FC<ContentEditPageProps> = ({
                   <SelectContent>
                     <SelectItem value="PRIVATE">Private</SelectItem>
                     <SelectItem value="FAMILY">Family</SelectItem>
-                    <SelectItem value="SHARED">Shared</SelectItem>
-                    <SelectItem value="PUBLIC">Public</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

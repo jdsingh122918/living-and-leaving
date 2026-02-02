@@ -16,7 +16,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import {
   ResourceType,
@@ -25,14 +24,12 @@ import {
 import { HEALTHCARE_CATEGORIES, ALL_HEALTHCARE_TAGS } from '@/lib/data/healthcare-tags';
 import {
   FileText,
-  Star,
   X,
   Plus,
   Save,
   Eye,
   Users,
   Lock,
-  Globe,
   Upload,
   Link as LinkIcon,
   Tag
@@ -65,9 +62,6 @@ export interface ContentFormProps {
     isPinned?: boolean;
     allowComments?: boolean;
     allowEditing?: boolean;
-    hasCuration?: boolean;
-    hasRatings?: boolean;
-    hasSharing?: boolean;
     externalMeta?: any;
   };
 
@@ -114,9 +108,6 @@ export interface ContentFormData {
   isPinned?: boolean;
   allowComments?: boolean;
   allowEditing?: boolean;
-  hasCuration?: boolean;
-  hasRatings?: boolean;
-  hasSharing?: boolean;
   externalMeta?: any;
   documentIds?: string[];
 }
@@ -161,9 +152,6 @@ const ContentForm = ({
     isPinned: initialData?.isPinned || false,
     allowComments: initialData?.allowComments || false,
     allowEditing: initialData?.allowEditing || false,
-    hasCuration: initialData?.hasCuration || (userRole !== 'ADMIN'),
-    hasRatings: initialData?.hasRatings || true, // All resources can have ratings
-    hasSharing: initialData?.hasSharing || false,
     externalMeta: initialData?.externalMeta,
     documentIds: []
   };
@@ -209,22 +197,12 @@ const ContentForm = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTagsParam, mode, router, setFormData]);
 
-  // Update resource defaults when creating (simplified since everything is a resource)
+  // Mark defaults as set on first render in create mode
   useEffect(() => {
-    if (mode !== 'create' || defaultsSetRef.current) return; // Guard: only run in create mode and if defaults not set
-
-    // Set resource defaults - only update if values need to change
-    const expectedHasCuration = userRole !== 'ADMIN';
-    if (!formData.hasRatings || formData.hasCuration !== expectedHasCuration || formData.visibility !== ResourceVisibility.PUBLIC) {
-      setFormData({
-        ...formData,
-        hasRatings: true,
-        hasCuration: expectedHasCuration,
-        visibility: ResourceVisibility.PUBLIC
-      });
+    if (mode === 'create' && !defaultsSetRef.current) {
       defaultsSetRef.current = true;
     }
-  }, [mode, userRole, formData, setFormData]); // Include all dependencies
+  }, [mode]);
 
   const handleInputChange = (field: keyof ContentFormData, value: any) => {
     setFormData({ ...formData, [field]: value });
@@ -329,8 +307,6 @@ const ContentForm = ({
     switch (visibility) {
       case ResourceVisibility.PRIVATE: return <Lock className="h-4 w-4" />;
       case ResourceVisibility.FAMILY: return <Users className="h-4 w-4" />;
-      case ResourceVisibility.SHARED: return <Users className="h-4 w-4" />;
-      case ResourceVisibility.PUBLIC: return <Globe className="h-4 w-4" />;
       default: return <Lock className="h-4 w-4" />;
     }
   };
@@ -565,18 +541,6 @@ const ContentForm = ({
                 <div className="flex items-center gap-2">
                   <Users className="h-4 w-4" />
                   <span>Family</span>
-                </div>
-              </SelectItem>
-              <SelectItem value={ResourceVisibility.SHARED}>
-                <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  <span>Shared</span>
-                </div>
-              </SelectItem>
-              <SelectItem value={ResourceVisibility.PUBLIC}>
-                <div className="flex items-center gap-2">
-                  <Globe className="h-4 w-4" />
-                  <span>Public</span>
                 </div>
               </SelectItem>
             </SelectContent>

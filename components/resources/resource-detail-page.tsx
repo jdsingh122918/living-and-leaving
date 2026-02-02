@@ -5,7 +5,6 @@ import { UserRole } from "@prisma/client";
 import {
   BookOpen,
   ArrowLeft,
-  Star,
   ExternalLink,
   Calendar,
   User,
@@ -64,7 +63,6 @@ interface Resource {
   content: string;
   type: string;
   visibility: string;
-  status: string;
   familyId?: string;
   family?: {
     id: string;
@@ -82,16 +80,9 @@ interface Resource {
   attachments: string[];
   metadata: Record<string, any>;
   externalMeta?: any; // For template metadata
-  isFeatured: boolean;
-  isApproved: boolean;
-  approvedAt?: string;
-  rejectionReason?: string;
   isDeleted: boolean;
-  averageRating: number;
-  totalRatings: number;
   createdAt: string;
   updatedAt: string;
-  publishedAt?: string;
   creator?: {
     id: string;
     firstName?: string;
@@ -99,13 +90,6 @@ interface Resource {
     email: string;
     role: string;
   };
-  approvedBy?: {
-    id: string;
-    name: string;
-    email: string;
-    role: string;
-  };
-  userRating?: number;
   documents: any[];
 }
 
@@ -116,22 +100,6 @@ interface ResourceDetailPageProps {
 }
 
 
-
-const getStatusColor = (status: string, isFeatured: boolean) => {
-  if (isFeatured) return "bg-yellow-100 text-yellow-800 border-yellow-200";
-  switch (status) {
-    case 'APPROVED':
-      return "bg-green-100 text-green-800 border-green-200";
-    case 'PENDING':
-      return "bg-orange-100 text-orange-800 border-orange-200";
-    case 'DRAFT':
-      return "bg-gray-100 text-gray-800 border-gray-200";
-    case 'REJECTED':
-      return "bg-red-100 text-red-800 border-red-200";
-    default:
-      return "bg-gray-100 text-gray-800 border-gray-200";
-  }
-};
 
 interface TemplateAssignment {
   id: string;
@@ -159,7 +127,7 @@ export function ResourceDetailPage({ resourceId, userRole, userId }: ResourceDet
         setLoading(true);
         setError(null);
 
-        const response = await fetch(`/api/resources/${resourceId}?includeRatings=true&includeDocuments=true&trackView=true`, {
+        const response = await fetch(`/api/resources/${resourceId}?includeDocuments=true`, {
           credentials: 'include'
         });
         if (!response.ok) {
@@ -321,7 +289,6 @@ export function ResourceDetailPage({ resourceId, userRole, userId }: ResourceDet
   const isTemplateResource = isTemplate(resource);
   const isSystemTemplate = isTemplateResource && resource.externalMeta?.systemGenerated;
   const TypeIcon = getResourceTypeIcon(resource.type, isTemplateResource);
-  const statusColor = getStatusColor(resource.status, resource.isFeatured);
   const canEdit = !isSystemTemplate && (userRole === UserRole.ADMIN || (resource.creator?.id === userId));
   const canDelete = !isSystemTemplate && (userRole === UserRole.ADMIN || (resource.creator?.id === userId));
   const canAssign = isSystemTemplate && (userRole === UserRole.ADMIN || userRole === UserRole.VOLUNTEER);
@@ -447,23 +414,12 @@ export function ResourceDetailPage({ resourceId, userRole, userId }: ResourceDet
                 </div>
               </div>
 
-              {/* Status and Badges */}
+              {/* Badges */}
               <div className="flex items-center gap-2 flex-wrap">
                 {isTemplateResource && (
                   <Badge className="bg-[hsl(var(--brand-primary)/0.1)] text-[hsl(var(--brand-primary))] border-[hsl(var(--brand-primary)/0.3)]">
                     <ScrollText className="h-3 w-3 mr-1" />
                     Advance Directive Template
-                  </Badge>
-                )}
-                {resource.isFeatured && (
-                  <Badge className={statusColor}>
-                    <Star className="h-3 w-3 mr-1" />
-                    Featured
-                  </Badge>
-                )}
-                {!resource.isFeatured && resource.status !== 'APPROVED' && (
-                  <Badge variant="secondary" className={statusColor}>
-                    {resource.status}
                   </Badge>
                 )}
                 {resource.category && (

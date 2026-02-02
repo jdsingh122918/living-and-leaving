@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
   Select,
@@ -18,12 +18,6 @@ import {
   Filter,
   Search,
   FileText,
-  Star,
-  CheckCircle,
-  Clock,
-  AlertCircle,
-  Users,
-  MoreVertical,
   RefreshCw
 } from 'lucide-react';
 import { ResourceType, UserRole } from '@prisma/client';
@@ -65,13 +59,6 @@ interface ContentItem {
   resourceType: ResourceType;
   visibility: string;
   status?: string;
-  viewCount: number;
-  downloadCount?: number;
-  shareCount?: number;
-  rating?: number;
-  ratingCount?: number;
-  hasCuration?: boolean;
-  hasRatings?: boolean;
   isPinned?: boolean;
   isArchived?: boolean;
   isVerified?: boolean;
@@ -121,7 +108,6 @@ const ContentHubPage: React.FC<ContentHubPageProps> = ({
   // State management
   const [content, setContent] = useState<ContentItem[]>([]);
   const [filteredContent, setFilteredContent] = useState<ContentItem[]>([]);
-  const [curationQueue, setCurationQueue] = useState<ContentItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
@@ -153,7 +139,6 @@ const ContentHubPage: React.FC<ContentHubPageProps> = ({
         includeFamily: 'true',
         includeCategory: 'true',
         includeDocuments: 'true',
-        includeRatings: 'true',
         sortBy: filters.sortBy || 'createdAt',
         sortOrder: filters.sortOrder || 'desc',
         ...(searchTerm && { search: searchTerm })
@@ -178,20 +163,11 @@ const ContentHubPage: React.FC<ContentHubPageProps> = ({
       if (filters.categoryId) {
         params.set('categoryId', filters.categoryId);
       }
-      if (filters.hasCuration !== undefined) {
-        params.set('hasCuration', String(filters.hasCuration));
-      }
-      if (filters.hasRatings !== undefined) {
-        params.set('hasRatings', String(filters.hasRatings));
-      }
       if (filters.isPinned !== undefined) {
         params.set('isPinned', String(filters.isPinned));
       }
       if (filters.isVerified !== undefined) {
         params.set('isVerified', String(filters.isVerified));
-      }
-      if (filters.minRating) {
-        params.set('minRating', String(filters.minRating));
       }
       if (filters.search && filters.search !== searchTerm) {
         params.set('search', filters.search);
@@ -247,32 +223,6 @@ const ContentHubPage: React.FC<ContentHubPageProps> = ({
     }
   }, [searchTerm, sortBy, sortOrder, filters, error]);
 
-  // Fetch curation queue for admins
-  const fetchCurationQueue = useCallback(async () => {
-    if (!showCurationQueue) return;
-
-    try {
-      const response = await fetch('/api/resources?hasCuration=true&status=PENDING&includeDocuments=true&includeCreator=true&includeFamily=true&includeCategory=true', {
-        credentials: 'include'
-      });
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          setCurationQueue(data.data.content || []);
-        } else {
-          console.error('Curation queue API error:', data.error);
-          setCurationQueue([]);
-        }
-      } else {
-        console.error('Curation queue fetch failed:', response.status, response.statusText);
-        setCurationQueue([]);
-      }
-    } catch (error) {
-      console.error('Error fetching curation queue:', error);
-      setCurationQueue([]);
-    }
-  }, [showCurationQueue]);
-
   // Set filtered content directly from content
   useEffect(() => {
     setFilteredContent(content);
@@ -281,7 +231,6 @@ const ContentHubPage: React.FC<ContentHubPageProps> = ({
   // Initial data fetch - only run once on mount
   useEffect(() => {
     fetchContent();
-    fetchCurationQueue();
   }, []); // Empty dependency array to run only once
 
   // Re-fetch when filters change
@@ -345,119 +294,6 @@ const ContentHubPage: React.FC<ContentHubPageProps> = ({
     }
   };
 
-  const handleContentApprove = async (contentId: string) => {
-    try {
-      const response = await fetch(`/api/resources/${contentId}/approve`, {
-        method: 'POST',
-        credentials: 'include'
-      });
-
-      if (!response.ok) throw new Error('Failed to approve content');
-
-      const data = await response.json();
-      if (data.success) {
-        toast({
-          title: 'Success',
-          description: 'Content approved successfully'
-        });
-        await fetchContent();
-        await fetchCurationQueue();
-      }
-    } catch (error) {
-      console.error('Error approving content:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to approve content',
-        variant: 'destructive'
-      });
-    }
-  };
-
-  const handleContentFeature = async (contentId: string) => {
-    try {
-      const response = await fetch(`/api/resources/${contentId}/feature`, {
-        method: 'POST',
-        credentials: 'include'
-      });
-
-      if (!response.ok) throw new Error('Failed to feature content');
-
-      const data = await response.json();
-      if (data.success) {
-        toast({
-          title: 'Success',
-          description: 'Content featured successfully'
-        });
-        await fetchContent();
-      }
-    } catch (error) {
-      console.error('Error featuring content:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to feature content',
-        variant: 'destructive'
-      });
-    }
-  };
-
-
-  const renderCurationQueue = () => {
-    if (!showCurationQueue || curationQueue.length === 0) return null;
-
-    return (
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <AlertCircle className="h-5 w-5 text-orange-500" />
-            Curation Queue
-            <Badge variant="secondary">{curationQueue.length}</Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
-            {curationQueue.slice(0, 3).map((item) => (
-              <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex items-center gap-3">
-                  <div className="text-gray-500">
-                    <Star className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <p className="font-medium">{item.title}</p>
-                    <p className="text-sm text-gray-600">
-                      {item.creator?.firstName} {item.creator?.lastName} • {item.resourceType}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    onClick={() => handleContentApprove(item.id)}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    <CheckCircle className="h-4 w-4 mr-1" />
-                    Approve
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleContentView(item.id)}
-                  >
-                    Review
-                  </Button>
-                </div>
-              </div>
-            ))}
-            {curationQueue.length > 3 && (
-              <Button variant="outline" className="w-full">
-                View all {curationQueue.length} pending items
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    );
-  };
-
   const renderToolbar = () => (
     <div className="space-y-3">
       {/* Compact Search and Controls */}
@@ -482,7 +318,6 @@ const ContentHubPage: React.FC<ContentHubPageProps> = ({
             <SelectItem value="createdAt">Date Created</SelectItem>
             <SelectItem value="updatedAt">Last Updated</SelectItem>
             <SelectItem value="title">Title</SelectItem>
-            <SelectItem value="rating">Rating</SelectItem>
           </SelectContent>
         </Select>
 
@@ -603,14 +438,10 @@ const ContentHubPage: React.FC<ContentHubPageProps> = ({
                 createdAt: new Date(item.createdAt),
                 updatedAt: new Date(item.updatedAt)
               } as any}
-              showRatings={true}
-              showCuration={true}
               showDocuments={true}
               onView={handleContentView}
               onEdit={handleContentEdit}
               onDelete={handleContentDelete}
-              onApprove={enableCurationWorkflow ? handleContentApprove : undefined}
-              onFeature={enableCurationWorkflow ? handleContentFeature : undefined}
               userRole={userRole}
               canEdit={true}
               canDelete={userRole === UserRole.ADMIN || item.creator?.id === userId}
@@ -628,9 +459,6 @@ const ContentHubPage: React.FC<ContentHubPageProps> = ({
         <h1 className="text-2xl font-semibold">{title}</h1>
         <p className="text-gray-600">{description}</p>
       </div>
-
-      {/* Curation Queue */}
-      {renderCurationQueue()}
 
       {/* Main Content Area with Sidebar */}
       <div className={`flex gap-6 ${isFiltersOpen ? 'flex-col lg:flex-row' : ''}`}>

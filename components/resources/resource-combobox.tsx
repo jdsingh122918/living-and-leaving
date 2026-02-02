@@ -32,9 +32,6 @@ interface Resource {
   url?: string;
   isVerified: boolean;
   status?: string;
-  rating?: number;
-  ratingCount: number;
-  viewCount: number;
   createdAt: string;
   updatedAt: string;
   creator?: {
@@ -84,7 +81,7 @@ function getResourceDisplay(resource: Resource): {
 
   // Determine source type
   let sourceType: "system" | "user" | "public" = "user";
-  if (resource.status === 'FEATURED' || resource.isVerified) {
+  if (resource.isVerified) {
     sourceType = "public";
   } else if (resource.creator?.email?.includes('@system') || resource.creator?.email?.includes('@admin')) {
     sourceType = "system";
@@ -102,11 +99,6 @@ function getResourceDisplay(resource: Resource): {
                      `by ${creatorName}`;
 
   let subtitle = `${resource.resourceType} • ${sourceLabel}`;
-
-  if (resource.rating && resource.ratingCount > 0) {
-    const rating = `⭐ ${resource.rating.toFixed(1)} (${resource.ratingCount})`;
-    subtitle += ` • ${rating}`;
-  }
 
   const icon = getResourceIcon(resource.resourceType);
 
@@ -213,8 +205,6 @@ export function ResourceCombobox({
           title: "Loading...",
           resourceType: ResourceType.DOCUMENT,
           isVerified: false,
-          ratingCount: 0,
-          viewCount: 0,
           createdAt: "",
           updatedAt: "",
         });

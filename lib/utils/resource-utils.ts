@@ -44,10 +44,7 @@ export const getResourceTypeIcon = (type: string, isTemplateResource: boolean = 
 /**
  * Check if a resource is a template
  */
-export const isTemplate = (resource: { externalMeta?: any; metadata?: any; visibility: string; tags: string[]; status: string }) => {
+export const isTemplate = (resource: { externalMeta?: any; metadata?: any; tags?: string[] }) => {
   const meta = resource.externalMeta || resource.metadata;
-  return meta?.isTemplate === true ||
-    (resource.visibility === 'PUBLIC' &&
-     resource.tags.includes('advance-directives') &&
-     resource.status === 'APPROVED');
+  return meta?.isTemplate === true;
 };

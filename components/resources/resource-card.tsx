@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import {
   BookOpen,
   ExternalLink,
-  Star,
   Calendar,
   User,
   Tag,
@@ -32,7 +31,6 @@ interface Resource {
   content: string;
   type: string;
   visibility: string;
-  status: string;
   familyId?: string;
   family?: {
     id: string;
@@ -48,13 +46,6 @@ interface Resource {
   tags: string[];
   externalUrl?: string;
   attachments: string[];
-  isFeatured: boolean;
-  isApproved: boolean;
-  averageRating: number;
-  totalRatings: number;
-  totalViews: number;
-  totalShares: number;
-  totalBookmarks: number;
   externalMeta?: any; // For template metadata
   createdAt: string;
   updatedAt: string;
@@ -65,8 +56,6 @@ interface Resource {
     email: string;
     role: string;
   };
-  userRating?: number;
-  userBookmark: boolean;
   documents: any[];
 }
 
@@ -76,22 +65,6 @@ interface ResourceCardProps {
   showActions?: boolean;
 }
 
-
-const getStatusColor = (status: string, isFeatured: boolean) => {
-  if (isFeatured) return "bg-[hsl(var(--brand-accent)/0.1)] text-[hsl(var(--brand-accent))] border-[hsl(var(--brand-accent)/0.3)]";
-  switch (status) {
-    case 'APPROVED':
-      return "bg-[hsl(var(--brand-accent)/0.1)] text-[hsl(var(--brand-accent))] border-[hsl(var(--brand-accent)/0.3)]";
-    case 'PENDING':
-      return "bg-[hsl(var(--brand-primary-light)/0.1)] text-[hsl(var(--brand-primary-light))] border-[hsl(var(--brand-primary-light)/0.3)]";
-    case 'DRAFT':
-      return "bg-[hsl(var(--brand-deep)/0.1)] text-[hsl(var(--brand-deep))] border-[hsl(var(--brand-deep)/0.3)]";
-    case 'REJECTED':
-      return "bg-[hsl(var(--brand-muted)/0.1)] text-[hsl(var(--brand-muted))] border-[hsl(var(--brand-muted)/0.3)]";
-    default:
-      return "bg-[hsl(var(--brand-deep)/0.1)] text-[hsl(var(--brand-deep))] border-[hsl(var(--brand-deep)/0.3)]";
-  }
-};
 
 const getResourceCardColors = (resource: Resource) => {
   // Priority 0: Templates (highest priority) - Use subtle styling for legibility
@@ -158,30 +131,7 @@ const getResourceCardColors = (resource: Resource) => {
     }
   }
 
-  // Priority 2: Resource status (Featured > Approved > Pending > Others)
-  if (resource.isFeatured) {
-    return {
-      border: 'border-l-[var(--brand-accent)]',
-      background: 'bg-blue-50 dark:bg-blue-950/20',
-      hover: 'hover:bg-blue-100 dark:hover:bg-blue-950/30'
-    };
-  }
-  if (resource.status === 'APPROVED') {
-    return {
-      border: 'border-l-[var(--brand-accent)]',
-      background: 'bg-teal-50 dark:bg-teal-950/20',
-      hover: 'hover:bg-teal-100 dark:hover:bg-teal-950/30'
-    };
-  }
-  if (resource.status === 'PENDING') {
-    return {
-      border: 'border-l-[var(--brand-primary-light)]',
-      background: 'bg-orange-50 dark:bg-orange-950/20',
-      hover: 'hover:bg-orange-100 dark:hover:bg-orange-950/30'
-    };
-  }
-
-  // Priority 3: Resource type mapping to healthcare categories
+  // Priority 2: Resource type mapping to healthcare categories
   switch (resource.type) {
     case 'VIDEO':
     case 'AUDIO':
@@ -220,7 +170,6 @@ export function ResourceCard({ resource, userRole, showActions = false }: Resour
 
   const isTemplateResource = isTemplate(resource);
   const TypeIcon = getResourceTypeIcon(resource.type, isTemplateResource);
-  const statusColor = getStatusColor(resource.status, resource.isFeatured);
   const cardColors = getResourceCardColors(resource);
 
   const handleCardClick = () => {
@@ -252,15 +201,6 @@ export function ResourceCard({ resource, userRole, showActions = false }: Resour
             <Badge data-testid="resource-type-badge" variant="secondary" className="bg-[hsl(var(--brand-primary)/0.1)] text-[hsl(var(--brand-primary))] border-[hsl(var(--brand-primary)/0.3)]">
               <ScrollText className="h-3 w-3 mr-1" />
               Template
-            </Badge>
-          ) : resource.isFeatured ? (
-            <Badge data-testid="resource-type-badge" variant="secondary" className={statusColor}>
-              <Star className="h-3 w-3 mr-1" />
-              Featured
-            </Badge>
-          ) : resource.status !== 'APPROVED' ? (
-            <Badge data-testid="resource-type-badge" variant="secondary" className={statusColor}>
-              {resource.status}
             </Badge>
           ) : resource.category ? (
             <Badge data-testid="resource-type-badge" variant="outline" className="text-xs">
@@ -295,22 +235,13 @@ export function ResourceCard({ resource, userRole, showActions = false }: Resour
           </div>
         )}
 
-        {/* Metrics */}
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          {resource.averageRating > 0 && (
-            <div className="flex items-center gap-1">
-              <Star className="h-3 w-3 fill-current text-yellow-500" />
-              <span>{resource.averageRating.toFixed(1)}</span>
-              <span>({resource.totalRatings})</span>
-            </div>
-          )}
-          {resource.externalUrl && (
-            <div className="flex items-center gap-1">
-              <ExternalLink className="h-3 w-3" />
-              <span>External</span>
-            </div>
-          )}
-        </div>
+        {/* External Link Indicator */}
+        {resource.externalUrl && (
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <ExternalLink className="h-3 w-3" />
+            <span>External</span>
+          </div>
+        )}
 
         {/* Creator and Date */}
         <div className="flex items-center justify-between text-xs text-muted-foreground">

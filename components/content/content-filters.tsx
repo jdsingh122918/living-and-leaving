@@ -29,12 +29,9 @@ import {
   Video,
   Link,
   Image,
-  Star,
-  CheckCircle
 } from 'lucide-react';
 import {
   ResourceType,
-  ResourceStatus,
   ResourceVisibility
 } from '@prisma/client';
 
@@ -51,15 +48,11 @@ import {
 export interface ContentFiltersProps {
   // Current filter state
   resourceType?: ResourceType[];
-  status?: ResourceStatus[];
   visibility?: ResourceVisibility[];
   search?: string;
   tags?: string[];
-  hasCuration?: boolean;
-  hasRatings?: boolean;
   featured?: boolean;
   verified?: boolean;
-  minRating?: number;
   familyId?: string;
   categoryId?: string;
 
@@ -67,7 +60,6 @@ export interface ContentFiltersProps {
   showContentTypeFilter?: boolean;
   showTypeSpecificFilters?: boolean;
   showVisibilityFilter?: boolean;
-  showStatusFilter?: boolean;
   showAdvancedFilters?: boolean;
   showFamilyFilter?: boolean;
   showCategoryFilter?: boolean;
@@ -84,38 +76,29 @@ export interface ContentFiltersProps {
 
 export interface ContentFiltersState {
   resourceType?: ResourceType[];
-  status?: ResourceStatus[];
   visibility?: ResourceVisibility[];
   search?: string;
   tags?: string[];
-  hasCuration?: boolean;
-  hasRatings?: boolean;
   featured?: boolean;
   verified?: boolean;
-  minRating?: number;
   familyId?: string;
   categoryId?: string;
-  sortBy?: 'createdAt' | 'updatedAt' | 'title' | 'viewCount' | 'rating';
+  sortBy?: 'createdAt' | 'updatedAt' | 'title';
   sortOrder?: 'asc' | 'desc';
 }
 
 const ContentFilters: React.FC<ContentFiltersProps> = ({
   resourceType = [],
-  status = [],
   visibility = [],
   search = '',
   tags = [],
-  hasCuration,
-  hasRatings,
   featured,
   verified,
-  minRating,
   familyId,
   categoryId,
   showContentTypeFilter = true,
   showTypeSpecificFilters = true,
   showVisibilityFilter = true,
-  showStatusFilter = true,
   showAdvancedFilters = true,
   showFamilyFilter = false,
   showCategoryFilter = false,
@@ -138,14 +121,6 @@ const ContentFilters: React.FC<ContentFiltersProps> = ({
       : resourceType.filter(t => t !== type);
 
     onFiltersChange({ resourceType: newResourceType });
-  };
-
-  const handleStatusChange = (newStatus: ResourceStatus, checked: boolean) => {
-    const newStatuses = checked
-      ? [...status, newStatus]
-      : status.filter(s => s !== newStatus);
-
-    onFiltersChange({ status: newStatuses });
   };
 
   const handleVisibilityChange = (newVisibility: ResourceVisibility, checked: boolean) => {
@@ -181,15 +156,11 @@ const ContentFilters: React.FC<ContentFiltersProps> = ({
   const getActiveFilterCount = () => {
     let count = 0;
     if (resourceType.length > 0) count++;
-    if (status.length > 0) count++;
     if (visibility.length > 0) count++;
     if (search) count++;
     if (tags.length > 0) count++;
-    if (hasCuration) count++;
-    if (hasRatings) count++;
     if (featured) count++;
     if (verified) count++;
-    if (minRating && minRating > 0) count++;
     if (familyId) count++;
     if (categoryId) count++;
     return count;
@@ -243,46 +214,12 @@ const ContentFilters: React.FC<ContentFiltersProps> = ({
     );
   };
 
-  const renderStatusFilter = () => {
-    if (!showStatusFilter) return null;
-
-    const statuses = [
-      { value: ResourceStatus.DRAFT, label: 'Draft' },
-      { value: ResourceStatus.PENDING, label: 'Pending Review' },
-      { value: ResourceStatus.APPROVED, label: 'Approved' },
-      { value: ResourceStatus.FEATURED, label: 'Featured' },
-      { value: ResourceStatus.ARCHIVED, label: 'Archived' }
-    ];
-
-    return (
-      <div className="space-y-2">
-        <Label className="text-sm font-medium">Status</Label>
-        <div className="grid grid-cols-2 gap-2">
-          {statuses.map((statusItem) => (
-            <div key={statusItem.value} className="flex items-center space-x-2">
-              <Checkbox
-                id={`status-${statusItem.value}`}
-                checked={status.includes(statusItem.value)}
-                onCheckedChange={(checked) => handleStatusChange(statusItem.value, checked as boolean)}
-              />
-              <Label htmlFor={`status-${statusItem.value}`} className="text-sm">
-                {statusItem.label}
-              </Label>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  };
-
   const renderVisibilityFilter = () => {
     if (!showVisibilityFilter) return null;
 
     const visibilities = [
-      { value: ResourceVisibility.PUBLIC, label: 'Public' },
+      { value: ResourceVisibility.PRIVATE, label: 'Private' },
       { value: ResourceVisibility.FAMILY, label: 'Family' },
-      { value: ResourceVisibility.SHARED, label: 'Shared' },
-      { value: ResourceVisibility.PRIVATE, label: 'Private' }
     ];
 
     return (
@@ -331,39 +268,12 @@ const ContentFilters: React.FC<ContentFiltersProps> = ({
         </CollapsibleTrigger>
 
         <CollapsibleContent className="space-y-4 pt-2">
-          {/* Feature Flags - all content is now resources */}
+          {/* Feature Flags */}
           <div className="space-y-3">
-            {/* Resource features */}
             <div className="space-y-3">
               <Label className="text-sm font-medium">Resource Features</Label>
 
               <div className="space-y-2">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="has-curation"
-                    checked={hasCuration || false}
-                    onCheckedChange={(checked) =>
-                      onFiltersChange({ hasCuration: checked as boolean })
-                    }
-                  />
-                  <Label htmlFor="has-curation" className="text-sm">
-                    Requires Curation
-                  </Label>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="has-ratings"
-                    checked={hasRatings || false}
-                    onCheckedChange={(checked) =>
-                      onFiltersChange({ hasRatings: checked as boolean })
-                    }
-                  />
-                  <Label htmlFor="has-ratings" className="text-sm">
-                    Has Ratings
-                  </Label>
-                </div>
-
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     id="featured"
@@ -385,35 +295,10 @@ const ContentFilters: React.FC<ContentFiltersProps> = ({
                       onFiltersChange({ verified: checked as boolean })
                     }
                   />
-                  <Label htmlFor="verified" className="flex items-center gap-1 text-sm">
-                    <CheckCircle className="h-3 w-3" />
+                  <Label htmlFor="verified" className="text-sm">
                     Verified
                   </Label>
                 </div>
-              </div>
-
-              {/* Minimum Rating */}
-              <div className="space-y-2">
-                <Label htmlFor="min-rating" className="text-sm font-medium">
-                  Minimum Rating
-                </Label>
-                <Select
-                  value={minRating?.toString() || ''}
-                  onValueChange={(value) =>
-                    onFiltersChange({ minRating: value ? parseFloat(value) : undefined })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Any rating" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">Any rating</SelectItem>
-                    <SelectItem value="4">4+ stars</SelectItem>
-                    <SelectItem value="3">3+ stars</SelectItem>
-                    <SelectItem value="2">2+ stars</SelectItem>
-                    <SelectItem value="1">1+ stars</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
             </div>
           </div>
@@ -534,7 +419,6 @@ const ContentFilters: React.FC<ContentFiltersProps> = ({
         {renderContentTypeFilters()}
         {renderNoteFilters()}
         {renderResourceFilters()}
-        {renderStatusFilter()}
         {renderVisibilityFilter()}
 
         {/* Advanced Filters */}

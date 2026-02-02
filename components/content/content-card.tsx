@@ -8,13 +8,10 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   MoreVertical,
   FileText,
-  Star,
   Eye,
   Share2,
   Calendar,
   User,
-  CheckCircle,
-  Clock,
   AlertCircle,
   Link,
   Video,
@@ -34,7 +31,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { ResourceType, ResourceStatus, ResourceVisibility } from '@prisma/client';
+import { ResourceType, ResourceVisibility } from '@prisma/client';
 import { formatDistanceToNow } from 'date-fns';
 import { formatFileSize } from '@/components/shared/format-utils';
 
@@ -54,18 +51,8 @@ export interface ContentCardProps {
     description?: string;
     resourceType: ResourceType;
     visibility: ResourceVisibility;
-    status?: ResourceStatus;
-
-    // Engagement metrics
-    viewCount: number;
-    downloadCount?: number;
-    shareCount?: number;
-    rating?: number;
-    ratingCount?: number;
 
     // Flags
-    hasCuration?: boolean;
-    hasRatings?: boolean;
     isPinned?: boolean;
     isArchived?: boolean;
     isVerified?: boolean;
@@ -110,8 +97,6 @@ export interface ContentCardProps {
   };
 
   // Display options
-  showRatings?: boolean;
-  showCuration?: boolean;
   showDocuments?: boolean;
 
   // Actions
@@ -121,9 +106,6 @@ export interface ContentCardProps {
   onShare?: (contentId: string) => void;
   onPin?: (contentId: string) => void;
   onArchive?: (contentId: string) => void;
-  onRate?: (contentId: string) => void; // RESOURCE only
-  onApprove?: (contentId: string) => void; // RESOURCE only
-  onFeature?: (contentId: string) => void; // RESOURCE only
 
   // User context
   userRole?: 'ADMIN' | 'VOLUNTEER' | 'MEMBER';
@@ -147,8 +129,6 @@ const getDocumentIcon = (type?: string) => {
 
 const ContentCard: React.FC<ContentCardProps> = ({
   content,
-  showRatings = true,
-  showCuration = true,
   showDocuments = true,
   onView,
   onEdit,
@@ -156,9 +136,6 @@ const ContentCard: React.FC<ContentCardProps> = ({
   onShare,
   onPin,
   onArchive,
-  onRate,
-  onApprove,
-  onFeature,
   userRole,
   canEdit = false,
   canDelete = false
@@ -178,21 +155,9 @@ const ContentCard: React.FC<ContentCardProps> = ({
   };
 
   const getStatusBadge = () => {
-    const statusConfig = {
-      [ResourceStatus.DRAFT]: { color: 'bg-[var(--brand-deep)]', label: 'Draft' },
-      [ResourceStatus.PENDING]: { color: 'bg-[var(--brand-primary-light)]', label: 'Pending' },
-      [ResourceStatus.APPROVED]: { color: 'bg-[var(--brand-accent)]', label: 'Approved' },
-      [ResourceStatus.FEATURED]: { color: 'bg-[var(--brand-accent)]', label: 'Featured' },
-      [ResourceStatus.ARCHIVED]: { color: 'bg-[var(--brand-deep)]', label: 'Archived' },
-      [ResourceStatus.REJECTED]: { color: 'bg-[var(--brand-muted)]', label: 'Rejected' }
-    };
-
     // Check if this is a template
     const contentHasExternalMeta = (content as any).externalMeta;
-    const isTemplateContent = contentHasExternalMeta?.isTemplate === true ||
-      (content.visibility === ResourceVisibility.PUBLIC &&
-       content.tags?.includes('advance-directives') &&
-       content.status === ResourceStatus.APPROVED);
+    const isTemplateContent = contentHasExternalMeta?.isTemplate === true;
 
     return (
       <div className="flex flex-wrap gap-1.5 overflow-hidden">
@@ -217,44 +182,21 @@ const ContentCard: React.FC<ContentCardProps> = ({
             Archived
           </Badge>
         )}
-
-        {/* Status badge - only show if not a template */}
-        {!isTemplateContent && content.status && (
-          <Badge className={`${statusConfig[content.status]?.color} text-white text-xs`}>
-            {statusConfig[content.status]?.label}
-          </Badge>
-        )}
       </div>
     );
   };
 
   const getVisibilityBadge = () => {
-    const visibilityConfig = {
+    const visibilityConfig: Record<string, { color: string; label: string }> = {
       [ResourceVisibility.PRIVATE]: { color: 'bg-red-100 text-red-800', label: 'Private' },
       [ResourceVisibility.FAMILY]: { color: 'bg-blue-100 text-blue-800', label: 'Family' },
-      [ResourceVisibility.SHARED]: { color: 'bg-green-100 text-green-800', label: 'Shared' },
-      [ResourceVisibility.PUBLIC]: { color: 'bg-gray-100 text-gray-800', label: 'Public' }
     };
 
-    const config = visibilityConfig[content.visibility];
+    const config = visibilityConfig[content.visibility] || { color: 'bg-gray-100 text-gray-800', label: content.visibility };
     return (
       <Badge className={`${config.color} text-xs`}>
         {config.label}
       </Badge>
-    );
-  };
-
-  const renderRatingInfo = () => {
-    if (!showRatings || !content.hasRatings) return null;
-
-    return (
-      <div className="flex items-center gap-2 text-sm text-gray-600">
-        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-        <span>
-          {content.rating ? `${content.rating.toFixed(1)}` : 'No ratings'}
-          {content.ratingCount ? ` (${content.ratingCount})` : ''}
-        </span>
-      </div>
     );
   };
 
@@ -281,12 +223,8 @@ const ContentCard: React.FC<ContentCardProps> = ({
   // Get comprehensive card colors based on content type or healthcare category
   const getCardColors = () => {
     // Priority 0: Templates (highest priority) - Use subtle styling for legibility
-    // Check if this content has template metadata
     const contentHasExternalMeta = (content as any).externalMeta;
-    const isTemplateContent = contentHasExternalMeta?.isTemplate === true ||
-      (content.visibility === ResourceVisibility.PUBLIC &&
-       content.tags?.includes('advance-directives') &&
-       content.status === ResourceStatus.APPROVED);
+    const isTemplateContent = contentHasExternalMeta?.isTemplate === true;
 
     if (isTemplateContent) {
       return {
@@ -343,29 +281,7 @@ const ContentCard: React.FC<ContentCardProps> = ({
       }
     }
 
-    // Priority 2: Content status (Resources)
-    if (content.status === ResourceStatus.FEATURED) {
-        return {
-          border: 'border-l-[var(--brand-accent)]',
-          background: 'bg-blue-50 dark:bg-blue-950/20',
-          hover: 'hover:bg-blue-100 dark:hover:bg-blue-950/30'
-        };
-      }
-      if (content.status === ResourceStatus.APPROVED) {
-        return {
-          border: 'border-l-[var(--brand-accent)]',
-          background: 'bg-teal-50 dark:bg-teal-950/20',
-          hover: 'hover:bg-teal-100 dark:hover:bg-teal-950/30'
-        };
-      }
-      if (content.status === ResourceStatus.PENDING) {
-        return {
-          border: 'border-l-[var(--brand-primary-light)]',
-          background: 'bg-orange-50 dark:bg-orange-950/20',
-          hover: 'hover:bg-orange-100 dark:hover:bg-orange-950/30'
-        };
-      }
-    // Draft/other resource statuses
+    // Default styling
     return {
       border: 'border-l-[var(--brand-primary)]',
       background: 'bg-purple-50 dark:bg-purple-950/20',
@@ -423,28 +339,6 @@ const ContentCard: React.FC<ContentCardProps> = ({
             <DropdownMenuItem onClick={() => onArchive(content.id)}>
               <Archive className="mr-2 h-4 w-4" />
               {content.isArchived ? 'Unarchive' : 'Archive'}
-            </DropdownMenuItem>
-          )}
-
-          {/* Rating actions */}
-          {onRate && (
-            <DropdownMenuItem onClick={() => onRate(content.id)}>
-              <Star className="mr-2 h-4 w-4" />
-              Rate Resource
-            </DropdownMenuItem>
-          )}
-
-          {onApprove && userRole === 'ADMIN' && content.status === ResourceStatus.PENDING && (
-            <DropdownMenuItem onClick={() => onApprove(content.id)}>
-              <CheckCircle className="mr-2 h-4 w-4" />
-              Approve
-            </DropdownMenuItem>
-          )}
-
-          {onFeature && userRole === 'ADMIN' && content.status === ResourceStatus.APPROVED && (
-            <DropdownMenuItem onClick={() => onFeature(content.id)}>
-              <Star className="mr-2 h-4 w-4" />
-              Feature
             </DropdownMenuItem>
           )}
 
@@ -510,7 +404,6 @@ const ContentCard: React.FC<ContentCardProps> = ({
           {/* Status Info */}
           <div className="space-y-1 pl-4">
             {getStatusBadge()}
-            {renderRatingInfo()}
             {renderDocuments()}
           </div>
         </div>

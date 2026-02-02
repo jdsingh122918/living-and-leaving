@@ -51,8 +51,6 @@ const SORT_OPTIONS = [
   { value: "createdAt-asc", label: "Oldest First" },
   { value: "title-asc", label: "Title A-Z" },
   { value: "title-desc", label: "Title Z-A" },
-  { value: "averageRating-desc", label: "Highest Rated" },
-  { value: "totalViews-desc", label: "Most Viewed" },
 ];
 
 export function ResourceFilters({

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Plus, FileText, Star } from 'lucide-react';
+import { ArrowLeft, Plus, FileText } from 'lucide-react';
 import ContentForm, { ContentFormData } from './content-form';
 import { ResourceType, UserRole, ResourceVisibility } from '@prisma/client';
 import { useToast } from '@/hooks/use-toast';
@@ -61,9 +61,6 @@ const ContentCreationPage: React.FC<ContentCreationPageProps> = ({
     isPinned: false,
     allowComments: false,
     allowEditing: false,
-    hasCuration: userRole !== 'ADMIN',
-    hasRatings: true, // All resources can have ratings
-    hasSharing: false,
     externalMeta: undefined,
     documentIds: []
   };
@@ -144,9 +141,6 @@ const ContentCreationPage: React.FC<ContentCreationPageProps> = ({
         isPinned: submittedFormData.isPinned || false,
         allowComments: submittedFormData.allowComments || false,
         allowEditing: submittedFormData.allowEditing || false,
-        hasCuration: canManageCuration ? submittedFormData.hasCuration : true,
-        hasRatings: submittedFormData.hasRatings || false,
-        hasSharing: submittedFormData.hasSharing || false,
 
         // Additional fields
         externalMeta: submittedFormData.externalMeta,

@@ -28,7 +28,6 @@ interface Resource {
   content: string;
   type: string;
   visibility: string;
-  status: string;
   familyId?: string;
   family?: {
     id: string;
@@ -44,13 +43,6 @@ interface Resource {
   tags: string[];
   externalUrl?: string;
   attachments: string[];
-  isFeatured: boolean;
-  isApproved: boolean;
-  averageRating: number;
-  totalRatings: number;
-  totalViews: number;
-  totalShares: number;
-  totalBookmarks: number;
   externalMeta?: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
@@ -61,8 +53,6 @@ interface Resource {
     email: string;
     role: string;
   };
-  userRating?: number;
-  userBookmark: boolean;
   documents: Array<{ id: string; name: string; url: string }>;
 }
 
