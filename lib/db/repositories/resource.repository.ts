@@ -2,54 +2,35 @@ import {
   PrismaClient,
   Resource,
   ResourceType,
-  ResourceStatus,
   ResourceVisibility,
   UserRole,
   ResourceDocument,
-  ResourceShare,
-  ResourceTag,
-  ResourceRating,
   ResourceFormResponse,
 } from "@prisma/client";
 
 /**
  * Unified Resource Repository
  *
- * This repository handles all resource operations for the unified Resource system,
- * supporting all types of resources with optional features enabled via feature flags.
- *
- * Key Features:
- * - Curation Workflow: Approval, featuring, rating system (enabled via hasCuration)
- * - Sharing System: Advanced sharing capabilities (enabled via hasSharing)
- * - Rating System: Community ratings and reviews (enabled via hasRatings)
- * - Role-based Access Control: ADMIN/VOLUNTEER/MEMBER permissions
+ * Handles all resource operations with role-based access control.
+ * - ADMIN/VOLUNTEER: Create and manage resources
+ * - MEMBER: View-only (family-shared + assigned templates)
  */
 
 export interface ResourceFilters {
   resourceType?: ResourceType[];
-  status?: ResourceStatus[];
   createdBy?: string;
   familyId?: string;
-  visibility?: ResourceVisibility[];
   categoryId?: string;
   tags?: string[];
   healthcareCategories?: string[];
   healthcareTags?: string[];
   search?: string;
-  hasCuration?: boolean;
-  hasRatings?: boolean;
-  hasSharing?: boolean;
-  featured?: boolean;
-  verified?: boolean;
-  minRating?: number;
-  // Template filtering
   isTemplate?: boolean;
   templateType?: string;
-  // System-generated filtering
   isSystemGenerated?: boolean;
   page?: number;
   limit?: number;
-  sortBy?: "createdAt" | "updatedAt" | "title" | "viewCount" | "rating";
+  sortBy?: "createdAt" | "updatedAt" | "title";
   sortOrder?: "asc" | "desc";
 }
 
@@ -65,24 +46,10 @@ export interface CreateResourceInput {
   attachments?: string[];
   createdBy: string;
   sharedWith?: string[];
-
-  // Resource-specific fields
   url?: string;
   targetAudience?: string[];
   externalMeta?: any;
-  submittedBy?: string;
-
-  // Approval fields
-  approvedBy?: string;
-  approvedAt?: Date;
-
-  // Feature flags
-  hasCuration?: boolean;
-  hasRatings?: boolean;
-  hasSharing?: boolean;
   isSystemGenerated?: boolean;
-
-  // Document attachments
   documentIds?: string[];
 }
 
@@ -93,15 +60,10 @@ export interface UpdateResourceInput extends Partial<CreateResourceInput> {
 
 export interface ResourceOptions {
   includeDocuments?: boolean;
-  includeShares?: boolean;
-  includeStructuredTags?: boolean;
-  includeRatings?: boolean;
   includeFormResponses?: boolean;
   includeCreator?: boolean;
   includeFamily?: boolean;
   includeCategory?: boolean;
-  includeSubmitter?: boolean;
-  includeApprover?: boolean;
 }
 
 export interface PaginatedResources {
@@ -124,10 +86,10 @@ class ResourceRepository {
     userRole: UserRole,
   ): Promise<Resource> {
     // Validate user permissions
-    await this.validateCreatePermissions(data, userId, userRole);
+    this.validateCreatePermissions(userRole);
 
     // Set defaults based on resource type
-    const resourceData = this.prepareResourceData(data, userId, userRole);
+    const resourceData = this.prepareResourceData(data, userId);
 
     try {
       return await this.prisma.$transaction(async (prisma) => {
@@ -287,22 +249,14 @@ class ResourceRepository {
     data: UpdateResourceInput,
     userId: string,
     userRole: UserRole,
-  ): Promise<Resource & {
-    creator: { id: string; firstName: string | null; lastName: string | null; email: string } | null;
-    family: { id: string; name: string } | null;
-    submitter: { id: string; firstName: string | null; lastName: string | null; email: string; role: UserRole } | null;
-    approver: { id: string; firstName: string | null; lastName: string | null; email: string; role: UserRole } | null;
-  }> {
-    // Check if content exists and user has permission
+  ): Promise<Resource> {
     const existingContent = await this.findById(id, userId, userRole);
     if (!existingContent) {
       throw new Error("Content not found or access denied");
     }
 
-    // Validate update permissions
-    await this.validateUpdatePermissions(existingContent, userId, userRole);
+    this.validateUpdatePermissions(existingContent, userId, userRole);
 
-    // Prepare update data
     const updateData = { ...data };
 
     try {
@@ -315,12 +269,6 @@ class ResourceRepository {
           },
           family: {
             select: { id: true, name: true },
-          },
-          submitter: {
-            select: { id: true, firstName: true, lastName: true, email: true, role: true },
-          },
-          approver: {
-            select: { id: true, firstName: true, lastName: true, email: true, role: true },
           },
         },
       });
@@ -338,7 +286,7 @@ class ResourceRepository {
       throw new Error("Content not found or access denied");
     }
 
-    await this.validateDeletePermissions(content, userId, userRole);
+    this.validateDeletePermissions(content, userId, userRole);
 
     await this.prisma.resource.update({
       where: { id },
@@ -347,244 +295,6 @@ class ResourceRepository {
         deletedAt: new Date(),
       },
     });
-  }
-
-  /**
-   * Increment view count
-   */
-  async incrementViewCount(id: string): Promise<void> {
-    await this.prisma.resource.update({
-      where: { id },
-      data: {
-        viewCount: { increment: 1 },
-      },
-    });
-  }
-
-  // ========================================
-  // CURATION SYSTEM (RESOURCE content only)
-  // ========================================
-
-  /**
-   * Get resources awaiting curation (RESOURCE only)
-   */
-  async getCurationQueue(
-    adminId: string,
-    adminRole: UserRole,
-  ): Promise<Resource[]> {
-    if (adminRole !== UserRole.ADMIN) {
-      throw new Error("Only admins can access curation queue");
-    }
-
-    return await this.prisma.resource.findMany({
-      where: {
-        status: ResourceStatus.PENDING,
-        hasCuration: true,
-      },
-      include: {
-        creator: {
-          select: { id: true, firstName: true, lastName: true, email: true },
-        },
-        family: {
-          select: { id: true, name: true },
-        },
-      },
-      orderBy: { createdAt: "asc" },
-    });
-  }
-
-  /**
-   * Approve resource content
-   */
-  async approveContent(
-    resourceId: string,
-    approverId: string,
-    approverRole: UserRole,
-  ): Promise<Resource> {
-    if (approverRole !== UserRole.ADMIN) {
-      throw new Error("Only admins can approve content");
-    }
-
-    const resource = await this.findById(resourceId, approverId, approverRole);
-    if (!resource) {
-      throw new Error("Resource not found");
-    }
-
-    return await this.prisma.resource.update({
-      where: { id: resourceId },
-      data: {
-        status: ResourceStatus.APPROVED,
-        approvedBy: approverId,
-        approvedAt: new Date(),
-      },
-    });
-  }
-
-  /**
-   * Feature resource content
-   */
-  async featureContent(
-    resourceId: string,
-    featurerId: string,
-    featurerRole: UserRole,
-  ): Promise<Resource> {
-    if (featurerRole !== UserRole.ADMIN) {
-      throw new Error("Only admins can feature content");
-    }
-
-    const resource = await this.findById(resourceId, featurerId, featurerRole);
-    if (!resource) {
-      throw new Error("Resource not found");
-    }
-
-    return await this.prisma.resource.update({
-      where: { id: resourceId },
-      data: {
-        status: ResourceStatus.FEATURED,
-        featuredBy: featurerId,
-        featuredAt: new Date(),
-      },
-    });
-  }
-
-  // ========================================
-  // RATING SYSTEM (RESOURCE content only)
-  // ========================================
-
-  /**
-   * Add or update rating for RESOURCE content
-   */
-  async rateContent(
-    resourceId: string,
-    userId: string,
-    rating: number,
-    review?: string,
-    isHelpful?: boolean,
-  ): Promise<{ resourceRating: ResourceRating; newRating: number; success: boolean }> {
-    const content = await this.prisma.resource.findUnique({
-      where: { id: resourceId },
-    });
-
-    if (!content) {
-      throw new Error("Resource not found");
-    }
-
-    // Validate rating range
-    if (rating < 1 || rating > 5) {
-      throw new Error("Rating must be between 1 and 5");
-    }
-
-    try {
-      // Use transaction to ensure atomicity between rating upsert and recalculation
-      return await this.prisma.$transaction(async (tx) => {
-        // Upsert rating
-        const resourceRating = await tx.resourceRating.upsert({
-          where: {
-            resourceId_userId: {
-              resourceId: resourceId,
-              userId,
-            },
-          },
-          create: {
-            resourceId: resourceId,
-            userId,
-            rating,
-            review,
-            isHelpful,
-          },
-          update: {
-            rating,
-            review,
-            isHelpful,
-            updatedAt: new Date(),
-          },
-        });
-
-        // Recalculate average rating within the same transaction
-        await this.recalculateRating(resourceId, tx);
-
-        // Get the updated resource to return the new average rating
-        const updatedResource = await tx.resource.findUnique({
-          where: { id: resourceId },
-          select: { rating: true },
-        });
-
-        return {
-          resourceRating,
-          newRating: updatedResource?.rating || 0,
-          success: true,
-        };
-      });
-    } catch (error) {
-      throw new Error(`Failed to rate content: ${error}`);
-    }
-  }
-
-  /**
-   * Recalculate average rating for content
-   */
-  private async recalculateRating(resourceId: string, tx?: any): Promise<void> {
-    const client = tx || this.prisma;
-
-    const ratings = await client.resourceRating.findMany({
-      where: { resourceId: resourceId },
-    });
-
-    if (ratings.length === 0) {
-      await client.resource.update({
-        where: { id: resourceId },
-        data: {
-          rating: null,
-          ratingCount: 0,
-        },
-      });
-      return;
-    }
-
-    const totalRating = ratings.reduce(
-      (sum: number, r: any) => sum + r.rating,
-      0,
-    );
-    const averageRating = totalRating / ratings.length;
-
-    await client.resource.update({
-      where: { id: resourceId },
-      data: {
-        rating: Math.round(averageRating * 100) / 100, // Round to 2 decimal places
-        ratingCount: ratings.length,
-        hasRatings: true,
-      },
-    });
-  }
-
-  /**
-   * Get user's rating for a specific resource
-   */
-  async getUserRating(
-    resourceId: string,
-    userId: string
-  ): Promise<{ rating: number; review: string | null; isHelpful: boolean | null; createdAt: Date } | null> {
-    try {
-      const rating = await this.prisma.resourceRating.findUnique({
-        where: {
-          resourceId_userId: {
-            resourceId,
-            userId,
-          },
-        },
-        select: {
-          rating: true,
-          review: true,
-          isHelpful: true,
-          createdAt: true,
-        },
-      });
-
-      return rating;
-    } catch (error) {
-      console.error("Error fetching user rating:", error);
-      return null;
-    }
   }
 
   // ========================================
@@ -647,59 +357,11 @@ class ResourceRepository {
   }
 
   // ========================================
-  // SHARING MANAGEMENT (Unified)
-  // ========================================
-
-  /**
-   * Share resource with user
-   */
-  async shareContent(
-    resourceId: string,
-    sharedBy: string,
-    userId: string,
-    permissions: {
-      canEdit?: boolean;
-      canComment?: boolean;
-      canShare?: boolean;
-    } = {},
-  ): Promise<ResourceShare> {
-    const resource = await this.prisma.resource.findUnique({
-      where: { id: resourceId },
-    });
-
-    if (!resource) {
-      throw new Error("Resource not found");
-    }
-
-    const shareData: any = {
-      resourceId,
-      sharedBy,
-      userId,
-    };
-
-    // TODO: Implement permission levels for different resource types if needed
-    // For now, sharing gives basic access to the resource
-
-    return await this.prisma.resourceShare.create({
-      data: shareData,
-      include: {
-        user: {
-          select: { id: true, firstName: true, lastName: true, email: true },
-        },
-      },
-    });
-  }
-
-  // ========================================
   // PRIVATE HELPER METHODS
   // ========================================
 
-  private prepareResourceData(
-    data: CreateResourceInput,
-    userId: string,
-    userRole: UserRole,
-  ) {
-    const baseData = {
+  private prepareResourceData(data: CreateResourceInput, userId: string) {
+    return {
       title: data.title,
       description: data.description,
       body: data.body,
@@ -709,76 +371,34 @@ class ResourceRepository {
       categoryId: data.categoryId,
       tags: data.tags || [],
       createdBy: userId,
-      hasSharing: data.hasSharing || false,
-    };
-
-    // Unified resource setup - auto-approve for ADMIN users
-    const isAutoApproved = userRole === UserRole.ADMIN;
-
-    return {
-      ...baseData,
       url: data.url,
       targetAudience: data.targetAudience || [],
       externalMeta: data.externalMeta,
-      submittedBy: userId,
-      hasCuration: data.hasCuration !== undefined ? data.hasCuration : !isAutoApproved,
-      hasRatings: data.hasRatings !== undefined ? data.hasRatings : true,
       isSystemGenerated: data.isSystemGenerated ?? false,
-      status: isAutoApproved
-        ? ResourceStatus.APPROVED
-        : ResourceStatus.PENDING,
-      approvedBy: isAutoApproved ? userId : undefined,
-      approvedAt: isAutoApproved ? new Date() : undefined,
     };
   }
 
-  private async validateCreatePermissions(
-    data: CreateResourceInput,
-    userId: string,
-    userRole: UserRole,
-  ): Promise<void> {
-    // All users can create resources
-    // Members' resources require curation by default (unless explicitly disabled)
-    if (userRole === UserRole.MEMBER && data.hasCuration === undefined) {
-      data.hasCuration = true;
+  private validateCreatePermissions(userRole: UserRole): void {
+    if (userRole === UserRole.MEMBER) {
+      throw new Error("Members cannot create resources");
     }
   }
 
-  private async validateUpdatePermissions(
+  private validateUpdatePermissions(
     resource: Resource,
     userId: string,
     userRole: UserRole,
-  ): Promise<void> {
-    // ADMIN can update anything
-    if (userRole === UserRole.ADMIN) {
-      return;
-    }
-
-    // Creator can update their own resource
-    if (resource.createdBy === userId) {
-      return;
-    }
-
-    // Check if user has edit permissions through sharing
-    const share = await this.prisma.resourceShare.findFirst({
-      where: {
-        resourceId: resource.id,
-        userId,
-      },
-    });
-    if (share) {
-      // If resource is shared with the user, they can edit it
-      return;
-    }
-
+  ): void {
+    if (userRole === UserRole.ADMIN) return;
+    if (resource.createdBy === userId) return;
     throw new Error("Permission denied to update resource");
   }
 
-  private async validateDeletePermissions(
+  private validateDeletePermissions(
     resource: Resource,
     userId: string,
     userRole: UserRole,
-  ): Promise<void> {
+  ): void {
     // ADMIN can delete anything
     if (userRole === UserRole.ADMIN) {
       return;
@@ -797,60 +417,54 @@ class ResourceRepository {
     userId: string,
     userRole: UserRole,
   ): Promise<boolean> {
-    // ADMIN has access to everything
-    if (userRole === UserRole.ADMIN) {
-      return true;
+    // ADMIN: full access
+    if (userRole === UserRole.ADMIN) return true;
+
+    // Creator: own resources
+    if (resource.createdBy === userId) return true;
+
+    // VOLUNTEER: resources in assigned families
+    if (userRole === UserRole.VOLUNTEER) {
+      if (resource.familyId) {
+        const assignment =
+          await this.prisma.volunteerFamilyAssignment.findFirst({
+            where: {
+              volunteerId: userId,
+              familyId: resource.familyId,
+              isActive: true,
+            },
+          });
+        if (assignment) return true;
+      }
+      return false;
     }
 
-    // Creator has access to their resource
-    if (resource.createdBy === userId) {
-      return true;
-    }
-
-    // MEMBER cannot access system-generated resources unless:
-    // 1. They created it (checked above)
-    // 2. It has been assigned to them via TemplateAssignment
-    if (userRole === UserRole.MEMBER && resource.isSystemGenerated) {
-      // Check if this resource has been assigned to the member
-      const assignment = await this.prisma.templateAssignment.findUnique({
-        where: {
-          resourceId_assigneeId: {
-            resourceId: resource.id,
-            assigneeId: userId,
+    // MEMBER: only assigned templates + family resources
+    if (userRole === UserRole.MEMBER) {
+      // Check template assignment
+      const templateAssignment =
+        await this.prisma.templateAssignment.findUnique({
+          where: {
+            resourceId_assigneeId: {
+              resourceId: resource.id,
+              assigneeId: userId,
+            },
           },
-        },
-      });
-      if (!assignment) {
-        return false;
-      }
-      // Member has an assignment for this resource, allow access
-      return true;
-    }
+        });
+      if (templateAssignment) return true;
 
-    // Check visibility
-    if (resource.visibility === ResourceVisibility.PUBLIC) {
-      return true;
-    }
-
-    if (resource.visibility === ResourceVisibility.FAMILY && resource.familyId) {
-      const user = await this.prisma.user.findUnique({
-        where: { id: userId },
-      });
-      if (user?.familyId === resource.familyId) {
-        return true;
+      // Check family visibility
+      if (
+        resource.visibility === ResourceVisibility.FAMILY &&
+        resource.familyId
+      ) {
+        const user = await this.prisma.user.findUnique({
+          where: { id: userId },
+        });
+        if (user?.familyId === resource.familyId) return true;
       }
-    }
 
-    if (resource.visibility === ResourceVisibility.SHARED) {
-      const share = await this.prisma.resourceShare.findFirst({
-        where: {
-          resourceId: resource.id,
-          userId,
-        },
-      });
-      if (share) {
-        return true;
-      }
+      return false;
     }
 
     return false;
@@ -865,18 +479,10 @@ class ResourceRepository {
       isDeleted: false,
     };
 
-    // Resource type filter
     if (filters.resourceType && filters.resourceType.length > 0) {
       where.resourceType = { in: filters.resourceType };
     }
 
-    // Additional resource type filters (removed duplicate resourceType filter)
-
-    if (filters.status && filters.status.length > 0) {
-      where.status = { in: filters.status };
-    }
-
-    // Ownership filters
     if (filters.createdBy) {
       where.createdBy = filters.createdBy;
     }
@@ -885,7 +491,6 @@ class ResourceRepository {
       where.familyId = filters.familyId;
     }
 
-    // Organizational filters
     if (filters.categoryId) {
       where.categoryId = filters.categoryId;
     }
@@ -894,17 +499,14 @@ class ResourceRepository {
       where.tags = { hasSome: filters.tags };
     }
 
-    // Healthcare-specific filtering (using regular tags field)
+    // Healthcare-specific filtering
     if (
       filters.healthcareCategories &&
       filters.healthcareCategories.length > 0
     ) {
-      // Import healthcare categories to get their associated tags
       const { HEALTHCARE_CATEGORIES } = await import(
         "@/lib/data/healthcare-tags"
       );
-
-      // Expand healthcare categories into their constituent tags
       const categoryTags: string[] = [];
       for (const categoryName of filters.healthcareCategories) {
         const category = HEALTHCARE_CATEGORIES.find(
@@ -914,8 +516,6 @@ class ResourceRepository {
           categoryTags.push(...category.tags);
         }
       }
-
-      // Healthcare category tags are stored as regular tags
       if (categoryTags.length > 0) {
         where.tags = {
           ...where.tags,
@@ -925,84 +525,46 @@ class ResourceRepository {
     }
 
     if (filters.healthcareTags && filters.healthcareTags.length > 0) {
-      // Healthcare tags are also stored as regular tags
       where.tags = {
         ...where.tags,
         hasSome: [...(where.tags?.hasSome || []), ...filters.healthcareTags],
       };
     }
 
-    // Feature flags
-    if (filters.hasCuration !== undefined) {
-      where.hasCuration = filters.hasCuration;
-    }
-
-    if (filters.hasRatings !== undefined) {
-      where.hasRatings = filters.hasRatings;
-    }
-
-    // Resource-specific filters
-    if (filters.featured) {
-      where.status = ResourceStatus.FEATURED;
-    }
-
-    if (filters.verified) {
-      where.isVerified = true;
-    }
-
-    if (filters.minRating) {
-      where.rating = { gte: filters.minRating };
-    }
-
     // Template filtering
     if (filters.isTemplate !== undefined) {
       if (filters.isTemplate) {
-        // Filter for templates: resources with isTemplate metadata and specific characteristics
         where.AND = [
           ...(where.AND || []),
           {
-            OR: [
-              {
-                externalMeta: {
-                  path: ["isTemplate"],
-                  equals: true
-                }
-              },
-              {
-                AND: [
-                  { visibility: ResourceVisibility.PUBLIC },
-                  { tags: { hasSome: ["advance-directives"] } },
-                  { status: ResourceStatus.APPROVED }
-                ]
-              }
-            ]
-          }
+            externalMeta: {
+              path: ["isTemplate"],
+              equals: true,
+            },
+          },
         ];
       } else {
-        // Filter for non-templates
         where.AND = [
           ...(where.AND || []),
           {
             NOT: {
               externalMeta: {
                 path: ["isTemplate"],
-                equals: true
-              }
-            }
-          }
+                equals: true,
+              },
+            },
+          },
         ];
       }
     }
 
     if (filters.templateType) {
-      // Filter by specific template type (e.g., "advance-directive")
       where.externalMeta = {
         path: ["templateType"],
-        equals: filters.templateType
+        equals: filters.templateType,
       };
     }
 
-    // System-generated filtering (explicit filter parameter)
     if (filters.isSystemGenerated !== undefined) {
       where.isSystemGenerated = filters.isSystemGenerated;
     }
@@ -1017,58 +579,55 @@ class ResourceRepository {
       ];
     }
 
-    // Visibility and access control
-    if (userRole !== UserRole.ADMIN) {
-      // Base visibility conditions for non-admin users
-      const visibilityConditions = [
-        { createdBy: userId }, // Own content
-        { visibility: ResourceVisibility.PUBLIC }, // Public content
-        {
-          AND: [
-            { visibility: ResourceVisibility.FAMILY },
-            {
-              family: {
-                members: {
-                  some: { id: userId },
-                },
-              },
-            },
-          ],
-        }, // Family content
-        {
-          AND: [
-            { visibility: ResourceVisibility.SHARED },
-            {
-              shares: {
-                some: { userId },
-              },
-            },
-          ],
-        }, // Shared content
-      ];
+    // Role-based access control
+    if (userRole === UserRole.ADMIN) {
+      // Admin sees everything
+    } else if (userRole === UserRole.VOLUNTEER) {
+      // Volunteer sees: own resources + resources in assigned families
+      const assignments =
+        await this.prisma.volunteerFamilyAssignment.findMany({
+          where: { volunteerId: userId, isActive: true },
+          select: { familyId: true },
+        });
+      const familyIds = assignments.map((a) => a.familyId);
 
-      // MEMBER role: exclude system-generated resources unless they created it or it's assigned to them
-      if (userRole === UserRole.MEMBER) {
-        where.AND = [
-          ...(where.AND || []),
-          {
-            OR: [
-              { isSystemGenerated: false }, // Non-system-generated resources
-              { createdBy: userId }, // Own resources (even if somehow system-generated)
-              // Resources assigned to this member via TemplateAssignment
-              {
-                templateAssignments: {
-                  some: { assigneeId: userId },
-                },
+      where.AND = [
+        ...(where.AND || []),
+        {
+          OR: [{ createdBy: userId }, { familyId: { in: familyIds } }],
+        },
+      ];
+    } else if (userRole === UserRole.MEMBER) {
+      // Member sees: assigned templates + family resources
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { familyId: true },
+      });
+
+      where.AND = [
+        ...(where.AND || []),
+        {
+          OR: [
+            // Resources assigned to this member via TemplateAssignment
+            {
+              templateAssignments: {
+                some: { assigneeId: userId },
               },
-            ],
-          },
-          { OR: visibilityConditions },
-        ];
-      } else {
-        // VOLUNTEER: can see system-generated resources
-        where.OR = visibilityConditions;
-      }
+            },
+            // Family-visible resources in user's family
+            ...(user?.familyId
+              ? [
+                  {
+                    AND: [
+                      { visibility: ResourceVisibility.FAMILY },
+                      { familyId: user.familyId },
+                    ],
+                  },
+                ]
+              : []),
+          ],
+        },
+      ];
     }
 
     return where;
@@ -1121,62 +680,23 @@ class ResourceRepository {
       };
     }
 
-    if (options.includeShares) {
-      include.shares = {
+    if (options.includeFormResponses) {
+      include.formResponses = {
         include: {
           user: {
             select: { id: true, firstName: true, lastName: true, email: true },
           },
         },
-      };
-    }
-
-    if (options.includeStructuredTags) {
-      include.structuredTags = {
-        include: {
-          tag: {
-            select: {
-              id: true,
-              name: true,
-              description: true,
-              color: true,
-              categoryId: true,
-            },
-          },
-        },
-      };
-    }
-
-    if (options.includeRatings) {
-      include.ratings = {
-        include: {
-          user: {
-            select: { id: true, firstName: true, lastName: true },
-          },
-        },
-        orderBy: { createdAt: "desc" },
-      };
-    }
-
-    if (options.includeSubmitter) {
-      include.submitter = {
-        select: { id: true, firstName: true, lastName: true, email: true, role: true },
-      };
-    }
-
-    if (options.includeApprover) {
-      include.approver = {
-        select: { id: true, firstName: true, lastName: true, email: true, role: true },
+        orderBy: { updatedAt: "desc" },
       };
     }
 
     return include;
   }
 
-  /**
-   * Form Response Management Methods
-   * Handles interactive form data for advance directive and assessment content
-   */
+  // ========================================
+  // FORM RESPONSE MANAGEMENT
+  // ========================================
 
   /**
    * Save or update form response for content
@@ -1231,6 +751,33 @@ class ResourceRepository {
         `Failed to save form response: ${error instanceof Error ? error.message : "Unknown error"}`,
       );
     }
+  }
+
+  /**
+   * Save form response on behalf of a member (proxy completion)
+   */
+  async saveFormResponseOnBehalf(
+    resourceId: string,
+    memberId: string,
+    completerId: string,
+    formData: any,
+    isComplete: boolean,
+  ) {
+    return this.prisma.resourceFormResponse.upsert({
+      where: { resourceId_userId: { resourceId, userId: memberId } },
+      create: {
+        resourceId,
+        userId: memberId,
+        completedBy: completerId,
+        formData,
+        completedAt: isComplete ? new Date() : null,
+      },
+      update: {
+        completedBy: completerId,
+        formData,
+        completedAt: isComplete ? new Date() : null,
+      },
+    });
   }
 
   /**
