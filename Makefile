@@ -9,11 +9,11 @@
 help:
 	@echo ""
 	@echo "Local Development (no Clerk required):"
-	@echo "  make localdev       - Start local dev environment with test users"
+	@echo "  make localdev       - Start local dev environment with test users and healthcare directive"
 	@echo "  make localdev-stop  - Stop local dev (keep data)"
 	@echo "  make localdev-clean - Stop local dev and remove all data"
 	@echo "  make localdev-logs  - Tail application logs"
-	@echo "  make localdev-seed  - Re-seed test users into running environment"
+	@echo "  make localdev-seed  - Re-seed test users and healthcare directive"
 	@echo "  make localdev-status - Show container status"
 	@echo ""
 	@echo "Docker (requires Clerk keys in .env.local):"
