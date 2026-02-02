@@ -4,7 +4,8 @@ import { useState, useCallback } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ArrowLeft, AlertCircle, FileText, Mail } from 'lucide-react';
+import { ArrowLeft, AlertCircle, FileText, Mail, User } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { AdvanceDirectiveForm, FormResponseData, FormSectionData } from '@/components/forms/advance-directive-forms';
 import { ShareFormDialog } from '@/components/resources/share-form-dialog';
 
@@ -16,6 +17,8 @@ interface FormCompletionClientProps {
   userId: string;
   memberName: string;
   existingFormData?: Record<string, any>;
+  proxyMemberId?: string;
+  proxyMemberName?: string;
 }
 
 export function FormCompletionClient({
@@ -26,6 +29,8 @@ export function FormCompletionClient({
   userId,
   memberName,
   existingFormData,
+  proxyMemberId,
+  proxyMemberName,
 }: FormCompletionClientProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -101,15 +106,27 @@ export function FormCompletionClient({
     setSaveError(null);
 
     try {
-      const response = await fetch(`/api/resources/${resourceId}/form-response`, {
+      const url = proxyMemberId
+        ? `/api/resources/${resourceId}/complete-for-member`
+        : `/api/resources/${resourceId}/form-response`;
+
+      const body = proxyMemberId
+        ? {
+            memberId: proxyMemberId,
+            formData: data.sections,
+            isComplete: data.completedAt ? true : false,
+          }
+        : {
+            formData: data.sections,
+            isComplete: data.completedAt ? true : false,
+          };
+
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          formData: data.sections,
-          isComplete: data.completedAt ? true : false,
-        }),
+        body: JSON.stringify(body),
       });
 
       if (!response.ok) {
@@ -126,27 +143,36 @@ export function FormCompletionClient({
     } finally {
       setIsSaving(false);
     }
-  }, [resourceId]);
+  }, [resourceId, proxyMemberId]);
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between gap-3">
-        <Button variant="ghost" size="sm" asChild>
-          <Link href={`/member/resources/${resourceId}`}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Resource
-          </Link>
+        <Button variant="ghost" size="sm" asChild={!proxyMemberId} onClick={proxyMemberId ? () => window.history.back() : undefined}>
+          {proxyMemberId ? (
+            <>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Resource
+            </>
+          ) : (
+            <Link href={`/member/resources/${resourceId}`}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Resource
+            </Link>
+          )}
         </Button>
-        <Button
-          variant="default"
-          size="sm"
-          onClick={() => setShowShareDialog(true)}
-          className="min-h-[44px]"
-        >
-          <Mail className="h-4 w-4 mr-2" />
-          Share via Email
-        </Button>
+        {!proxyMemberId && (
+          <Button
+            variant="default"
+            size="sm"
+            onClick={() => setShowShareDialog(true)}
+            className="min-h-[44px]"
+          >
+            <Mail className="h-4 w-4 mr-2" />
+            Share via Email
+          </Button>
+        )}
       </div>
 
       {/* Title Card */}
@@ -155,6 +181,12 @@ export function FormCompletionClient({
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-primary" />
             {resourceTitle}
+            {proxyMemberName && (
+              <Badge variant="secondary" className="ml-2 flex items-center gap-1 text-xs font-normal">
+                <User className="h-3 w-3" />
+                {proxyMemberName}
+              </Badge>
+            )}
           </CardTitle>
           {resourceDescription && (
             <CardDescription>{resourceDescription}</CardDescription>
