@@ -55,6 +55,7 @@ export function FormCompletionClient({
           label: field.label,
           required: field.required || false,
           options: field.options,
+          selectOptions: field.selectOptions,
           placeholder: field.placeholder,
           // Pass through checkbox-with-text showExplainFor option
           showExplainFor: field.showExplainFor,

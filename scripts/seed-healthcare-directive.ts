@@ -1,20 +1,8 @@
 /**
- * Living & Leaving Healthcare Directive Seed Script
+ * Seed Living & Leaving Healthcare Directive Template
  *
- * Creates the Living & Leaving Healthcare Directive form template with 15 sections:
- * 1. HCA Addendum
- * 2. My Values (0-10 ratings)
- * 3. Cardiopulmonary Resuscitation
- * 4. Life-Sustaining Treatment
- * 5. Hydration & Nutrition
- * 6. Healthcare Wishes (12 questions)
- * 7. Care and Treatment Thresholds (4 scenarios)
- * 8. Death with Dignity (MAiD/VSED)
- * 9. Dementia Care (5 questions)
- * 10. Dementia Care Considerations (5 scenarios)
- * 11. After Death Care
- *
- * Plus the standard "Naming My Healthcare Agent" section.
+ * Custom HCD for Keri Winchester's Living & Leaving practice.
+ * Includes standard "Naming My Healthcare Agent" plus custom sections.
  *
  * Run with: npx tsx scripts/seed-healthcare-directive.ts
  */
@@ -25,6 +13,12 @@ config({ path: '.env.local' });
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
+
+// Standard Yes/No/Undecided options
+const YES_NO_UNDECIDED = ['Yes', 'No', 'Undecided'];
+
+// Treatment options with Try option
+const YES_NO_TRY_UNDECIDED = ['Yes', 'No', 'Try', 'Undecided'];
 
 // Helper to create agent fields (reused for primary, second alternate, third alternate)
 const createAgentFields = (prefix: string, titleSuffix: string = '', isPrimary: boolean = false) => [
@@ -82,42 +76,68 @@ const createAgentFields = (prefix: string, titleSuffix: string = '', isPrimary: 
   }
 ];
 
-// 0-10 rating options for My Values section
-const RATING_OPTIONS = [
-  { value: '0', label: '0 - Not Important At All' },
-  { value: '1', label: '1' },
-  { value: '2', label: '2' },
-  { value: '3', label: '3' },
-  { value: '4', label: '4' },
-  { value: '5', label: '5 - Somewhat Important' },
-  { value: '6', label: '6' },
-  { value: '7', label: '7' },
-  { value: '8', label: '8' },
-  { value: '9', label: '9' },
-  { value: '10', label: '10 - Extremely Important' }
+// Helper to create treatment directive fields (reused across multiple sections)
+const createTreatmentDirectiveFields = (prefix: string) => [
+  {
+    id: `${prefix}-breathing-machine`,
+    type: 'radio',
+    label: 'a. A tube placed in my nose or mouth and connected to a machine to breathe for me:',
+    options: YES_NO_TRY_UNDECIDED
+  },
+  {
+    id: `${prefix}-feeding-tube`,
+    type: 'radio',
+    label: 'b. A tube placed in my nose or mouth, or surgically placed in my stomach, to give me food:',
+    options: YES_NO_TRY_UNDECIDED
+  },
+  {
+    id: `${prefix}-iv-fluids`,
+    type: 'radio',
+    label: 'c. A needle or catheter placed in my body to give me water and other fluids:',
+    options: YES_NO_TRY_UNDECIDED
+  },
+  {
+    id: `${prefix}-antibiotics`,
+    type: 'radio',
+    label: 'd. Medications such as antibiotics to fight infections:',
+    options: YES_NO_TRY_UNDECIDED
+  },
+  {
+    id: `${prefix}-cpr`,
+    type: 'radio',
+    label: 'e. Techniques used to bring a person back to life when breathing and pulse have stopped (Cardiopulmonary Resuscitation/CPR):',
+    options: YES_NO_UNDECIDED
+  },
+  {
+    id: `${prefix}-transfusions`,
+    type: 'radio',
+    label: 'f. To receive blood or blood products through a needle placed in my body (transfusions):',
+    options: YES_NO_UNDECIDED
+  },
+  {
+    id: `${prefix}-dialysis`,
+    type: 'radio',
+    label: 'g. My blood cleansed by a machine if my kidneys fail (kidney dialysis):',
+    options: YES_NO_UNDECIDED
+  },
+  {
+    id: `${prefix}-surgery`,
+    type: 'radio',
+    label: 'h. Surgery to help prolong my life/delay my death:',
+    options: YES_NO_UNDECIDED
+  },
+  {
+    id: `${prefix}-emergency-treatment`,
+    type: 'radio',
+    label: 'i. To receive emergency treatment if I am found unconscious in my home:',
+    options: YES_NO_UNDECIDED
+  }
 ];
 
-// Care and Treatment Threshold options (used for 4 scenarios)
-const TREATMENT_THRESHOLD_OPTIONS = [
-  'Full treatment - I want all available treatments to extend my life',
-  'Limited treatment - I want treatment only if there is a reasonable chance of recovery',
-  'Comfort care only - I want to focus on comfort and quality of life, not extending life',
-  'Trial period - Try treatments for a limited time, then reassess',
-  'Let my healthcare agent decide based on the specific situation'
-];
-
-// Dementia Care Considerations options (used for 5 scenarios)
-const DEMENTIA_CARE_OPTIONS = [
-  'Yes, I would want this intervention',
-  'No, I would not want this intervention',
-  'I would want a trial period to see if it helps',
-  'I want my healthcare agent to decide'
-];
-
-// Healthcare Directive Form Schema
-const HEALTHCARE_DIRECTIVE_FORM_SCHEMA = {
+// Form template schema - Living & Leaving Healthcare Directive structure
+const LIVING_LEAVING_HCD_SCHEMA = {
   sections: {
-    // Standard Section: Naming My Healthcare Agent (same as doula-villages)
+    // Section 1: Naming My Healthcare Agent (Standard)
     'healthcare-agent': {
       id: 'healthcare-agent',
       title: 'Naming My Healthcare Agent',
@@ -133,7 +153,7 @@ const HEALTHCARE_DIRECTIVE_FORM_SCHEMA = {
       ]
     },
 
-    // Second Alternate Agent (Collapsible)
+    // Section 1b: Second Alternate Agent
     'second-alternate-agent': {
       id: 'second-alternate-agent',
       title: 'Second Alternate Agent',
@@ -144,7 +164,7 @@ const HEALTHCARE_DIRECTIVE_FORM_SCHEMA = {
       fields: createAgentFields('second-alternate', 'Second Alternate Agent')
     },
 
-    // Third Alternate Agent (Collapsible)
+    // Section 1c: Third Alternate Agent
     'third-alternate-agent': {
       id: 'third-alternate-agent',
       title: 'Third Alternate Agent',
@@ -155,565 +175,392 @@ const HEALTHCARE_DIRECTIVE_FORM_SCHEMA = {
       fields: createAgentFields('third-alternate', 'Third Alternate Agent')
     },
 
-    // Step 1: Health Care Agent (HCA) Addendum
-    'hca-addendum': {
-      id: 'hca-addendum',
-      title: 'Health Care Agent Addendum',
-      description: 'This addendum provides additional guidance and authority to your healthcare agent. By signing below, you acknowledge that your healthcare agent has the authority to make decisions on your behalf according to your wishes expressed in this document.',
+    // Section 2: Making Decisions About My Care
+    'making-decisions': {
+      id: 'making-decisions',
+      title: 'Making Decisions About My Care',
+      description: 'In making decisions about my medical care, the following reflect my views:',
       fields: [
         {
-          id: 'hca-addendum-info',
-          type: 'info',
-          label: 'Important Information',
-          content: 'Your healthcare agent should be someone who:\n\n• Knows your values and wishes regarding medical care\n• Is willing to speak on your behalf\n• Can handle the emotional responsibility of making difficult decisions\n• Will follow your instructions even if they disagree personally\n• Is available when needed and can communicate with your medical team'
-        },
-        {
-          id: 'hca-addendum-acknowledgment',
-          type: 'checkbox',
-          label: 'I acknowledge and agree:',
-          options: [
-            'I have discussed my wishes with my healthcare agent(s)',
-            'My healthcare agent(s) understand and will follow my instructions',
-            'I authorize my healthcare agent to access my medical records',
-            'I authorize my healthcare agent to make decisions about my care when I cannot'
-          ],
-          value: []
-        },
-        {
-          id: 'hca-addendum-signature',
-          type: 'signature',
-          label: 'eSignature Acknowledgment',
-          required: true,
-          placeholder: 'Sign to acknowledge'
-        },
-        {
-          id: 'hca-addendum-date',
-          type: 'text',
-          label: 'Date',
-          placeholder: 'MM/DD/YYYY'
-        }
-      ]
-    },
-
-    // Step 2: My Values
-    'my-values': {
-      id: 'my-values',
-      title: 'My Values',
-      description: 'Please rate each of the following on a scale of 0-10, with 0 being "not important at all" and 10 being "extremely important." These ratings help your healthcare agent understand what matters most to you.',
-      fields: [
-        {
-          id: 'value-independence',
-          type: 'select',
-          label: 'Being independent and able to care for myself',
-          selectOptions: RATING_OPTIONS
-        },
-        {
-          id: 'value-mental-clarity',
-          type: 'select',
-          label: 'Having mental clarity and being able to think clearly',
-          selectOptions: RATING_OPTIONS
-        },
-        {
-          id: 'value-communication',
-          type: 'select',
-          label: 'Being able to communicate with loved ones',
-          selectOptions: RATING_OPTIONS
-        },
-        {
-          id: 'value-pain-free',
-          type: 'select',
-          label: 'Being free from pain and discomfort',
-          selectOptions: RATING_OPTIONS
-        },
-        {
-          id: 'value-dignity',
-          type: 'select',
-          label: 'Maintaining my dignity and privacy',
-          selectOptions: RATING_OPTIONS
-        },
-        {
-          id: 'value-spirituality',
-          type: 'select',
-          label: 'Being able to practice my spiritual or religious beliefs',
-          selectOptions: RATING_OPTIONS
-        },
-        {
-          id: 'value-family-time',
-          type: 'select',
-          label: 'Spending time with family and friends',
-          selectOptions: RATING_OPTIONS
-        },
-        {
-          id: 'value-home',
-          type: 'select',
-          label: 'Staying in my home or a familiar environment',
-          selectOptions: RATING_OPTIONS
-        },
-        {
-          id: 'value-quality-over-quantity',
-          type: 'select',
-          label: 'Quality of life over length of life',
-          selectOptions: RATING_OPTIONS
-        }
-      ]
-    },
-
-    // Step 3: Cardiopulmonary Resuscitation
-    'cpr-preferences': {
-      id: 'cpr-preferences',
-      title: 'Cardiopulmonary Resuscitation (CPR)',
-      description: 'CPR is an emergency procedure used when the heart stops beating. It may include chest compressions, electric shocks (defibrillation), and breathing tubes. Please indicate your preferences.',
-      fields: [
-        {
-          id: 'cpr-decision',
+          id: 'prolong-life',
           type: 'radio',
-          label: 'If my heart stops beating, I want:',
+          label: 'a. I want to prolong my life by any means possible:',
+          options: YES_NO_UNDECIDED
+        },
+        {
+          id: 'control-pain',
+          type: 'radio',
+          label: 'b. I want to control pain and suffering:',
+          options: YES_NO_UNDECIDED
+        },
+        {
+          id: 'quality-consistent-values',
+          type: 'radio',
+          label: 'c. I want a quality of life consistent with my values:',
+          options: YES_NO_UNDECIDED
+        },
+        {
+          id: 'avoid-burden',
+          type: 'radio',
+          label: 'd. I want to keep from being a burden to my family/friends:',
+          options: YES_NO_UNDECIDED
+        },
+        {
+          id: 'save-money',
+          type: 'radio',
+          label: 'e. I want to save my family\'s money:',
+          options: YES_NO_UNDECIDED
+        },
+        {
+          id: 'religious-beliefs',
+          type: 'radio',
+          label: 'f. I want to act according to my religious beliefs:',
+          options: YES_NO_UNDECIDED
+        },
+        {
+          id: 'other-important-decisions',
+          type: 'textarea',
+          label: 'Other things that are important to me in making these decisions are:',
+          placeholder: 'Enter any other important considerations...'
+        }
+      ]
+    },
+
+    // Section 3: Defining My Quality of Life
+    'quality-of-life': {
+      id: 'quality-of-life',
+      title: 'Defining My Quality of Life',
+      description: 'The things that make life worth living:',
+      fields: [
+        {
+          id: 'qol-thinking',
+          type: 'radio',
+          label: 'a. Thinking well enough to make everyday decisions:',
+          options: YES_NO_UNDECIDED
+        },
+        {
+          id: 'qol-self-care',
+          type: 'radio',
+          label: 'b. Being able to take care of myself (bathing, dressing, etc.):',
+          options: YES_NO_UNDECIDED
+        },
+        {
+          id: 'qol-communicating',
+          type: 'radio',
+          label: 'c. Communicating with and relating to others:',
+          options: YES_NO_UNDECIDED
+        },
+        {
+          id: 'qol-conscious',
+          type: 'radio',
+          label: 'd. Being conscious and aware of what is happening around me:',
+          options: YES_NO_UNDECIDED
+        },
+        {
+          id: 'qol-comfortable',
+          type: 'radio',
+          label: 'e. Being comfortable and free of pain:',
+          options: YES_NO_UNDECIDED
+        },
+        {
+          id: 'qol-independent',
+          type: 'radio',
+          label: 'f. Living independently without aid of life-support machines:',
+          options: YES_NO_UNDECIDED
+        },
+        {
+          id: 'qol-mobile',
+          type: 'radio',
+          label: 'g. Being able to move about:',
+          options: YES_NO_UNDECIDED
+        },
+        {
+          id: 'qol-recognize-family',
+          type: 'radio',
+          label: 'h. Knowing my family and friends:',
+          options: YES_NO_UNDECIDED
+        },
+        {
+          id: 'qol-explain',
+          type: 'textarea',
+          label: 'Please explain (optional):',
+          placeholder: 'This is a key factor to my quality of life...'
+        },
+        {
+          id: 'qol-activities',
+          type: 'textarea',
+          label: 'i. Engaging in the following activities:',
+          placeholder: 'e.g., travel with ambulatory devices if needed, being able to leave the house and get outside, gardening...'
+        },
+        {
+          id: 'qol-important-because',
+          type: 'textarea',
+          label: 'These things are important to me because:',
+          placeholder: 'Explain why these activities matter to you...'
+        }
+      ]
+    },
+
+    // Section 4: Treatments & Incurable Illness
+    'treatments-incurable': {
+      id: 'treatments-incurable',
+      title: 'Treatments & Incurable Illness',
+      description: 'If I have an incurable illness which will most probably cause my death, and I can no longer speak for myself:',
+      fields: [
+        {
+          id: 'incurable-treatment-preference',
+          type: 'radio',
+          label: 'My treatment preference:',
           options: [
-            'Attempt CPR - I want healthcare providers to try to restart my heart and restore breathing, understanding that this may include chest compressions, electric shocks, breathing tubes, and medications.',
-            'Do Not Attempt CPR (DNR) - I do not want CPR attempted. I understand this means I will be allowed to die naturally if my heart stops.'
+            'I want to try any medical treatment to prolong my life for as long as possible.',
+            'I want to try medical treatments for a reasonable period of time, but I will probably want treatments other than those to control pain to be stopped if my condition does not improve.',
+            'I only want pain medicine and other treatments to make me comfortable. I do not want to spend my last months having medical treatments that have no hope of curing my illness.',
+            'I am undecided at this time.'
           ]
         },
         {
-          id: 'cpr-additional-instructions',
+          id: 'incurable-reason',
           type: 'textarea',
-          label: 'Additional instructions or conditions for CPR (optional):',
-          placeholder: 'Enter any specific conditions or instructions regarding CPR...'
+          label: 'I chose this approach because:',
+          placeholder: 'Explain your reasoning...'
         }
       ]
     },
 
-    // Step 4: Life-Sustaining Treatment
-    'life-sustaining-treatment': {
-      id: 'life-sustaining-treatment',
-      title: 'Life-Sustaining Treatment',
-      description: 'Life-sustaining treatments are medical interventions that can prolong life when vital organs fail. These may include mechanical ventilation (breathing machines), dialysis, and other intensive interventions.',
+    // Section 5: Secondary & Curable Illness
+    'secondary-curable': {
+      id: 'secondary-curable',
+      title: 'Secondary & Curable Illness',
+      description: 'If I am in the final stages of an illness that cannot be cured, such as cancer, and I also have another illness that can be cured, and I can no longer speak for myself:',
       fields: [
         {
-          id: 'lst-decision',
+          id: 'curable-medications',
           type: 'radio',
-          label: 'My preferences for life-sustaining treatment:',
+          label: 'I want to receive medications and/or treatments for the illness that can be cured:',
+          options: YES_NO_UNDECIDED
+        },
+        {
+          id: 'curable-surgery',
+          type: 'radio',
+          label: 'I want any surgery necessary to treat the illness that can be cured:',
+          options: YES_NO_UNDECIDED
+        },
+        {
+          id: 'curable-reason',
+          type: 'textarea',
+          label: 'I made this choice because:',
+          placeholder: 'Explain your reasoning...'
+        }
+      ]
+    },
+
+    // Section 6: Additional Treatment Directives (Incurable Illness)
+    'treatment-directives-incurable': {
+      id: 'treatment-directives-incurable',
+      title: 'Additional Treatment Directives',
+      description: 'If I am in the final stages of an illness that cannot be cured, and that will most probably cause my death, and I can no longer speak for myself, I want:',
+      fields: [
+        ...createTreatmentDirectiveFields('incurable'),
+        {
+          id: 'incurable-hospice',
+          type: 'radio',
+          label: 'j. To receive hospice care:',
+          options: YES_NO_UNDECIDED
+        },
+        {
+          id: 'incurable-other',
+          type: 'textarea',
+          label: 'k. Other choices:',
+          placeholder: 'Any additional treatment preferences...'
+        }
+      ]
+    },
+
+    // Section 7: Treatments & Brain Disease
+    'treatments-brain': {
+      id: 'treatments-brain',
+      title: 'Treatments & Brain Disease',
+      description: 'If I have a brain disease that cannot be reversed, and I cannot recognize my family and friends, speak meaningfully to them, or live independently:',
+      fields: [
+        {
+          id: 'brain-treatment',
+          type: 'radio',
+          label: 'I want to receive any medical treatment for the brain disease that could prolong my life:',
           options: [
-            'Full Treatment - I want all available life-sustaining treatments to keep me alive as long as possible.',
-            'Limited Treatment - I want life-sustaining treatment only if there is a reasonable expectation of recovery. If my condition becomes irreversible, focus on comfort.',
-            'Comfort Care Only - I do not want life-sustaining treatments. Focus on keeping me comfortable and managing pain.'
+            'Yes',
+            'No, but I want to receive pain medicine and other comfort care',
+            'Undecided'
           ]
         },
         {
-          id: 'lst-additional-instructions',
-          type: 'textarea',
-          label: 'Additional instructions about life-sustaining treatment (optional):',
-          placeholder: 'Enter any specific conditions or instructions...'
-        }
-      ]
-    },
-
-    // Step 5: Hydration & Nutrition
-    'hydration-nutrition': {
-      id: 'hydration-nutrition',
-      title: 'Hydration and Nutrition',
-      description: 'When a person cannot eat or drink by mouth, fluids and nutrition can be provided through tubes (feeding tubes, IV fluids). Please indicate your preferences.',
-      fields: [
-        {
-          id: 'hn-decision',
+          id: 'brain-other-illness',
           type: 'radio',
-          label: 'My preferences for artificial hydration and nutrition:',
+          label: 'I want to be treated for any other illness that could cause my death:',
           options: [
-            'I want artificial hydration and nutrition provided indefinitely to keep me alive.',
-            'I want a trial period of artificial hydration and nutrition. If there is no improvement, it may be discontinued.',
-            'I want artificial hydration and nutrition only for comfort (e.g., to relieve thirst or hunger sensations).',
-            'I do not want artificial hydration or nutrition. I prefer to allow natural dying process.'
+            'Yes',
+            'No, but I want to receive pain medicine and other comfort care',
+            'Undecided'
           ]
+        },
+        {
+          id: 'brain-reason',
+          type: 'textarea',
+          label: 'I chose this approach because:',
+          placeholder: 'Explain your reasoning...'
         }
       ]
     },
 
-    // Step 6: Healthcare Wishes (12 questions)
-    'healthcare-wishes': {
-      id: 'healthcare-wishes',
-      title: 'Healthcare Wishes',
-      description: 'Please answer the following questions to help your healthcare agent understand your specific wishes.',
+    // Section 8: Additional Treatment Directives (Brain Disease)
+    'treatment-directives-brain': {
+      id: 'treatment-directives-brain',
+      title: 'Additional Treatment Directives (Brain Disease)',
+      description: 'If I have a brain disease that cannot be reversed and I cannot recognize my family and friends, speak meaningfully to them, or live independently, I want:',
+      fields: [
+        ...createTreatmentDirectiveFields('brain'),
+        {
+          id: 'brain-other',
+          type: 'textarea',
+          label: 'j. Other choices:',
+          placeholder: 'Any additional treatment preferences...'
+        }
+      ]
+    },
+
+    // Section 9: Treatments & Consciousness
+    'treatments-consciousness': {
+      id: 'treatments-consciousness',
+      title: 'Treatments & Consciousness',
+      description: 'If I am in a state of permanent unconsciousness and it is highly unlikely that I will ever wake up, I want:',
+      fields: [
+        ...createTreatmentDirectiveFields('unconscious'),
+        {
+          id: 'unconscious-other',
+          type: 'textarea',
+          label: 'j. Other choices:',
+          placeholder: 'Any additional treatment preferences...'
+        }
+      ]
+    },
+
+    // Section 10: Pain Medication
+    'pain-medication': {
+      id: 'pain-medication',
+      title: 'Pain Medication',
+      description: 'If I have a terminal illness or injury and there is little or no chance that I will ever be well again, and I can no longer speak for myself, I want to receive enough medicine to relieve my pain even though:',
       fields: [
         {
-          id: 'hw-1-pain-management',
-          type: 'textarea',
-          label: '1. What are your wishes regarding pain management?',
-          placeholder: 'Describe your preferences for pain medication and comfort care...'
-        },
-        {
-          id: 'hw-2-quality-of-life',
-          type: 'textarea',
-          label: '2. What does quality of life mean to you?',
-          placeholder: 'Describe what makes life meaningful to you...'
-        },
-        {
-          id: 'hw-3-unacceptable-conditions',
-          type: 'textarea',
-          label: '3. Are there any conditions that would be unacceptable to you?',
-          placeholder: 'Describe any conditions you would find unacceptable...'
-        },
-        {
-          id: 'hw-4-religious-spiritual',
-          type: 'textarea',
-          label: '4. Do you have any religious or spiritual beliefs that should guide your care?',
-          placeholder: 'Describe any religious or spiritual considerations...'
-        },
-        {
-          id: 'hw-5-who-present',
-          type: 'textarea',
-          label: '5. Who would you like to be present during your final days?',
-          placeholder: 'List the people you want at your bedside...'
-        },
-        {
-          id: 'hw-6-where-die',
+          id: 'pain-less-conscious',
           type: 'radio',
-          label: '6. Where would you prefer to die if possible?',
+          label: 'The drugs I am taking may cause me to be less conscious and unable to talk:',
+          options: YES_NO_UNDECIDED
+        },
+        {
+          id: 'pain-reason',
+          type: 'textarea',
+          label: 'The reason I have made these decisions about pain medications are:',
+          placeholder: 'Explain your reasoning...'
+        }
+      ]
+    },
+
+    // Section 11: Organ Donation
+    'organ-donation': {
+      id: 'organ-donation',
+      title: 'Organ Donation & My Death',
+      description: 'After I am dead:',
+      fields: [
+        {
+          id: 'donate-organs',
+          type: 'radio',
+          label: 'I want my organs donated to help save or improve someone else\'s life:',
+          options: YES_NO_UNDECIDED
+        },
+        {
+          id: 'donate-tissues',
+          type: 'radio',
+          label: 'I want my tissues donated to help save or improve someone else\'s life:',
+          options: YES_NO_UNDECIDED
+        },
+        {
+          id: 'donate-eyes',
+          type: 'radio',
+          label: 'I want my eyes donated to help improve someone else\'s life:',
+          options: YES_NO_UNDECIDED
+        },
+        {
+          id: 'donate-body',
+          type: 'radio',
+          label: 'I want my body donated for the purposes of medical education or research (Organ and tissue donation not possible with this option):',
+          options: YES_NO_UNDECIDED
+        }
+      ]
+    },
+
+    // Section 12: About My Death
+    'about-my-death': {
+      id: 'about-my-death',
+      title: 'About My Death',
+      description: 'Below are my decisions about how I want to die.',
+      fields: [
+        {
+          id: 'death-location',
+          type: 'radio',
+          label: 'If I have a choice, I want to die:',
           options: [
-            'At home',
             'In a hospital',
+            'In my home',
             'In a hospice facility',
-            'Wherever I can receive the best care',
-            'I have no preference'
+            'In a nursing home',
+            'Undecided at this time',
+            'Other'
           ]
         },
         {
-          id: 'hw-7-hospice',
+          id: 'death-location-reason',
+          type: 'textarea',
+          label: 'The reasons I want to die there are:',
+          placeholder: 'Explain your reasons...'
+        },
+        {
+          id: 'death-people-present',
+          type: 'textarea',
+          label: 'When I die, I want to have these people with me, if possible:',
+          placeholder: 'List the people you want present...'
+        },
+        {
+          id: 'death-preferences',
+          type: 'textarea',
+          label: 'My other preferences about my death include:',
+          placeholder: 'e.g., music, scents, touch preferences, environment...'
+        },
+        {
+          id: 'autopsy-consent',
           type: 'radio',
-          label: '7. Would you want hospice care if you were terminally ill?',
-          options: [
-            'Yes, I would want hospice care',
-            'No, I would not want hospice care',
-            'I would want my healthcare agent to decide'
-          ]
+          label: 'If there is a choice, I would consent to an autopsy of my body if my doctor or my Health Care Agent thinks it is necessary:',
+          options: YES_NO_UNDECIDED
         },
-        {
-          id: 'hw-8-mental-health',
-          type: 'textarea',
-          label: '8. Do you have any mental health conditions that should be considered?',
-          placeholder: 'Describe any relevant mental health history...'
-        },
-        {
-          id: 'hw-9-allergies',
-          type: 'textarea',
-          label: '9. Do you have any allergies or adverse reactions to medications?',
-          placeholder: 'List any known allergies...'
-        },
-        {
-          id: 'hw-10-current-medications',
-          type: 'textarea',
-          label: '10. Are you currently taking any medications that should be known?',
-          placeholder: 'List current medications...'
-        },
-        {
-          id: 'hw-11-experimental-treatment',
-          type: 'radio',
-          label: '11. Would you want to participate in experimental treatments?',
-          options: [
-            'Yes, I would consider experimental treatments',
-            'No, I would not want experimental treatments',
-            'Only if conventional treatments have failed',
-            'I want my healthcare agent to decide'
-          ]
-        },
-        {
-          id: 'hw-12-additional-wishes',
-          type: 'textarea',
-          label: '12. Any additional healthcare wishes not covered above?',
-          placeholder: 'Enter any additional wishes or instructions...'
-        }
-      ]
-    },
-
-    // Step 7: Care and Treatment Thresholds
-    'treatment-thresholds': {
-      id: 'treatment-thresholds',
-      title: 'Care and Treatment Thresholds',
-      description: 'The following scenarios describe situations where you might need to make decisions about treatment. For each scenario, please indicate which treatments you would or would not want.',
-      fields: [
-        {
-          id: 'threshold-scenario-1-label',
-          type: 'info',
-          label: 'Scenario 1: Terminal illness with less than 6 months to live',
-          content: 'If I am diagnosed with a terminal illness and my doctors believe I have less than 6 months to live:'
-        },
-        {
-          id: 'threshold-scenario-1',
-          type: 'checkbox',
-          label: 'I would want (select all that apply):',
-          options: TREATMENT_THRESHOLD_OPTIONS,
-          value: []
-        },
-        {
-          id: 'threshold-scenario-2-label',
-          type: 'info',
-          label: 'Scenario 2: Permanent unconsciousness',
-          content: 'If I am in a persistent vegetative state or permanent coma with no reasonable expectation of recovery:'
-        },
-        {
-          id: 'threshold-scenario-2',
-          type: 'checkbox',
-          label: 'I would want (select all that apply):',
-          options: TREATMENT_THRESHOLD_OPTIONS,
-          value: []
-        },
-        {
-          id: 'threshold-scenario-3-label',
-          type: 'info',
-          label: 'Scenario 3: Advanced dementia',
-          content: 'If I have advanced dementia and can no longer recognize family members or communicate:'
-        },
-        {
-          id: 'threshold-scenario-3',
-          type: 'checkbox',
-          label: 'I would want (select all that apply):',
-          options: TREATMENT_THRESHOLD_OPTIONS,
-          value: []
-        },
-        {
-          id: 'threshold-scenario-4-label',
-          type: 'info',
-          label: 'Scenario 4: Severe brain injury',
-          content: 'If I have a severe brain injury and will require total care for the rest of my life:'
-        },
-        {
-          id: 'threshold-scenario-4',
-          type: 'checkbox',
-          label: 'I would want (select all that apply):',
-          options: TREATMENT_THRESHOLD_OPTIONS,
-          value: []
-        }
-      ]
-    },
-
-    // Step 8: Death with Dignity (MAiD/VSED)
-    'death-with-dignity': {
-      id: 'death-with-dignity',
-      title: 'Death with Dignity Options',
-      description: 'Some states allow medical aid in dying (MAiD) for terminally ill patients. Voluntarily stopping eating and drinking (VSED) is another option available in all states. Please indicate your preferences.',
-      fields: [
-        {
-          id: 'maid-info',
-          type: 'info',
-          label: 'Medical Aid in Dying (MAiD)',
-          content: 'Medical Aid in Dying allows a terminally ill adult to request medication to end their life. This is currently legal in some states (California, Colorado, District of Columbia, Hawaii, Maine, Montana, New Jersey, New Mexico, Oregon, Vermont, Washington). Requirements typically include terminal diagnosis with 6 months or less to live, mental competence, and multiple requests.'
-        },
-        {
-          id: 'maid-preference',
-          type: 'checkbox',
-          label: 'Medical Aid in Dying preferences:',
-          options: [
-            'I would consider Medical Aid in Dying if I am terminally ill and it is legal in my state',
-            'I would NOT want Medical Aid in Dying under any circumstances',
-            'I want my healthcare agent to have information about MAiD but I am undecided'
-          ],
-          value: []
-        },
-        {
-          id: 'maid-additional',
-          type: 'textarea',
-          label: 'Additional thoughts about Medical Aid in Dying (optional):',
-          placeholder: 'Enter any additional thoughts or conditions...'
-        },
-        {
-          id: 'vsed-info',
-          type: 'info',
-          label: 'Voluntarily Stopping Eating and Drinking (VSED)',
-          content: 'VSED is a legal option in all states where a person chooses to stop eating and drinking to hasten death. This typically takes 1-3 weeks and requires good comfort care. VSED can be initiated while a person still has decision-making capacity.'
-        },
-        {
-          id: 'vsed-preference',
-          type: 'checkbox',
-          label: 'VSED preferences:',
-          options: [
-            'I would consider VSED if I have a terminal illness or unbearable condition',
-            'I would NOT want VSED under any circumstances',
-            'I want my healthcare agent to have information about VSED but I am undecided'
-          ],
-          value: []
-        },
-        {
-          id: 'vsed-additional',
-          type: 'textarea',
-          label: 'Additional thoughts about VSED (optional):',
-          placeholder: 'Enter any additional thoughts or conditions...'
-        }
-      ]
-    },
-
-    // Step 9: Dementia Care
-    'dementia-care': {
-      id: 'dementia-care',
-      title: 'Dementia Care',
-      description: 'If you were to develop dementia, please answer the following questions to help guide your care.',
-      fields: [
-        {
-          id: 'dementia-1-living-situation',
-          type: 'textarea',
-          label: '1. Where would you want to live if you developed dementia?',
-          placeholder: 'Describe your preferred living situation (home, memory care facility, with family, etc.)...'
-        },
-        {
-          id: 'dementia-2-daily-activities',
-          type: 'textarea',
-          label: '2. What daily activities would be most important to maintain?',
-          placeholder: 'Describe activities that bring you joy or meaning...'
-        },
-        {
-          id: 'dementia-3-safety-vs-freedom',
-          type: 'textarea',
-          label: '3. How should safety concerns be balanced with personal freedom?',
-          placeholder: 'Describe your preferences regarding safety measures vs. independence...'
-        },
-        {
-          id: 'dementia-4-who-decides',
-          type: 'textarea',
-          label: '4. Who should make decisions about your care if you cannot?',
-          placeholder: 'Describe who should be involved in care decisions...'
-        },
-        {
-          id: 'dementia-5-end-of-life',
-          type: 'textarea',
-          label: '5. What are your end-of-life wishes if you have advanced dementia?',
-          placeholder: 'Describe your wishes for end-of-life care with dementia...'
-        }
-      ]
-    },
-
-    // Step 10: Dementia Care Considerations
-    'dementia-considerations': {
-      id: 'dementia-considerations',
-      title: 'Dementia Care Considerations',
-      description: 'For each of the following scenarios, please indicate whether you would want the intervention if you had moderate to severe dementia.',
-      fields: [
-        {
-          id: 'dementia-scenario-1-label',
-          type: 'info',
-          label: 'Scenario 1: Hospitalization for infection',
-          content: 'If I developed a serious infection (like pneumonia) and needed hospitalization:'
-        },
-        {
-          id: 'dementia-scenario-1',
-          type: 'radio',
-          label: 'I would want:',
-          options: DEMENTIA_CARE_OPTIONS
-        },
-        {
-          id: 'dementia-scenario-2-label',
-          type: 'info',
-          label: 'Scenario 2: Feeding tube',
-          content: 'If I could no longer eat or drink safely and a feeding tube was recommended:'
-        },
-        {
-          id: 'dementia-scenario-2',
-          type: 'radio',
-          label: 'I would want:',
-          options: DEMENTIA_CARE_OPTIONS
-        },
-        {
-          id: 'dementia-scenario-3-label',
-          type: 'info',
-          label: 'Scenario 3: Surgery for broken hip',
-          content: 'If I broke my hip and surgery was recommended:'
-        },
-        {
-          id: 'dementia-scenario-3',
-          type: 'radio',
-          label: 'I would want:',
-          options: DEMENTIA_CARE_OPTIONS
-        },
-        {
-          id: 'dementia-scenario-4-label',
-          type: 'info',
-          label: 'Scenario 4: Dialysis',
-          content: 'If my kidneys failed and dialysis was needed to survive:'
-        },
-        {
-          id: 'dementia-scenario-4',
-          type: 'radio',
-          label: 'I would want:',
-          options: DEMENTIA_CARE_OPTIONS
-        },
-        {
-          id: 'dementia-scenario-5-label',
-          type: 'info',
-          label: 'Scenario 5: Antibiotics for comfort',
-          content: 'If I had an infection that could be treated with antibiotics but would not change my overall condition:'
-        },
-        {
-          id: 'dementia-scenario-5',
-          type: 'radio',
-          label: 'I would want:',
-          options: DEMENTIA_CARE_OPTIONS
-        }
-      ]
-    },
-
-    // Step 11: After Death Care
-    'after-death-care': {
-      id: 'after-death-care',
-      title: 'After Death Care',
-      description: 'Please indicate your preferences for what happens after you pass away.',
-      fields: [
         {
           id: 'body-disposition',
           type: 'radio',
-          label: 'What would you like done with your body?',
+          label: 'After my death I want my body to be:',
           options: [
-            'Traditional burial',
-            'Cremation',
-            'Green/natural burial',
-            'Donation to medical science',
-            'I want my healthcare agent/family to decide'
+            'Burial',
+            'Cremated',
+            'Undecided',
+            'Other'
           ]
         },
         {
-          id: 'organ-donation',
-          type: 'radio',
-          label: 'Do you want to be an organ and tissue donor?',
-          options: [
-            'Yes, I want to donate any organs and tissues that could help others',
-            'Yes, but only certain organs/tissues (specify below)',
-            'No, I do not want to donate organs or tissues',
-            'I want my healthcare agent/family to decide'
-          ]
-        },
-        {
-          id: 'organ-donation-specifics',
+          id: 'body-disposition-explain',
           type: 'textarea',
-          label: 'If you selected specific organs/tissues, please specify:',
-          placeholder: 'List specific organs or tissues you wish to donate...'
-        },
-        {
-          id: 'autopsy',
-          type: 'radio',
-          label: 'What are your wishes regarding autopsy?',
-          options: [
-            'I consent to autopsy if medically or legally needed',
-            'I do not want an autopsy unless required by law',
-            'I want my healthcare agent/family to decide'
-          ]
-        },
-        {
-          id: 'funeral-wishes',
-          type: 'radio',
-          label: 'What type of memorial service would you prefer?',
-          options: [
-            'Traditional religious funeral service',
-            'Non-religious celebration of life',
-            'Private family gathering only',
-            'No memorial service',
-            'I want my family to decide what is best for them'
-          ]
-        },
-        {
-          id: 'after-death-additional',
-          type: 'textarea',
-          label: 'Any additional wishes or instructions regarding after-death care:',
-          placeholder: 'Include any specific wishes about funeral home, readings, music, flowers, donations, etc...'
+          label: 'Please explain (optional):',
+          placeholder: 'e.g., green burial, cremated with ashes spread...'
         }
       ]
     },
 
-    // Member Signature Section
+    // Section 13: Member Signature
     'member-signature': {
       id: 'member-signature',
       title: 'Member Signature',
@@ -748,30 +595,15 @@ const HEALTHCARE_DIRECTIVE_FORM_SCHEMA = {
           placeholder: 'MM/DD/YYYY'
         },
         {
-          id: 'member-signature-type',
-          type: 'radio',
-          label: 'Signature Method',
-          options: [
-            'eSignature (Anvil)',
-            'In-Person Signature'
-          ]
-        },
-        {
           id: 'member-signature-box',
           type: 'signature',
           label: 'Signature',
           placeholder: 'Sign here'
-        },
-        {
-          id: 'alternate-signer-name',
-          type: 'text',
-          label: 'If I cannot sign my name, the person who signed on my behalf:',
-          placeholder: 'Full name of person who signed for you (if applicable)'
         }
       ]
     },
 
-    // Witness One
+    // Section 14: Witness One
     'witness-one': {
       id: 'witness-one',
       title: 'Witness One',
@@ -799,15 +631,6 @@ const HEALTHCARE_DIRECTIVE_FORM_SCHEMA = {
           placeholder: 'Witness address'
         },
         {
-          id: 'witness1-signature-type',
-          type: 'radio',
-          label: 'Signature Method',
-          options: [
-            'eSignature (Anvil)',
-            'In-Person Signature'
-          ]
-        },
-        {
           id: 'witness1-signature-box',
           type: 'signature',
           label: 'Witness Signature',
@@ -816,7 +639,7 @@ const HEALTHCARE_DIRECTIVE_FORM_SCHEMA = {
       ]
     },
 
-    // Witness Two
+    // Section 15: Witness Two
     'witness-two': {
       id: 'witness-two',
       title: 'Witness Two',
@@ -844,67 +667,26 @@ const HEALTHCARE_DIRECTIVE_FORM_SCHEMA = {
           placeholder: 'Witness address'
         },
         {
-          id: 'witness2-signature-type',
-          type: 'radio',
-          label: 'Signature Method',
-          options: [
-            'eSignature (Anvil)',
-            'In-Person Signature'
-          ]
-        },
-        {
           id: 'witness2-signature-box',
           type: 'signature',
           label: 'Witness Signature',
           placeholder: 'Sign here'
         }
       ]
-    },
-
-    // Notary (Optional)
-    'notary-section': {
-      id: 'notary-section',
-      title: 'Sign Before a Notary (Optional)',
-      description: 'Some states require or recommend notarization. Check your state requirements.',
-      fields: [
-        {
-          id: 'notary-printed-name',
-          type: 'text',
-          label: 'Notary Printed Name',
-          placeholder: 'Full legal name'
-        },
-        {
-          id: 'notary-date-signed',
-          type: 'text',
-          label: 'Date Signed',
-          placeholder: 'MM/DD/YYYY'
-        },
-        {
-          id: 'notary-signature-box',
-          type: 'signature',
-          label: 'Notary Signature',
-          placeholder: 'Sign here'
-        },
-        {
-          id: 'notary-commission-expiration',
-          type: 'text',
-          label: 'Commission Expiration Date',
-          placeholder: 'MM/DD/YYYY'
-        }
-      ]
     }
   }
 };
 
-async function seedHealthcareDirective() {
+async function seedLivingLeavingHCD() {
   console.log('Starting Living & Leaving Healthcare Directive template seed...\n');
 
   try {
-    // Find a system admin user to be the creator
-    const systemUser = await prisma.user.findFirst({
+    // Find or create a system admin user to be the creator
+    let systemUser = await prisma.user.findFirst({
       where: {
         OR: [
           { email: 'system@villages.com' },
+          { email: 'keri@livingandleaving.com' },
           { role: 'ADMIN' }
         ]
       }
@@ -916,13 +698,13 @@ async function seedHealthcareDirective() {
       process.exit(1);
     }
 
-    console.log(`Using admin user: ${systemUser.email || systemUser.firstName}`);
+    console.log(`Using admin user: ${systemUser.email}`);
 
     // Delete existing template if it exists (to allow re-seeding)
     const existingTemplate = await prisma.resource.findFirst({
       where: {
         title: 'Living & Leaving Healthcare Directive',
-        tags: { has: 'living-leaving' },
+        tags: { hasEvery: ['advance-directives', 'living-leaving'] },
         isSystemGenerated: true
       }
     });
@@ -935,16 +717,16 @@ async function seedHealthcareDirective() {
       console.log('Existing template deleted.');
     }
 
-    // Create the Living & Leaving Healthcare Directive template
+    // Create the Healthcare Directive template
     const template = await prisma.resource.create({
       data: {
         title: 'Living & Leaving Healthcare Directive',
-        description: 'A comprehensive form to document your healthcare wishes, appoint a healthcare agent, and specify your treatment preferences for end-of-life care including dementia care considerations and death with dignity options.',
+        description: 'A comprehensive Healthcare Directive form for Living & Leaving clients to document healthcare wishes, appoint a healthcare agent, and specify treatment preferences for end-of-life care.',
         body: 'Living & Leaving Healthcare Directive form template - see externalMeta.formSchema for form structure',
         resourceType: 'TOOL',
         visibility: 'PUBLIC',
         tags: ['advance-directives', 'healthcare', 'legal-documents', 'end-of-life', 'living-leaving'],
-        targetAudience: ['MEMBER', 'DOULA', 'ADMIN'],
+        targetAudience: ['MEMBER', 'VOLUNTEER', 'ADMIN'],
         status: 'APPROVED',
         isVerified: true,
         hasCuration: false,
@@ -956,32 +738,31 @@ async function seedHealthcareDirective() {
           isTemplate: true,
           systemGenerated: true,
           templateType: 'healthcare-directive',
-          version: '1.0.0',
-          brand: 'living-leaving',
+          variant: 'living-leaving',
+          version: '2.0.0',
           lastUpdated: new Date().toISOString(),
-          sectionCount: Object.keys(HEALTHCARE_DIRECTIVE_FORM_SCHEMA.sections).length,
-          source: 'Living & Leaving Healthcare Directive Form',
-          formSchema: HEALTHCARE_DIRECTIVE_FORM_SCHEMA
+          sectionCount: Object.keys(LIVING_LEAVING_HCD_SCHEMA.sections).length,
+          source: 'Living & Leaving Custom Healthcare Directive',
+          formSchema: LIVING_LEAVING_HCD_SCHEMA
         }
       }
     });
 
-    console.log('\n✅ Living & Leaving Healthcare Directive template created successfully!');
+    console.log('\nLiving & Leaving Healthcare Directive template created successfully!');
     console.log(`   ID: ${template.id}`);
     console.log(`   Title: ${template.title}`);
-    console.log(`   Sections: ${Object.keys(HEALTHCARE_DIRECTIVE_FORM_SCHEMA.sections).length}`);
+    console.log(`   Sections: ${Object.keys(LIVING_LEAVING_HCD_SCHEMA.sections).length}`);
     console.log(`   Tags: ${template.tags.join(', ')}`);
-    console.log('\n📋 Sections included:');
-    Object.values(HEALTHCARE_DIRECTIVE_FORM_SCHEMA.sections).forEach((section, index) => {
+    console.log('\nSections included:');
+    Object.values(LIVING_LEAVING_HCD_SCHEMA.sections).forEach((section: any, index: number) => {
       console.log(`   ${index + 1}. ${section.title}`);
     });
     console.log('\nThe template is now available in the Resources section.');
-    console.log('Admins can share this with family members to complete their Living & Leaving Healthcare Directive.');
 
     return template;
 
   } catch (error) {
-    console.error('Error seeding Healthcare Directive template:', error);
+    console.error('Error seeding Living & Leaving Healthcare Directive template:', error);
     throw error;
   } finally {
     await prisma.$disconnect();
@@ -989,7 +770,7 @@ async function seedHealthcareDirective() {
 }
 
 // Run the seed
-seedHealthcareDirective()
+seedLivingLeavingHCD()
   .then(() => {
     console.log('\nSeed completed successfully.');
     process.exit(0);
