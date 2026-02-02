@@ -355,6 +355,7 @@ export function ResourcesPageContent({ userRole, userId: _userId }: ResourcesPag
                     resource={resource}
                     userRole={userRole}
                     showActions={userRole === UserRole.ADMIN}
+                    onAssign={handleAssign}
                   />
                 ))}
               </div>

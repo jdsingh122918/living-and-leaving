@@ -105,7 +105,7 @@ export function ResourceTableView({
           </TableHead>
           <TableHead className="hidden md:table-cell w-[120px]">Author</TableHead>
           <TableHead className="hidden sm:table-cell w-[80px]">Preview</TableHead>
-          <TableHead className="hidden sm:table-cell w-[80px]">Assign</TableHead>
+          <TableHead className="hidden sm:table-cell w-[80px]">Share</TableHead>
           <TableHead className="sm:hidden w-[48px]">
             <span className="sr-only">Actions</span>
           </TableHead>

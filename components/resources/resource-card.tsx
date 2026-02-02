@@ -17,6 +17,7 @@ import {
   Phone,
   Briefcase,
   ScrollText,
+  Send,
 } from "lucide-react";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -63,6 +64,7 @@ interface ResourceCardProps {
   resource: Resource;
   userRole: UserRole;
   showActions?: boolean;
+  onAssign?: (resourceId: string, title: string, description: string) => void;
 }
 
 
@@ -165,7 +167,7 @@ const getResourceCardColors = (resource: Resource) => {
   }
 };
 
-export function ResourceCard({ resource, userRole, showActions = false }: ResourceCardProps) {
+export function ResourceCard({ resource, userRole, showActions = false, onAssign }: ResourceCardProps) {
   const router = useRouter();
 
   const isTemplateResource = isTemplate(resource);
@@ -267,19 +269,35 @@ export function ResourceCard({ resource, userRole, showActions = false }: Resour
         </div>
 
         {/* Actions */}
-        {resource.externalUrl && (
+        {(resource.externalUrl || (onAssign && (userRole === UserRole.ADMIN || userRole === UserRole.VOLUNTEER))) && (
           <div className="flex items-center gap-2 pt-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              asChild
-              className="h-8 px-2 text-xs"
-            >
-              <a href={resource.externalUrl} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="h-3 w-3 mr-1" />
-                Open
-              </a>
-            </Button>
+            {resource.externalUrl && (
+              <Button
+                variant="ghost"
+                size="sm"
+                asChild
+                className="h-8 px-2 text-xs"
+              >
+                <a href={resource.externalUrl} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="h-3 w-3 mr-1" />
+                  Open
+                </a>
+              </Button>
+            )}
+            {onAssign && (userRole === UserRole.ADMIN || userRole === UserRole.VOLUNTEER) && (
+              <Button
+                variant="default"
+                size="sm"
+                className="h-8 px-2 text-xs"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAssign(resource.id, resource.title, resource.description);
+                }}
+              >
+                <Send className="h-3 w-3 mr-1" />
+                Share
+              </Button>
+            )}
           </div>
         )}
       </CardContent>
