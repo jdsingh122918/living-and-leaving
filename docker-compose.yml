@@ -255,14 +255,17 @@ services:
     command: >
       sh -c "
         echo '========================================' &&
-        echo 'Seeding Test Users' &&
+        echo 'Seeding Local Development Data' &&
         echo '========================================' &&
         echo '' &&
-        echo '[1/2] Running Prisma schema push...' &&
+        echo '[1/3] Running Prisma schema push...' &&
         npx prisma db push --skip-generate &&
         echo '' &&
-        echo '[2/2] Seeding test users...' &&
+        echo '[2/3] Seeding test users...' &&
         npx tsx scripts/seed-test-users.ts &&
+        echo '' &&
+        echo '[3/3] Seeding healthcare directive template...' &&
+        npx tsx scripts/seed-healthcare-directive.ts &&
         echo '' &&
         echo 'Database seeding complete!' &&
         echo '========================================'
