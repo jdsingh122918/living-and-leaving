@@ -43,6 +43,11 @@ export function PDFSection({ section, sectionIndex, isLastSection }: PDFSectionP
     );
   }
 
+  // Skip sections with no fields
+  if (!section.fields || section.fields.length === 0) {
+    return null;
+  }
+
   // Standard section rendering
   return (
     <View style={styles.section} wrap={section.fields.length <= 4}>
