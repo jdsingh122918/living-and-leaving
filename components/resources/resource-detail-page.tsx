@@ -120,6 +120,7 @@ export function ResourceDetailPage({ resourceId, userRole, userId }: ResourceDet
   const [showFillOutModal, setShowFillOutModal] = useState(false);
   const [assignment, setAssignment] = useState<TemplateAssignment | null>(null);
   const [assignmentLoading, setAssignmentLoading] = useState(false);
+  const [canSelfAssign, setCanSelfAssign] = useState(false);
 
   const router = useRouter();
 
@@ -176,6 +177,8 @@ export function ResourceDetailPage({ resourceId, userRole, userId }: ResourceDet
           const data = await response.json();
           if (data.hasAssignment && data.assignment) {
             setAssignment(data.assignment);
+          } else if (data.canSelfAssign) {
+            setCanSelfAssign(true);
           }
         }
       } catch (error) {
@@ -331,8 +334,20 @@ export function ResourceDetailPage({ resourceId, userRole, userId }: ResourceDet
                   {startWorkingLoading ? "Starting..." : assignment.status === 'started' ? "Continue Form" : "Start Working"}
                 </Button>
               )
+            ) : canSelfAssign ? (
+              // PUBLIC template - allow self-assignment
+              <Button
+                onClick={handleStartWorking}
+                disabled={startWorkingLoading}
+                variant="default"
+                size="sm"
+                className="min-h-[44px]"
+              >
+                <Play className="h-4 w-4 mr-2" />
+                {startWorkingLoading ? "Starting..." : "Start Working"}
+              </Button>
             ) : (
-              // No assignment - show message
+              // No assignment and not self-assignable
               <Badge variant="secondary" className="min-h-[44px] flex items-center px-4">
                 <AlertTriangle className="h-4 w-4 mr-2" />
                 Not assigned to you
