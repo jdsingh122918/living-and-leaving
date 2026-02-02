@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/server-auth";
 import { z } from "zod";
-import { UserRole, ResourceStatus, ResourceType, ResourceVisibility } from "@prisma/client";
+import { UserRole } from "@prisma/client";
 import { ResourceRepository } from "@/lib/db/repositories/resource.repository";
 import { UserRepository } from "@/lib/db/repositories/user.repository";
-import { NotificationType } from "@/lib/types";
 import { prisma } from "@/lib/db/prisma";
-import { notificationDispatcher } from "@/lib/notifications/notification-dispatcher.service";
 
 const resourceRepository = new ResourceRepository(prisma);
 const userRepository = new UserRepository();
@@ -21,30 +19,14 @@ const updateResourceSchema = z.object({
   description: z.string().max(2000, "Resource description must be less than 2,000 characters").nullable().optional(),
   body: z.string().max(50000, "Resource content must be less than 50,000 characters").nullable().optional(),
   resourceType: z.enum(["DOCUMENT", "LINK", "VIDEO", "AUDIO", "IMAGE", "TOOL", "CONTACT", "SERVICE"]).optional(),
-  visibility: z.enum(["PRIVATE", "FAMILY", "SHARED", "PUBLIC"]).optional(),
-  status: z.enum(["DRAFT", "PENDING", "APPROVED", "FEATURED", "REJECTED", "ARCHIVED"]).optional(),
+  visibility: z.enum(["PRIVATE", "FAMILY"]).optional(),
   familyId: z.string().nullable().optional(),
   categoryId: z.string().nullable().optional(),
   tags: z.array(z.string()).optional(),
   url: z.string().url().nullable().optional(),
-  sourceAttribution: z.string().max(200).optional(),
-  expertiseLevel: z.enum(["BEGINNER", "INTERMEDIATE", "ADVANCED"]).optional(),
-  estimatedDuration: z.number().min(1).max(10080).optional(),
-  prerequisites: z.array(z.string()).optional(),
-  learningObjectives: z.array(z.string()).optional(),
-  relatedResources: z.array(z.string()).optional(),
   attachments: z.array(z.string()).optional(),
   metadata: z.record(z.string(), z.any()).optional(),
-  isFeatured: z.boolean().optional(),
-  rejectionReason: z.string().max(1000).optional(),
   targetAudience: z.array(z.string()).optional(),
-  hasCuration: z.boolean().optional(),
-  hasRatings: z.boolean().optional(),
-  hasSharing: z.boolean().optional(),
-  // Legacy fields from frontend (not in Resource model - will be ignored)
-  isPinned: z.boolean().optional(),
-  allowComments: z.boolean().optional(),
-  allowEditing: z.boolean().optional(),
 });
 
 // GET /api/resources/[id] - Get resource by ID with access control
@@ -67,10 +49,7 @@ export async function GET(
     }
 
     const { searchParams } = new URL(request.url);
-    const includeRatings = searchParams.get("includeRatings") === "true";
     const includeDocuments = searchParams.get("includeDocuments") === "true";
-    const includeBookmarks = searchParams.get("includeBookmarks") === "true";
-    const trackView = searchParams.get("trackView") !== "false"; // Default to true
 
     console.log("📚 GET /api/resources/[id] - User:", {
       role: user.role,
@@ -80,10 +59,10 @@ export async function GET(
 
     // Get resource with access control and relations
     const resource = await resourceRepository.findById(id, user.id, user.role, {
-      includeSubmitter: true,
-      includeApprover: true,
+      includeCreator: true,
       includeFamily: true,
       includeCategory: true,
+      includeDocuments,
     });
 
     if (!resource) {
@@ -98,8 +77,6 @@ export async function GET(
       title: resource.title,
       type: resource.resourceType,
       visibility: resource.visibility,
-      status: resource.status,
-      viewCount: resource.viewCount,
     });
 
     // Format response
@@ -110,69 +87,38 @@ export async function GET(
       body: resource.body,
       resourceType: resource.resourceType,
       visibility: resource.visibility,
-      status: resource.status,
       familyId: resource.familyId,
-      family: null, // TODO: Include family relation in repository query
+      family: (resource as any).family || null,
       categoryId: resource.categoryId,
-      category: null, // TODO: Include category relation in repository query
+      category: (resource as any).category || null,
       tags: resource.tags,
       url: resource.url,
-      sourceAttribution: null, // TODO: Implement sourceAttribution field
-      expertiseLevel: null, // TODO: Implement expertiseLevel field
-      estimatedDuration: null, // TODO: Implement estimatedDuration field
-      prerequisites: [], // TODO: Implement prerequisites field
-      learningObjectives: [], // TODO: Implement learningObjectives field
-      relatedResources: [], // TODO: Implement relatedResources field
       attachments: resource.attachments,
       metadata: resource.externalMeta || {},
       externalMeta: resource.externalMeta || {},
-      isFeatured: resource.status === ResourceStatus.FEATURED,
-      isApproved: resource.status === ResourceStatus.APPROVED || resource.status === ResourceStatus.FEATURED,
       isSystemGenerated: resource.isSystemGenerated,
-      approvedAt: resource.approvedAt,
-      rejectionReason: null, // TODO: Implement rejectionReason field
-      isDeleted: false, // TODO: Implement isDeleted field
-      averageRating: resource.rating || 0,
-      totalRatings: resource.ratingCount || 0,
-      totalViews: resource.viewCount,
-      totalShares: resource.shareCount,
-      totalBookmarks: 0, // TODO: Implement totalBookmarks field
+      isDeleted: resource.isDeleted,
       createdAt: resource.createdAt,
       updatedAt: resource.updatedAt,
-      publishedAt: resource.approvedAt, // Use approvedAt as publishedAt
-      creator: (resource as any).submitter ? {
-        id: (resource as any).submitter.id,
-        name: (resource as any).submitter.firstName
-          ? `${(resource as any).submitter.firstName} ${(resource as any).submitter.lastName || ""}`.trim()
-          : (resource as any).submitter.email,
-        email: (resource as any).submitter.email,
-        role: (resource as any).submitter.role,
+      creator: (resource as any).creator ? {
+        id: (resource as any).creator.id,
+        name: (resource as any).creator.firstName
+          ? `${(resource as any).creator.firstName} ${(resource as any).creator.lastName || ""}`.trim()
+          : (resource as any).creator.email,
+        email: (resource as any).creator.email,
       } : null,
-      approvedBy: (resource as any).approver ? {
-        id: (resource as any).approver.id,
-        name: (resource as any).approver.firstName
-          ? `${(resource as any).approver.firstName} ${(resource as any).approver.lastName || ""}`.trim()
-          : (resource as any).approver.email,
-        email: (resource as any).approver.email,
-        role: (resource as any).approver.role,
-      } : null,
-      userRating: null, // TODO: Implement user rating lookup
-      userBookmark: false, // TODO: Implement user bookmark lookup
-      documents: includeDocuments && (resource as any).documents ? (resource as any).documents.map((doc: any) => ({
-        id: doc.id,
-        title: doc.title,
-        fileName: doc.fileName,
-        originalFileName: doc.originalFileName,
-        fileSize: doc.fileSize,
-        mimeType: doc.mimeType,
-        type: doc.type,
-        filePath: doc.filePath,
-        duration: doc.duration,
-        width: doc.width,
-        height: doc.height,
-        thumbnailPath: doc.thumbnailPath,
-        order: 0, // TODO: Implement document order field
-      })) : [],
+      documents: (resource as any).documents ? (resource as any).documents.map((doc: any) => {
+        const document = doc.document || doc;
+        return {
+          id: document.id || doc.id,
+          title: document.title || doc.title,
+          fileName: document.fileName || doc.fileName,
+          originalFileName: document.originalFileName || doc.originalFileName,
+          fileSize: document.fileSize || doc.fileSize,
+          mimeType: document.mimeType || doc.mimeType,
+          type: document.type || doc.type,
+        };
+      }) : [],
     };
 
     return NextResponse.json({
@@ -227,70 +173,19 @@ export async function PUT(
       updatedBy: user.email,
     });
 
-    // Check permissions and handle status transitions
-    const currentResource = await resourceRepository.findById(id, user.id, user.role);
-    if (!currentResource) {
-      return NextResponse.json(
-        { error: "Resource not found or access denied" },
-        { status: 404 }
-      );
-    }
-
-    // Handle status change permissions
-    if (validatedData.status && validatedData.status !== currentResource.status) {
-      const canChangeStatus = await checkResourceStatusChangePermissions(
-        currentResource,
-        user,
-        validatedData.status
-      );
-      if (!canChangeStatus) {
-        return NextResponse.json(
-          { error: "Insufficient permissions to change resource status" },
-          { status: 403 }
-        );
-      }
-    }
-
-    // Handle curation actions (approve/reject)
-    let approvedBy = undefined;
-    let approvedAt = undefined;
-
-    if (validatedData.status === ResourceStatus.APPROVED && currentResource.status === ResourceStatus.PENDING) {
-      approvedBy = user.id;
-      approvedAt = new Date();
-    }
-
-    // Extract only valid Resource model fields (exclude frontend-only fields)
-    const { isPinned, allowComments, allowEditing, ...resourceData } = validatedData;
-
     // Convert null values to undefined for repository compatibility
-    const cleanedResourceData = Object.fromEntries(
-      Object.entries(resourceData).map(([key, value]) => [key, value === null ? undefined : value])
+    const cleanedData = Object.fromEntries(
+      Object.entries(validatedData).map(([key, value]) => [key, value === null ? undefined : value])
     );
 
     // Update resource with access control
-    const updatedResource = await resourceRepository.update(id, {
-      ...cleanedResourceData,
-      ...(approvedBy && { approvedBy }),
-      ...(approvedAt && { approvedAt }),
-    }, user.id, user.role);
+    const updatedResource = await resourceRepository.update(id, cleanedData, user.id, user.role);
 
     console.log("✅ Resource updated successfully:", {
       resourceId: updatedResource.id,
       title: updatedResource.title,
       changes: Object.keys(validatedData),
     });
-
-    // Create notifications for status changes
-    if (validatedData.status && currentResource.status && validatedData.status !== currentResource.status) {
-      createResourceStatusNotifications(
-        id,
-        currentResource.status,
-        validatedData.status,
-        user.id,
-        validatedData.rejectionReason
-      );
-    }
 
     return NextResponse.json({
       success: true,
@@ -301,42 +196,25 @@ export async function PUT(
         body: updatedResource.body,
         resourceType: updatedResource.resourceType,
         visibility: updatedResource.visibility,
-        status: updatedResource.status,
         familyId: updatedResource.familyId,
-        family: null, // TODO: Load family relation if needed
+        family: (updatedResource as any).family || null,
         categoryId: updatedResource.categoryId,
-        category: null, // TODO: Load category relation if needed
+        category: null,
         tags: updatedResource.tags,
         url: updatedResource.url,
-        sourceAttribution: null, // TODO: Implement sourceAttribution field
-        expertiseLevel: null, // TODO: Implement expertiseLevel field
-        estimatedDuration: null, // TODO: Implement estimatedDuration field
-        prerequisites: [], // TODO: Implement prerequisites field
-        learningObjectives: [], // TODO: Implement learningObjectives field
         attachments: updatedResource.attachments,
-        isFeatured: updatedResource.status === ResourceStatus.FEATURED,
-        isApproved: updatedResource.status === ResourceStatus.APPROVED || updatedResource.status === ResourceStatus.FEATURED,
-        approvedAt: updatedResource.approvedAt,
-        rejectionReason: null, // TODO: Implement rejectionReason field
-        averageRating: updatedResource.rating || 0,
-        totalRatings: updatedResource.ratingCount || 0,
+        metadata: updatedResource.externalMeta || {},
+        externalMeta: updatedResource.externalMeta || {},
+        isSystemGenerated: updatedResource.isSystemGenerated,
+        isDeleted: updatedResource.isDeleted,
+        createdAt: updatedResource.createdAt,
         updatedAt: updatedResource.updatedAt,
-        publishedAt: updatedResource.approvedAt, // Use approvedAt as publishedAt
-        creator: updatedResource.submitter ? {
-          id: updatedResource.submitter.id,
-          name: updatedResource.submitter.firstName
-            ? `${updatedResource.submitter.firstName} ${updatedResource.submitter.lastName || ""}`.trim()
-            : updatedResource.submitter.email,
-          email: updatedResource.submitter.email,
-          role: updatedResource.submitter.role,
-        } : null,
-        approvedBy: updatedResource.approver ? {
-          id: updatedResource.approver.id,
-          name: updatedResource.approver.firstName
-            ? `${updatedResource.approver.firstName} ${updatedResource.approver.lastName || ""}`.trim()
-            : updatedResource.approver.email,
-          email: updatedResource.approver.email,
-          role: updatedResource.approver.role,
+        creator: (updatedResource as any).creator ? {
+          id: (updatedResource as any).creator.id,
+          name: (updatedResource as any).creator.firstName
+            ? `${(updatedResource as any).creator.firstName} ${(updatedResource as any).creator.lastName || ""}`.trim()
+            : (updatedResource as any).creator.email,
+          email: (updatedResource as any).creator.email,
         } : null,
       },
     });
@@ -454,120 +332,3 @@ export async function DELETE(
   }
 }
 
-// Helper function to check resource status change permissions
-async function checkResourceStatusChangePermissions(
-  resource: any,
-  user: any,
-  newStatus: ResourceStatus
-): Promise<boolean> {
-  // Resource creator can change status for their own resources (except for approval/rejection)
-  if (resource.submittedBy === user.id) {
-    // Authors cannot approve their own resources
-    if (newStatus === ResourceStatus.APPROVED && resource.status === ResourceStatus.PENDING) {
-      return user.role === UserRole.ADMIN;
-    }
-    return true;
-  }
-
-  // Admin can change any status
-  if (user.role === UserRole.ADMIN) {
-    return true;
-  }
-
-  // Curators/moderators can approve/reject pending resources
-  if (newStatus === ResourceStatus.APPROVED || newStatus === ResourceStatus.REJECTED) {
-    return user.role === UserRole.ADMIN; // For now, only admins can curate
-  }
-
-  return false;
-}
-
-// Helper function to create resource status change notifications
-async function createResourceStatusNotifications(
-  resourceId: string,
-  oldStatus: ResourceStatus,
-  newStatus: ResourceStatus,
-  changedByUserId: string,
-  rejectionReason?: string
-): Promise<void> {
-  try {
-    // Get resource and status changer details
-    const resource = await resourceRepository.findById(resourceId, changedByUserId, UserRole.ADMIN);
-    const statusChanger = await userRepository.getUserById(changedByUserId);
-
-    if (!resource || !statusChanger) return;
-
-    // Only notify for significant status changes
-    const notifiableTransitions = [
-      { from: "PENDING_REVIEW", to: "PUBLISHED" },
-      { from: "PENDING_REVIEW", to: "REJECTED" },
-      { from: "DRAFT", to: "PUBLISHED" },
-    ];
-
-    const isNotifiable = notifiableTransitions.some(
-      t => t.from === oldStatus && t.to === newStatus
-    );
-
-    if (!isNotifiable) return;
-
-    // Don't notify if the resource creator is changing their own status
-    if (resource.submittedBy === changedByUserId) return;
-
-    // Can't notify if no submittedBy
-    if (!resource.submittedBy) return;
-
-    const resourceOwner = await userRepository.getUserById(resource.submittedBy);
-    const recipientName = resourceOwner?.firstName
-      ? `${resourceOwner.firstName} ${resourceOwner.lastName || ""}`.trim()
-      : resourceOwner?.email || "User";
-
-    let title = "";
-    let message = "";
-    const notificationDataExtra: Record<string, unknown> = {};
-
-    if (newStatus === ResourceStatus.APPROVED) {
-      title = "Your resource has been approved";
-      message = `Great news! Your resource "${resource.title}" has been approved and is now live.`;
-    } else if (newStatus === ResourceStatus.REJECTED) {
-      title = "Your resource needs attention";
-      message = rejectionReason
-        ? `Your resource "${resource.title}" was not approved. Reason: ${rejectionReason}`
-        : `Your resource "${resource.title}" was not approved. Please review and resubmit.`;
-      notificationDataExtra.rejectionReason = rejectionReason;
-    }
-
-    await notificationDispatcher.dispatchNotification(
-      resource.submittedBy,
-      NotificationType.FAMILY_ACTIVITY,
-      {
-        title,
-        message,
-        data: {
-          resourceId,
-          resourceTitle: resource.title,
-          resourceType: resource.resourceType,
-          oldStatus,
-          newStatus,
-          changedByUserId,
-          changedByName: `${statusChanger.firstName} ${statusChanger.lastName || ""}`,
-          activityType: "resource_status_changed",
-          ...notificationDataExtra
-        },
-        actionUrl: `/resources/${resourceId}`,
-        isActionable: true
-      },
-      {
-        recipientName,
-      }
-    );
-
-    console.log("✅ Resource status notification sent:", {
-      resourceId,
-      oldStatus,
-      newStatus,
-    });
-  } catch (error) {
-    console.error("❌ Failed to create resource status notification:", error);
-    // Don't throw error as this is not critical for status change functionality
-  }
-}

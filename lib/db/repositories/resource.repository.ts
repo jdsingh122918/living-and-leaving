@@ -763,21 +763,28 @@ class ResourceRepository {
     formData: any,
     isComplete: boolean,
   ) {
-    return this.prisma.resourceFormResponse.upsert({
-      where: { resourceId_userId: { resourceId, userId: memberId } },
-      create: {
-        resourceId,
-        userId: memberId,
-        completedBy: completerId,
-        formData,
-        completedAt: isComplete ? new Date() : null,
-      },
-      update: {
-        completedBy: completerId,
-        formData,
-        completedAt: isComplete ? new Date() : null,
-      },
-    });
+    try {
+      return await this.prisma.resourceFormResponse.upsert({
+        where: { resourceId_userId: { resourceId, userId: memberId } },
+        create: {
+          resourceId,
+          userId: memberId,
+          completedBy: completerId,
+          formData,
+          completedAt: isComplete ? new Date() : null,
+        },
+        update: {
+          completedBy: completerId,
+          formData,
+          completedAt: isComplete ? new Date() : null,
+        },
+      });
+    } catch (error) {
+      console.error("Error saving form response on behalf:", error);
+      throw new Error(
+        `Failed to save form response on behalf: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    }
   }
 
   /**

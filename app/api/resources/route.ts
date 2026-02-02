@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth/server-auth';
-import { ResourceType, ResourceStatus, ResourceVisibility, UserRole } from '@prisma/client';
+import { ResourceType, ResourceVisibility, UserRole } from '@prisma/client';
 import { prisma } from '@/lib/db/prisma';
 import { ResourceRepository, ResourceFilters, CreateResourceInput } from '@/lib/db/repositories/resource.repository';
 
@@ -14,7 +14,7 @@ import { ResourceRepository, ResourceFilters, CreateResourceInput } from '@/lib/
  * Supported operations:
  * - GET: Filter and paginate resources
  * - POST: Create new resources
- * - Supports assignments, curation, ratings, and sharing
+ * - Supports assignments and template management
  */
 
 const resourceRepository = new ResourceRepository(prisma);
@@ -61,9 +61,6 @@ export async function GET(request: NextRequest) {
       includeFamily: searchParams.get('includeFamily') === 'true',
       includeCategory: searchParams.get('includeCategory') === 'true',
       includeDocuments: searchParams.get('includeDocuments') === 'true',
-      includeShares: searchParams.get('includeShares') === 'true',
-      includeStructuredTags: searchParams.get('includeStructuredTags') === 'true',
-      includeRatings: searchParams.get('includeRatings') === 'true'
     };
 
     const result = await resourceRepository.filter(
@@ -146,6 +143,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User not found in database' }, { status: 403 });
     }
 
+    // Members cannot create resources
+    if (finalUserRole === UserRole.MEMBER) {
+      return NextResponse.json({ error: 'Members cannot create resources' }, { status: 403 });
+    }
+
     // Parse request body
     console.log('📝 Parsing request body...');
     const body = await request.json();
@@ -196,14 +198,6 @@ function parseResourceFilters(searchParams: URLSearchParams): ResourceFilters {
     ) as ResourceType[];
   }
 
-  const status = searchParams.get('status');
-  if (status) {
-    const statuses = status.split(',').map(s => s.trim().toUpperCase());
-    filters.status = statuses.filter(s =>
-      Object.values(ResourceStatus).includes(s as ResourceStatus)
-    ) as ResourceStatus[];
-  }
-
   // Ownership and organization
   const createdBy = searchParams.get('createdBy');
   if (createdBy) filters.createdBy = createdBy;
@@ -230,29 +224,9 @@ function parseResourceFilters(searchParams: URLSearchParams): ResourceFilters {
     filters.healthcareTags = healthcareTags.split(',').map(t => t.trim()).filter(t => t.length > 0);
   }
 
-  const visibility = searchParams.get('visibility');
-  if (visibility) {
-    const visibilities = visibility.split(',').map(v => v.trim().toUpperCase());
-    filters.visibility = visibilities.filter(v =>
-      Object.values(ResourceVisibility).includes(v as ResourceVisibility)
-    ) as ResourceVisibility[];
-  }
-
   // Search and feature flags
   const search = searchParams.get('search');
   if (search) filters.search = search;
-
-  const hasCuration = searchParams.get('hasCuration');
-  if (hasCuration) filters.hasCuration = hasCuration === 'true';
-
-  const hasRatings = searchParams.get('hasRatings');
-  if (hasRatings) filters.hasRatings = hasRatings === 'true';
-
-  const featured = searchParams.get('featured');
-  if (featured) filters.featured = featured === 'true';
-
-  const verified = searchParams.get('verified');
-  if (verified) filters.verified = verified === 'true';
 
   // Template filtering
   const isTemplate = searchParams.get('isTemplate');
@@ -265,14 +239,6 @@ function parseResourceFilters(searchParams: URLSearchParams): ResourceFilters {
   const isSystemGenerated = searchParams.get('isSystemGenerated');
   if (isSystemGenerated !== null) {
     filters.isSystemGenerated = isSystemGenerated === 'true';
-  }
-
-  const minRating = searchParams.get('minRating');
-  if (minRating) {
-    const rating = parseFloat(minRating);
-    if (!isNaN(rating) && rating >= 1 && rating <= 5) {
-      filters.minRating = rating;
-    }
   }
 
   // Pagination
@@ -294,7 +260,7 @@ function parseResourceFilters(searchParams: URLSearchParams): ResourceFilters {
 
   // Sorting
   const sortBy = searchParams.get('sortBy');
-  if (sortBy && ['createdAt', 'updatedAt', 'title', 'viewCount', 'rating'].includes(sortBy)) {
+  if (sortBy && ['createdAt', 'updatedAt', 'title'].includes(sortBy)) {
     filters.sortBy = sortBy as any;
   }
 
@@ -358,10 +324,6 @@ function validateCreateContentInput(body: any): CreateResourceInput {
     url: body.url,
     targetAudience: targetAudience?.filter((audience: any) => typeof audience === 'string'),
     externalMeta: body.externalMeta,
-    submittedBy: body.submittedBy,
-    hasCuration: body.hasCuration,
-    hasRatings: body.hasRatings,
-    hasSharing: body.hasSharing,
     documentIds: body.documentIds,
     createdBy: body.createdBy, // Required field
     sharedWith: body.sharedWith,

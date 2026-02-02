@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/server-auth";
-import { ResourceStatus } from "@prisma/client";
 import { ResourceRepository } from "@/lib/db/repositories/resource.repository";
 import { UserRepository } from "@/lib/db/repositories/user.repository";
 import { FamilyRepository } from "@/lib/db/repositories/family.repository";
@@ -25,7 +24,6 @@ function isValidObjectId(id: string): boolean {
  * - Creator info
  * - Family info
  * - Category info
- * - User's rating for this resource
  * - Documents
  *
  * This reduces multiple API calls to a single request.
@@ -77,18 +75,12 @@ export async function GET(
     }
 
     // Fetch resource with all relations and access control
-    const [resource, userRating] = await Promise.all([
-      // Get resource with all relations
-      resourceRepository.findById(id, user.id, user.role, {
-        includeSubmitter: true,
-        includeApprover: true,
-        includeFamily: true,
-        includeCategory: true,
-        includeDocuments: true,
-      }),
-      // Get user's rating for this resource
-      resourceRepository.getUserRating(id, user.id).catch(() => null),
-    ]);
+    const resource = await resourceRepository.findById(id, user.id, user.role, {
+      includeCreator: true,
+      includeFamily: true,
+      includeCategory: true,
+      includeDocuments: true,
+    });
 
     if (!resource) {
       // Resource exists but user doesn't have access
@@ -121,7 +113,6 @@ export async function GET(
       title: resource.title,
       hasFamily: !!family,
       hasCategory: !!category,
-      hasUserRating: !!userRating,
     });
 
     // Format comprehensive response
@@ -132,7 +123,6 @@ export async function GET(
       body: resource.body,
       resourceType: resource.resourceType,
       visibility: resource.visibility,
-      status: resource.status,
 
       // Family details (prevents extra API call)
       familyId: resource.familyId,
@@ -157,7 +147,6 @@ export async function GET(
 
       // Tags
       tags: resource.tags,
-      structuredTags: resourceData.structuredTags || [],
 
       // Content fields
       url: resource.url,
@@ -165,66 +154,25 @@ export async function GET(
       metadata: resource.externalMeta || {},
       externalMeta: resource.externalMeta || {},
 
-      // Feature flags
-      hasCuration: resource.hasCuration,
-      hasRatings: resource.hasRatings,
-      hasSharing: resource.hasSharing,
+      // System flag
       isSystemGenerated: resource.isSystemGenerated,
-
-      // Status flags
-      isFeatured: resource.status === ResourceStatus.FEATURED,
-      isApproved:
-        resource.status === ResourceStatus.APPROVED ||
-        resource.status === ResourceStatus.FEATURED,
-
-      // Metrics
-      viewCount: resource.viewCount,
-      rating: resource.rating || 0,
-      ratingCount: resource.ratingCount || 0,
-      shareCount: resource.shareCount || 0,
 
       // Timestamps
       createdAt: resource.createdAt,
       updatedAt: resource.updatedAt,
-      approvedAt: resource.approvedAt,
 
       // Creator details (prevents extra API call)
-      creator: resourceData.submitter
+      creator: resourceData.creator
         ? (() => {
-            const submitter = resourceData.submitter as Record<string, unknown>;
+            const creator = resourceData.creator as Record<string, unknown>;
             return {
-              id: submitter.id,
-              name: submitter.firstName
-                ? `${submitter.firstName} ${submitter.lastName || ""}`.trim()
-                : submitter.email,
-              email: submitter.email,
-              role: submitter.role,
+              id: creator.id,
+              name: creator.firstName
+                ? `${creator.firstName} ${creator.lastName || ""}`.trim()
+                : creator.email,
+              email: creator.email,
             };
           })()
-        : null,
-
-      // Approver details
-      approvedBy: resourceData.approver
-        ? (() => {
-            const approver = resourceData.approver as Record<string, unknown>;
-            return {
-              id: approver.id,
-              name: approver.firstName
-                ? `${approver.firstName} ${approver.lastName || ""}`.trim()
-                : approver.email,
-              email: approver.email,
-              role: approver.role,
-            };
-          })()
-        : null,
-
-      // User's rating for this resource (prevents extra API call)
-      userRating: userRating
-        ? {
-            rating: userRating.rating,
-            review: userRating.review,
-            createdAt: userRating.createdAt,
-          }
         : null,
 
       // Documents
