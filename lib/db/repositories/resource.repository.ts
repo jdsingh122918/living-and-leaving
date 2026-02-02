@@ -598,7 +598,7 @@ class ResourceRepository {
         },
       ];
     } else if (userRole === UserRole.MEMBER) {
-      // Member sees: assigned templates + family resources
+      // Member sees: assigned templates + family resources + public resources
       const user = await this.prisma.user.findUnique({
         where: { id: userId },
         select: { familyId: true },
@@ -614,6 +614,8 @@ class ResourceRepository {
                 some: { assigneeId: userId },
               },
             },
+            // Public resources visible to all members
+            { visibility: ResourceVisibility.PUBLIC },
             // Family-visible resources in user's family
             ...(user?.familyId
               ? [

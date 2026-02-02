@@ -113,28 +113,27 @@ export async function POST(
       isComplete ?? false
     );
 
-    // Update or create template assignment if completing
-    if (isComplete) {
-      await prisma.templateAssignment.upsert({
-        where: {
-          resourceId_assigneeId: {
-            resourceId,
-            assigneeId: memberId,
-          },
-        },
-        create: {
+    // Create or update template assignment so the member can see the resource
+    await prisma.templateAssignment.upsert({
+      where: {
+        resourceId_assigneeId: {
           resourceId,
           assigneeId: memberId,
-          assignedBy: user.id,
-          status: "completed",
-          completedAt: new Date(),
         },
-        update: {
-          status: "completed",
-          completedAt: new Date(),
-        },
-      });
-    }
+      },
+      create: {
+        resourceId,
+        assigneeId: memberId,
+        assignedBy: user.id,
+        status: isComplete ? "completed" : "started",
+        startedAt: new Date(),
+        completedAt: isComplete ? new Date() : null,
+      },
+      update: {
+        status: isComplete ? "completed" : "started",
+        completedAt: isComplete ? new Date() : null,
+      },
+    });
 
     return NextResponse.json({
       success: true,
