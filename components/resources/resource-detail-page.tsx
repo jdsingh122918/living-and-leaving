@@ -55,6 +55,7 @@ import {
 } from "@/components/ui/collapsible";
 import { TemplateSchemaPreview } from "@/components/resources/template-schema-preview";
 import { AssignTemplateModal } from "@/components/resources/assign-template-modal";
+import { FillOutForMemberModal } from "@/components/resources/fill-out-for-member-modal";
 
 interface Resource {
   id: string;
@@ -116,6 +117,7 @@ export function ResourceDetailPage({ resourceId, userRole, userId }: ResourceDet
   const [startWorkingLoading, setStartWorkingLoading] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(true); // Expanded by default
   const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showFillOutModal, setShowFillOutModal] = useState(false);
   const [assignment, setAssignment] = useState<TemplateAssignment | null>(null);
   const [assignmentLoading, setAssignmentLoading] = useState(false);
 
@@ -348,6 +350,17 @@ export function ResourceDetailPage({ resourceId, userRole, userId }: ResourceDet
               Share
             </Button>
           )}
+          {canAssign && (
+            <Button
+              onClick={() => setShowFillOutModal(true)}
+              variant="outline"
+              size="sm"
+              className="min-h-[44px]"
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Fill Out for Member
+            </Button>
+          )}
           {canEdit && (
             <Link href={`/${userRole.toLowerCase()}/resources/${resourceId}/edit`}>
               <Button variant="outline" size="sm" className="min-h-[44px]">
@@ -559,6 +572,17 @@ export function ResourceDetailPage({ resourceId, userRole, userId }: ResourceDet
           resourceId={resourceId}
           resourceTitle={resource.title}
           resourceDescription={resource.description}
+        />
+      )}
+
+      {/* Fill Out for Member Modal */}
+      {canAssign && (
+        <FillOutForMemberModal
+          open={showFillOutModal}
+          onOpenChange={setShowFillOutModal}
+          resourceId={resourceId}
+          resourceTitle={resource.title}
+          userRole={userRole}
         />
       )}
     </div>
