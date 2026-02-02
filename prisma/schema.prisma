@@ -98,15 +98,11 @@ model User {
 
   // Resources relations
   createdResources   Resource[] @relation("ResourceCreator")
-  submittedResources Resource[] @relation("ResourceSubmitter")
-  approvedResources  Resource[] @relation("ResourceApprover")
-  resourceRatings    ResourceRating[] @relation("ResourceRatings")
-  resourceShares     ResourceShare[] @relation("ResourceShareReceiver")
-  sharedResources    ResourceShare[] @relation("ResourceShareSender")
 
   // Document and tag relations
   resourceDocumentAttachments ResourceDocument[] @relation("ResourceDocumentAttacher")
   resourceFormResponses ResourceFormResponse[] @relation("ResourceFormResponses")
+  completedFormResponses ResourceFormResponse[] @relation("CompletedFormResponses")
 
   // Volunteer-Family assignment relations
   volunteerAssignments    VolunteerFamilyAssignment[] @relation("VolunteerAssignments")
@@ -529,7 +525,6 @@ model Tag {
   category      Category?     @relation("CategoryTags", fields: [categoryId], references: [id], onDelete: SetNull)
   family        Family?       @relation("TagFamily", fields: [familyId], references: [id], onDelete: SetNull)
   createdByUser User          @relation("TagCreator", fields: [createdBy], references: [id], onDelete: NoAction)
-  resources     ResourceTag[] @relation("ResourceTags")
 
   @@unique([name, familyId]) // Unique tag names within family scope
   @@index([familyId])
@@ -831,12 +826,10 @@ model ReplyDocument {
 // RESOURCES SYSTEM MODELS
 // ====================================
 
-// Resource visibility and sharing options
+// Resource visibility options
 enum ResourceVisibility {
   PRIVATE      // Only visible to creator
   FAMILY       // Visible to family members
-  SHARED       // Shared with specific users
-  PUBLIC       // Visible to all authenticated users
 }
 
 
@@ -856,18 +849,6 @@ enum ResourceType {
   SERVICE      // Service provider info
   OTHER        // Other/miscellaneous
 }
-
-// Resource curation status
-enum ResourceStatus {
-  DRAFT        // Being prepared
-  PENDING      // Awaiting approval
-  APPROVED     // Approved for sharing
-  FEATURED     // Featured/highlighted resource
-  ARCHIVED     // Archived but accessible
-  REJECTED     // Rejected/not approved
-}
-
-
 
 
 
@@ -892,11 +873,6 @@ model Resource {
   createdBy       String       @db.ObjectId
   sharedWith      String[]     @db.ObjectId @default([]) // User IDs for shared resources
 
-  // Feature flags
-  hasCuration     Boolean      @default(false) // Enable curation workflow
-  hasRatings      Boolean      @default(false) // Enable rating system
-  hasSharing      Boolean      @default(false) // Enable advanced sharing
-
   // Archive and deletion (simplified)
   isArchived      Boolean      @default(false)
   isDeleted       Boolean      @default(false)
@@ -908,22 +884,7 @@ model Resource {
   // Resource fields
   url             String?      // External URL for links/videos
   targetAudience  String[]     @default([]) // Target user roles
-  status          ResourceStatus? // Curation workflow status
-  submittedBy     String?      @db.ObjectId // Different from createdBy for resources
-  approvedBy      String?      @db.ObjectId
-  approvedAt      DateTime?
-  featuredBy      String?      @db.ObjectId
-  featuredAt      DateTime?
-  isVerified      Boolean      @default(false)
-  lastVerifiedAt  DateTime?
   externalMeta    Json?        // Metadata for external resources
-
-  // Engagement metrics
-  viewCount       Int          @default(0)
-  downloadCount   Int          @default(0)
-  shareCount      Int          @default(0)
-  rating          Float?       // Average rating (1-5)
-  ratingCount     Int          @default(0) // Number of ratings
 
   // Timestamps
   createdAt       DateTime     @default(now())
@@ -937,37 +898,20 @@ model Resource {
   // Document attachments
   documents       ResourceDocument[]
 
-  // Resource sharing
-  shares          ResourceShare[]
-
-  // Tags
-  structuredTags  ResourceTag[]
-
   // Resource-specific relations
-  ratings         ResourceRating[]
   formResponses   ResourceFormResponse[]
 
   // Template assignments
   templateAssignments TemplateAssignment[] @relation("TemplateAssignments")
 
-  // Optional relations for workflow
-  submitter       User?        @relation("ResourceSubmitter", fields: [submittedBy], references: [id], onDelete: SetNull)
-  approver        User?        @relation("ResourceApprover", fields: [approvedBy], references: [id], onDelete: SetNull)
-
   // Indexes for performance
   @@index([createdBy])
   @@index([familyId])
-  @@index([visibility])
   @@index([resourceType])
-  @@index([status])
   @@index([tags])
   @@index([isArchived, isDeleted])
   @@index([isSystemGenerated])   // For system-generated filtering
-  @@index([rating, ratingCount]) // For resource sorting by rating
-  @@index([viewCount])           // For popularity sorting
   @@index([createdAt])
-  @@index([hasCuration])         // For curation workflow
-  @@index([hasRatings])          // For rating queries
   @@map("resources")
 }
 
@@ -994,74 +938,13 @@ model ResourceDocument {
   @@map("resource_documents")
 }
 
-// Resource sharing model
-model ResourceShare {
-  id          String    @id @default(auto()) @map("_id") @db.ObjectId
-  resourceId  String    @db.ObjectId
-  userId      String?   @db.ObjectId // Specific user (null for public shares)
-  sharedBy    String    @db.ObjectId
-
-  // Resource sharing tracking
-  shareMethod String?   // 'link', 'email', 'forum_post', etc.
-  shareData   Json?     // Additional share metadata
-
-  sharedAt    DateTime  @default(now())
-
-  // Relations
-  resource    Resource  @relation(fields: [resourceId], references: [id], onDelete: Cascade)
-  user        User?     @relation("ResourceShareReceiver", fields: [userId], references: [id], onDelete: Cascade)
-  sharer      User      @relation("ResourceShareSender", fields: [sharedBy], references: [id], onDelete: NoAction)
-
-  @@unique([resourceId, userId]) // One share record per user per resource (when userId specified)
-  @@index([resourceId])
-  @@index([userId])
-  @@index([sharedBy])
-  @@map("resource_shares")
-}
-
-// Resource tags
-model ResourceTag {
-  id          String    @id @default(auto()) @map("_id") @db.ObjectId
-  resourceId  String    @db.ObjectId
-  tagId       String    @db.ObjectId
-  createdAt   DateTime  @default(now())
-
-  // Relations
-  resource    Resource  @relation(fields: [resourceId], references: [id], onDelete: Cascade)
-  tag         Tag       @relation("ResourceTags", fields: [tagId], references: [id], onDelete: Cascade)
-
-  @@unique([resourceId, tagId])
-  @@index([resourceId])
-  @@index([tagId])
-  @@map("resource_tags")
-}
-
-// Resource ratings
-model ResourceRating {
-  id          String    @id @default(auto()) @map("_id") @db.ObjectId
-  resourceId  String    @db.ObjectId
-  userId      String    @db.ObjectId
-  rating      Int       // 1-5 stars
-  review      String?   // Optional written review
-  isHelpful   Boolean?  // Did this help the user
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  // Relations
-  resource    Resource  @relation(fields: [resourceId], references: [id], onDelete: Cascade)
-  user        User      @relation("ResourceRatings", fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([resourceId, userId]) // One rating per user per resource
-  @@index([resourceId, rating]) // For calculating averages
-  @@index([userId])            // For user's rating history
-  @@map("resource_ratings")
-}
 
 // Form responses for interactive resources (advance directives, assessments)
 model ResourceFormResponse {
   id          String    @id @default(auto()) @map("_id") @db.ObjectId
   resourceId  String    @db.ObjectId
   userId      String    @db.ObjectId
+  completedBy String?   @db.ObjectId
   formData    Json      // Stores form field responses as structured JSON
   completedAt DateTime? // When form was fully completed
   createdAt   DateTime  @default(now())
@@ -1070,10 +953,12 @@ model ResourceFormResponse {
   // Relations
   resource    Resource  @relation(fields: [resourceId], references: [id], onDelete: Cascade)
   user        User      @relation("ResourceFormResponses", fields: [userId], references: [id], onDelete: Cascade)
+  completer   User?     @relation("CompletedFormResponses", fields: [completedBy], references: [id], onDelete: SetNull)
 
   @@unique([resourceId, userId]) // One form response per user per resource
   @@index([resourceId])
   @@index([userId])
+  @@index([completedBy])
   @@index([completedAt])       // For tracking completion status
   @@map("resource_form_responses")
 }
