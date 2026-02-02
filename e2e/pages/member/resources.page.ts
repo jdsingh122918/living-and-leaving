@@ -9,7 +9,6 @@ import { BasePage } from '../base.page';
 export class MemberResourcesPage extends BasePage {
   readonly resourcesList: Locator;
   readonly bookmarkButton: Locator;
-  readonly ratingStars: Locator;
   readonly typeFilter: Locator;
   readonly tagFilter: Locator;
 
@@ -17,7 +16,6 @@ export class MemberResourcesPage extends BasePage {
     super(page);
     this.resourcesList = page.locator('[data-testid="resources-list"], .resources-grid').first();
     this.bookmarkButton = page.locator('[data-testid="bookmark-button"], button[aria-label*="Bookmark"]').first();
-    this.ratingStars = page.locator('[data-testid="rating-stars"], [class*="rating"]').first();
     this.typeFilter = page.locator('select[name="type"], [data-testid="type-filter"]').first();
     this.tagFilter = page.locator('select[name="tag"], [data-testid="tag-filter"]').first();
   }
@@ -49,20 +47,6 @@ export class MemberResourcesPage extends BasePage {
   }
 
   /**
-   * Rate a resource (1-5 stars)
-   */
-  async rateResource(title: string, rating: number): Promise<void> {
-    if (rating < 1 || rating > 5) {
-      throw new Error('Rating must be between 1 and 5');
-    }
-
-    const resourceCard = this.page.locator(`[data-testid="resource-card"]:has-text("${title}"), article:has-text("${title}")`).first();
-    const starButton = resourceCard.locator(`[data-testid="star-${rating}"], [aria-label="Rate ${rating} stars"]`).first();
-    await starButton.click();
-    await this.expectSuccessToast();
-  }
-
-  /**
    * Get resource card by title
    */
   async getResourceCard(title: string): Promise<Locator> {
@@ -79,16 +63,6 @@ export class MemberResourcesPage extends BasePage {
     const bookmarkButton = resourceCard.locator('[data-testid="bookmark-button"], button[aria-label*="Bookmark"]').first();
     const ariaLabel = await bookmarkButton.getAttribute('aria-label');
     return ariaLabel?.toLowerCase().includes('bookmarked') || false;
-  }
-
-  /**
-   * Get resource rating
-   */
-  async getResourceRating(title: string): Promise<number> {
-    const resourceCard = await this.getResourceCard(title);
-    const ratingElement = resourceCard.locator('[data-testid="current-rating"], [class*="rating-value"]').first();
-    const text = await ratingElement.textContent();
-    return parseFloat(text?.match(/[\d.]+/)?.[0] || '0');
   }
 
   /**

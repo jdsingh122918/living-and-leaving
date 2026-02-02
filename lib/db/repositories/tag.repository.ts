@@ -69,16 +69,6 @@ export interface Category {
   tags?: Tag[];
 }
 
-export interface ResourceTag {
-  id: string;
-  resourceId: string;
-  resourceType: ResourceType;
-  tagId: string;
-  createdBy: string;
-  createdAt: Date;
-  tag?: Tag;
-}
-
 export interface CreateTagInput {
   name: string;
   description?: string;
@@ -608,168 +598,6 @@ export class TagRepository {
   }
 
   /**
-   * Tag a resource
-   */
-  async tagResource(
-    resourceId: string,
-    resourceType: ResourceType,
-    tagId: string,
-    createdBy: string,
-  ): Promise<ResourceTag> {
-    try {
-      // Check if resource is already tagged with this tag
-      const existingTag = await prisma.resourceTag.findFirst({
-        where: {
-          resourceId,
-          tagId,
-        },
-      });
-
-      if (existingTag) {
-        throw new Error("Resource is already tagged with this tag");
-      }
-
-      // Create resource tag
-      const resourceTag = await prisma.resourceTag.create({
-        data: {
-          resourceId,
-          tagId,
-        },
-        include: {
-          tag: {
-            include: {
-              createdByUser: {
-                select: {
-                  id: true,
-                  firstName: true,
-                  lastName: true,
-                  email: true,
-                },
-              },
-            },
-          },
-        },
-      });
-
-      // Increment tag usage count
-      await prisma.tag.update({
-        where: { id: tagId },
-        data: { usageCount: { increment: 1 } },
-      });
-
-      console.log("🏷️ Resource tagged:", {
-        resourceId,
-        resourceType,
-        tagId,
-      });
-
-      return resourceTag as ResourceTag;
-    } catch (error) {
-      console.error("❌ Failed to tag resource:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * Remove tag from resource
-   */
-  async untagResource(
-    resourceId: string,
-    resourceType: ResourceType,
-    tagId: string,
-  ): Promise<void> {
-    try {
-      const deletedTag = await prisma.resourceTag.deleteMany({
-        where: {
-          resourceId,
-          tagId,
-        },
-      });
-
-      if (deletedTag.count > 0) {
-        // Decrement tag usage count
-        await prisma.tag.update({
-          where: { id: tagId },
-          data: { usageCount: { decrement: 1 } },
-        });
-
-        console.log("🏷️ Resource untagged:", {
-          resourceId,
-          resourceType,
-          tagId,
-        });
-      }
-    } catch (error) {
-      console.error("❌ Failed to untag resource:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get tags for a specific resource
-   */
-  async getResourceTags(
-    resourceId: string,
-    resourceType: ResourceType,
-  ): Promise<ResourceTag[]> {
-    try {
-      const resourceTags = await prisma.resourceTag.findMany({
-        where: {
-          resourceId,
-        },
-        include: {
-          tag: {
-            include: {
-              createdByUser: {
-                select: {
-                  id: true,
-                  firstName: true,
-                  lastName: true,
-                  email: true,
-                },
-              },
-            },
-          },
-        },
-        orderBy: {
-          tag: { name: "asc" },
-        },
-      });
-
-      return resourceTags as ResourceTag[];
-    } catch (error) {
-      console.error("❌ Failed to get resource tags:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get resources by tag
-   */
-  async getResourcesByTag(
-    tagId: string,
-    resourceType?: ResourceType,
-  ): Promise<ResourceTag[]> {
-    try {
-      const where: Record<string, unknown> = { tagId };
-      if (resourceType) where.resourceType = resourceType;
-
-      const resourceTags = await prisma.resourceTag.findMany({
-        where,
-        include: {
-          tag: true,
-        },
-        orderBy: { createdAt: "desc" },
-      });
-
-      return resourceTags as ResourceTag[];
-    } catch (error) {
-      console.error("❌ Failed to get resources by tag:", error);
-      throw error;
-    }
-  }
-
-  /**
    * Update tag
    */
   async updateTag(id: string, data: UpdateTagInput): Promise<Tag> {
@@ -870,10 +698,11 @@ export class TagRepository {
    */
   async getTagUsageCount(tagId: string): Promise<number> {
     try {
-      const count = await prisma.resourceTag.count({
-        where: { tagId },
+      const tag = await prisma.tag.findUnique({
+        where: { id: tagId },
+        select: { usageCount: true },
       });
-      return count;
+      return tag?.usageCount ?? 0;
     } catch (error) {
       console.error("❌ Failed to get tag usage count:", error);
       throw error;
@@ -881,15 +710,10 @@ export class TagRepository {
   }
 
   /**
-   * Delete tag and all its resource associations
+   * Delete tag
    */
   async deleteTag(id: string): Promise<void> {
     try {
-      // Delete all resource tags first
-      await prisma.resourceTag.deleteMany({
-        where: { tagId: id },
-      });
-
       // Delete the tag
       await prisma.tag.delete({
         where: { id },
@@ -949,49 +773,26 @@ export class TagRepository {
   ): Promise<{
     totalTags: number;
     totalCategories: number;
-    totalResourceTags: number;
     mostUsedTags: Array<{ tag: Tag; usageCount: number }>;
-    tagsByResourceType: Record<ResourceType, number>;
-    categoriesByResourceType: Record<ResourceType, number>;
   }> {
     try {
       const where: Record<string, unknown> = {};
-      // if (filters.resourceType) where.resourceType = filters.resourceType; // Field doesn't exist in schema
       if (filters.familyId) where.familyId = filters.familyId;
 
-      const [tags, categories, resourceTags] = await Promise.all([
+      const [tags, categories] = await Promise.all([
         prisma.tag.findMany({ where }),
         prisma.category.findMany({ where }),
-        prisma.resourceTag.findMany(),
       ]);
 
       // Calculate statistics
       const stats = {
         totalTags: tags.length,
         totalCategories: categories.length,
-        totalResourceTags: resourceTags.length,
         mostUsedTags: tags
-          .sort((a, b) => b.usageCount - a.usageCount)
+          .sort((a: { usageCount: number }, b: { usageCount: number }) => b.usageCount - a.usageCount)
           .slice(0, 10)
-          .map((tag) => ({ tag: tag as Tag, usageCount: tag.usageCount })),
-        tagsByResourceType: {} as Record<ResourceType, number>,
-        categoriesByResourceType: {} as Record<ResourceType, number>,
+          .map((tag: { usageCount: number }) => ({ tag: tag as Tag, usageCount: tag.usageCount })),
       };
-
-      // Initialize counters
-      Object.values(ResourceType).forEach((type) => {
-        stats.tagsByResourceType[type] = 0;
-        stats.categoriesByResourceType[type] = 0;
-      });
-
-      // Count by resource type - DISABLED: resourceType field doesn't exist in schema
-      // tags.forEach((tag) => {
-      //   stats.tagsByResourceType[tag.resourceType]++;
-      // });
-
-      // categories.forEach((category) => {
-      //   stats.categoriesByResourceType[category.resourceType]++;
-      // });
 
       return stats;
     } catch (error) {

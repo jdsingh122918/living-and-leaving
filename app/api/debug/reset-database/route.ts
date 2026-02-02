@@ -62,13 +62,6 @@ export async function POST() {
 
     // 3. Delete document and tagging system data
     try {
-      const resourceTags = await prisma.resourceTag.deleteMany();
-      results.push(`Deleted ${resourceTags.count} resource tags`);
-    } catch {
-      console.log("ResourceTag table doesn't exist or is empty");
-    }
-
-    try {
       const documents = await prisma.document.deleteMany();
       results.push(`Deleted ${documents.count} documents`);
     } catch {

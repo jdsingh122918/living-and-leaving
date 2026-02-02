@@ -106,7 +106,7 @@ const VALID_ENUMS = {
   ForumVisibility: ["PUBLIC", "FAMILY", "ROLE_BASED", "PRIVATE"],
   PostType: ["DISCUSSION", "QUESTION", "ANNOUNCEMENT", "RESOURCE", "POLL"],
   VoteType: ["UPVOTE", "DOWNVOTE"],
-  ResourceVisibility: ["PRIVATE", "FAMILY", "SHARED", "PUBLIC"],
+  ResourceVisibility: ["PRIVATE", "FAMILY"],
   ResourceType: [
     "DOCUMENT",
     "LINK",
@@ -116,14 +116,6 @@ const VALID_ENUMS = {
     "TOOL",
     "CONTACT",
     "SERVICE",
-  ],
-  ResourceStatus: [
-    "DRAFT",
-    "PENDING",
-    "APPROVED",
-    "FEATURED",
-    "ARCHIVED",
-    "REJECTED",
   ],
 } as const;
 
@@ -405,33 +397,6 @@ export class ModelVerifier {
           this.validateResourceDocumentModel(prisma, autoFix),
         createFunction: (prisma) =>
           this.initializeCollection(prisma, "resourceDocument"),
-      },
-      {
-        modelName: "ResourceShare",
-        collectionName: "resource_shares",
-        countQuery: (prisma) => prisma.resourceShare.count(),
-        validateModel: (prisma, autoFix) =>
-          this.validateResourceShareModel(prisma, autoFix),
-        createFunction: (prisma) =>
-          this.initializeCollection(prisma, "resourceShare"),
-      },
-      {
-        modelName: "ResourceTag",
-        collectionName: "resource_tags",
-        countQuery: (prisma) => prisma.resourceTag.count(),
-        validateModel: (prisma, autoFix) =>
-          this.validateResourceTagModel(prisma, autoFix),
-        createFunction: (prisma) =>
-          this.initializeCollection(prisma, "resourceTag"),
-      },
-      {
-        modelName: "ResourceRating",
-        collectionName: "resource_ratings",
-        countQuery: (prisma) => prisma.resourceRating.count(),
-        validateModel: (prisma, autoFix) =>
-          this.validateResourceRatingModel(prisma, autoFix),
-        createFunction: (prisma) =>
-          this.initializeCollection(prisma, "resourceRating"),
       },
       {
         modelName: "ResourceFormResponse",
@@ -1139,7 +1104,7 @@ export class ModelVerifier {
 
         // Validate enum values
         const resources = await prisma.resource.findMany({
-          select: { resourceType: true, visibility: true, status: true },
+          select: { resourceType: true, visibility: true },
         });
 
         const invalidResourceTypes = resources.filter(
@@ -1164,19 +1129,6 @@ export class ModelVerifier {
           );
         } else {
           details.push("✅ All resource visibility values are valid");
-        }
-
-        const invalidStatuses = resources.filter(
-          (r) =>
-            r.status && !VALID_ENUMS.ResourceStatus.includes(r.status as any),
-        );
-        if (invalidStatuses.length > 0) {
-          passed = false;
-          details.push(
-            `Found ${invalidStatuses.length} resources with invalid status values`,
-          );
-        } else {
-          details.push("✅ All resource status values are valid");
         }
 
         return { passed, details };
@@ -1213,70 +1165,6 @@ export class ModelVerifier {
           );
         } else {
           details.push("✅ All resource document source values are valid");
-        }
-
-        return { passed, details };
-      },
-      autoFix,
-    );
-  }
-
-  private async validateResourceShareModel(
-    prisma: PrismaClient,
-    autoFix = false,
-  ): Promise<ModelValidationResult> {
-    return this.validateGenericModel(
-      "ResourceShare",
-      "resource_shares",
-      prisma,
-      () => prisma.resourceShare.count(),
-      undefined,
-      autoFix,
-    );
-  }
-
-  private async validateResourceTagModel(
-    prisma: PrismaClient,
-    autoFix = false,
-  ): Promise<ModelValidationResult> {
-    return this.validateGenericModel(
-      "ResourceTag",
-      "resource_tags",
-      prisma,
-      () => prisma.resourceTag.count(),
-      undefined,
-      autoFix,
-    );
-  }
-
-  private async validateResourceRatingModel(
-    prisma: PrismaClient,
-    autoFix = false,
-  ): Promise<ModelValidationResult> {
-    return this.validateGenericModel(
-      "ResourceRating",
-      "resource_ratings",
-      prisma,
-      () => prisma.resourceRating.count(),
-      async () => {
-        const details: string[] = [];
-        let passed = true;
-
-        // Validate rating values are within 1-5 range
-        const ratings = await prisma.resourceRating.findMany({
-          select: { rating: true },
-        });
-        const invalidRatings = ratings.filter(
-          (r) => r.rating < 1 || r.rating > 5,
-        );
-
-        if (invalidRatings.length > 0) {
-          passed = false;
-          details.push(
-            `Found ${invalidRatings.length} ratings with values outside 1-5 range`,
-          );
-        } else {
-          details.push("✅ All rating values are within valid range (1-5)");
         }
 
         return { passed, details };
@@ -1348,10 +1236,6 @@ export class ModelVerifier {
         {
           name: "Conversation participant uniqueness",
           test: () => this.prisma.conversationParticipant.findMany({ take: 1 }),
-        },
-        {
-          name: "Resource tag uniqueness",
-          test: () => this.prisma.resourceTag.findMany({ take: 1 }),
         },
         {
           name: "Volunteer family assignment uniqueness",

@@ -18,10 +18,7 @@ import type {
   ForumCategory as PrismaForumCategory,
   // Unified Resources system
   Resource as PrismaResource,
-  ResourceRating as PrismaResourceRating,
-  ResourceShare as PrismaResourceShare,
   ResourceDocument as PrismaResourceDocument,
-  ResourceTag as PrismaResourceTag,
   ResourceFormResponse as PrismaResourceFormResponse,
 } from "@prisma/client";
 
@@ -36,7 +33,6 @@ import {
   VoteType,
   ResourceVisibility,
   ResourceType,
-  ResourceStatus,
   DocumentSource,
 } from "@prisma/client";
 
@@ -60,10 +56,7 @@ export type {
   PrismaForumCategory,
   // Unified Resources system
   PrismaResource,
-  PrismaResourceRating,
-  PrismaResourceShare,
   PrismaResourceDocument,
-  PrismaResourceTag,
   PrismaResourceFormResponse,
 };
 
@@ -78,7 +71,6 @@ export {
   VoteType,
   ResourceVisibility,
   ResourceType,
-  ResourceStatus,
   DocumentSource,
 };
 
@@ -389,15 +381,6 @@ export interface Category {
     id: string;
     name: string;
   };
-}
-
-export interface ResourceTag {
-  id: string;
-  resourceId: string;
-  tagId: string;
-  createdAt: Date;
-  resource?: Resource;
-  tag?: Tag;
 }
 
 export interface CreateTagInput {
@@ -852,11 +835,6 @@ export interface Resource {
   createdBy: string;
   sharedWith: string[]; // User IDs for shared resources
 
-  // Feature flags
-  hasCuration: boolean; // Enable curation workflow
-  hasRatings: boolean; // Enable rating system
-  hasSharing: boolean; // Enable advanced sharing
-
   // Archive and deletion (simplified)
   isArchived: boolean;
   isDeleted: boolean;
@@ -865,22 +843,7 @@ export interface Resource {
   // Resource fields
   url?: string; // External URL for links/videos
   targetAudience: string[]; // Target user roles
-  status?: ResourceStatus; // Curation workflow status
-  submittedBy?: string; // Different from createdBy for resources
-  approvedBy?: string;
-  approvedAt?: Date;
-  featuredBy?: string;
-  featuredAt?: Date;
-  isVerified: boolean;
-  lastVerifiedAt?: Date;
   externalMeta?: Record<string, unknown>; // Metadata for external resources
-
-  // Engagement metrics
-  viewCount: number;
-  downloadCount: number;
-  shareCount: number;
-  rating?: number; // Average rating (1-5)
-  ratingCount: number; // Number of ratings
 
   // Timestamps
   createdAt: Date;
@@ -891,42 +854,7 @@ export interface Resource {
   family?: Family;
   category?: Category;
   documents?: PrismaResourceDocument[];
-  shares?: ResourceShare[];
-  structuredTags?: ResourceTag[];
-  ratings?: ResourceRating[];
   formResponses?: ResourceFormResponse[];
-  submitter?: User;
-  approver?: User;
-}
-
-export interface ResourceRating {
-  id: string;
-  resourceId: string;
-  userId: string;
-  rating: number;
-  review?: string;
-  isHelpful?: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-
-  // Relations
-  resource?: Resource;
-  user?: User;
-}
-
-export interface ResourceShare {
-  id: string;
-  resourceId: string;
-  sharedBy: string;
-  sharedWith?: string;
-  shareMethod: string;
-  shareData?: Record<string, unknown>;
-  sharedAt: Date;
-
-  // Relations
-  resource?: Resource;
-  sharer?: User;
-  recipient?: User;
 }
 
 export interface ResourceFormResponse {
@@ -957,13 +885,8 @@ export interface CreateResourceInput {
   attachments?: string[];
   createdBy: string;
   sharedWith?: string[];
-  hasCuration?: boolean;
-  hasRatings?: boolean;
-  hasSharing?: boolean;
   url?: string;
   targetAudience?: string[];
-  status?: ResourceStatus;
-  submittedBy?: string;
   externalMeta?: Record<string, unknown>;
 }
 
@@ -977,55 +900,25 @@ export interface UpdateResourceInput {
   tags?: string[];
   attachments?: string[];
   sharedWith?: string[];
-  hasCuration?: boolean;
-  hasRatings?: boolean;
-  hasSharing?: boolean;
   isArchived?: boolean;
   isDeleted?: boolean;
   url?: string;
   targetAudience?: string[];
-  status?: ResourceStatus;
-  isVerified?: boolean;
   externalMeta?: Record<string, unknown>;
-}
-
-export interface CreateResourceRatingInput {
-  resourceId: string;
-  userId: string;
-  rating: number; // 1-5 stars
-  review?: string;
-  isHelpful?: boolean;
-}
-
-export interface ShareResourceInput {
-  resourceId: string;
-  sharedBy: string;
-  sharedWith?: string;
-  shareMethod: string;
-  shareData?: Record<string, unknown>;
 }
 
 // Resource Filter Types
 export interface ResourceFilters {
   createdBy?: string;
-  submittedBy?: string;
   familyId?: string;
   categoryId?: string;
   resourceType?: ResourceType;
-  status?: ResourceStatus;
   visibility?: ResourceVisibility;
   tags?: string[];
-  isVerified?: boolean;
   targetAudience?: string[];
-  hasCuration?: boolean;
-  hasRatings?: boolean;
-  hasSharing?: boolean;
   isArchived?: boolean;
   isDeleted?: boolean;
-  isSystemGenerated?: boolean;
   search?: string;
-  ratingMin?: number;
-  ratingMax?: number;
   createdAfter?: Date;
   createdBefore?: Date;
 }
@@ -1033,12 +926,6 @@ export interface ResourceFilters {
 // Resource Statistics Types
 export interface ResourceStatistics {
   totalResources: number;
-  approvedResources: number;
-  featuredResources: number;
-  pendingResources: number;
-  totalRatings: number;
-  totalShares: number;
-  averageRating: number;
   topCategories: {
     categoryId: string;
     count: number;

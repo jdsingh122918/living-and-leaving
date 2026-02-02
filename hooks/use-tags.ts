@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import type {
   Tag,
   Category,
-  ResourceTag,
   ApiResponse,
 } from "@/lib/types/index";
 import { ResourceType } from "@/lib/types/index";
@@ -438,9 +437,9 @@ interface UseResourceTagsOptions {
   autoFetch?: boolean;
 }
 
-// Hook for managing resource tags
+// Hook for managing resource tags (tags stored as string arrays on Resource)
 export function useResourceTags(options: UseResourceTagsOptions) {
-  const [resourceTags, setResourceTags] = useState<ResourceTag[]>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -455,13 +454,13 @@ export function useResourceTags(options: UseResourceTagsOptions) {
       const response = await fetch(
         `/api/resources/${resourceType}/${resourceId}/tags`,
       );
-      const data: ApiResponse<ResourceTag[]> = await response.json();
+      const data: ApiResponse<Tag[]> = await response.json();
 
       if (!response.ok) {
         throw new Error(data.error || "Failed to fetch resource tags");
       }
 
-      setResourceTags(data.data || []);
+      setTags(data.data || []);
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Failed to fetch resource tags";
@@ -497,7 +496,7 @@ export function useResourceTags(options: UseResourceTagsOptions) {
           },
         );
 
-        const data: ApiResponse<ResourceTag[]> = await response.json();
+        const data: ApiResponse<Tag[]> = await response.json();
 
         if (!response.ok) {
           throw new Error(data.error || "Failed to add tags to resource");
@@ -561,13 +560,7 @@ export function useResourceTags(options: UseResourceTagsOptions) {
     [resourceType, resourceId, fetchResourceTags],
   );
 
-  // Get just the tag objects (without ResourceTag wrapper)
-  const tags = useMemo(() => {
-    return resourceTags.map((rt) => rt.tag!).filter(Boolean);
-  }, [resourceTags]);
-
   return {
-    resourceTags,
     tags,
     loading,
     error,

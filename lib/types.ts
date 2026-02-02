@@ -17,5 +17,4 @@ export {
   PostType,
   VoteType,
   ResourceType,
-  ResourceStatus,
 } from "./types/index";

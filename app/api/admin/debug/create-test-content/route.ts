@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
         description: "This is a test resource item that has a PDF attachment to verify the attachment display functionality.",
         body: "This resource demonstrates how attachments are displayed in the resource management system.",
         resourceType: ResourceType.DOCUMENT,
-        visibility: ResourceVisibility.PUBLIC,
+        visibility: ResourceVisibility.FAMILY,
         documents: [createdDocuments[0].id] // PDF
       },
       {
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
         description: "This resource has multiple attachments of different types.",
         body: "This resource shows how multiple attachments are rendered in the UI.",
         resourceType: ResourceType.DOCUMENT,
-        visibility: ResourceVisibility.PUBLIC,
+        visibility: ResourceVisibility.FAMILY,
         documents: [createdDocuments[1].id, createdDocuments[2].id] // Image + Text
       },
       {

@@ -124,13 +124,11 @@ export async function GET() {
     // Process recent resources
     const recentResources =
       resourcesResult.status === "fulfilled"
-        ? resourcesResult.value.resources.map((r: { id: string; title: string; resourceType: string; status: string | null; createdAt: Date; viewCount: number }) => ({
+        ? resourcesResult.value.resources.map((r: { id: string; title: string; resourceType: string; createdAt: Date }) => ({
             id: r.id,
             title: r.title,
             resourceType: r.resourceType,
-            status: r.status || 'draft',
             createdAt: r.createdAt,
-            viewCount: r.viewCount,
           }))
         : [];
 
