@@ -2,6 +2,7 @@
 # Local Development & E2E Test Commands
 
 .PHONY: localdev localdev-stop localdev-clean localdev-logs localdev-status localdev-seed
+.PHONY: localdev-hot localdev-hot-stop localdev-hot-clean
 .PHONY: dev staging seed stop clean logs status
 .PHONY: test-smoke test-e2e test-e2e-parallel test-e2e-shard test-e2e-ui test-e2e-report clean-e2e help
 
@@ -15,6 +16,11 @@ help:
 	@echo "  make localdev-logs  - Tail application logs"
 	@echo "  make localdev-seed  - Re-seed test users and healthcare directive"
 	@echo "  make localdev-status - Show container status"
+	@echo ""
+	@echo "Hot Reload (MongoDB in Docker, Next.js on host):"
+	@echo "  make localdev-hot       - Start hot-reload dev (instant HMR)"
+	@echo "  make localdev-hot-stop  - Stop MongoDB (keep data)"
+	@echo "  make localdev-hot-clean - Stop MongoDB and remove all data"
 	@echo ""
 	@echo "Docker (requires Clerk keys in .env.local):"
 	@echo "  make dev            - Start dev environment with hot reload"
@@ -61,6 +67,22 @@ localdev-status:
 # Re-seed test users into a running localdev environment
 localdev-seed:
 	docker compose run --rm db-seed-users
+
+# =============================================================================
+# Hot Reload (MongoDB in Docker, Next.js on host for instant HMR)
+# =============================================================================
+
+# Start hot-reload dev: MongoDB in Docker, Next.js on host
+localdev-hot:
+	./docker/scripts/localdev-hot.sh
+
+# Stop MongoDB containers (data preserved in volumes)
+localdev-hot-stop:
+	./docker/scripts/localdev-hot-stop.sh
+
+# Stop MongoDB and remove all data
+localdev-hot-clean:
+	./docker/scripts/localdev-hot-stop.sh clean
 
 # =============================================================================
 # Docker (requires Clerk keys)
