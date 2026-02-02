@@ -77,6 +77,7 @@ const RESOURCE_TYPES = [
 const VISIBILITY_OPTIONS = [
   { value: "PRIVATE", label: "Private", description: "Only visible to you" },
   { value: "FAMILY", label: "Family", description: "Visible to family members" },
+  { value: "PUBLIC", label: "Public", description: "Visible to all members" },
 ];
 
 export function ResourceCreationPage({ userRole, userId }: ResourceCreationPageProps) {

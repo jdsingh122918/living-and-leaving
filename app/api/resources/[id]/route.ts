@@ -19,7 +19,7 @@ const updateResourceSchema = z.object({
   description: z.string().max(2000, "Resource description must be less than 2,000 characters").nullable().optional(),
   body: z.string().max(50000, "Resource content must be less than 50,000 characters").nullable().optional(),
   resourceType: z.enum(["DOCUMENT", "LINK", "VIDEO", "AUDIO", "IMAGE", "TOOL", "CONTACT", "SERVICE"]).optional(),
-  visibility: z.enum(["PRIVATE", "FAMILY"]).optional(),
+  visibility: z.enum(["PRIVATE", "FAMILY", "PUBLIC"]).optional(),
   familyId: z.string().nullable().optional(),
   categoryId: z.string().nullable().optional(),
   tags: z.array(z.string()).optional(),

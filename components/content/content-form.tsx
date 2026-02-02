@@ -30,6 +30,7 @@ import {
   Eye,
   Users,
   Lock,
+  Globe,
   Upload,
   Link as LinkIcon,
   Tag
@@ -307,6 +308,7 @@ const ContentForm = ({
     switch (visibility) {
       case ResourceVisibility.PRIVATE: return <Lock className="h-4 w-4" />;
       case ResourceVisibility.FAMILY: return <Users className="h-4 w-4" />;
+      case ResourceVisibility.PUBLIC: return <Globe className="h-4 w-4" />;
       default: return <Lock className="h-4 w-4" />;
     }
   };
@@ -541,6 +543,12 @@ const ContentForm = ({
                 <div className="flex items-center gap-2">
                   <Users className="h-4 w-4" />
                   <span>Family</span>
+                </div>
+              </SelectItem>
+              <SelectItem value={ResourceVisibility.PUBLIC}>
+                <div className="flex items-center gap-2">
+                  <Globe className="h-4 w-4" />
+                  <span>Public (All members)</span>
                 </div>
               </SelectItem>
             </SelectContent>

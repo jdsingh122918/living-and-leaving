@@ -190,6 +190,7 @@ const ContentCard: React.FC<ContentCardProps> = ({
     const visibilityConfig: Record<string, { color: string; label: string }> = {
       [ResourceVisibility.PRIVATE]: { color: 'bg-red-100 text-red-800', label: 'Private' },
       [ResourceVisibility.FAMILY]: { color: 'bg-blue-100 text-blue-800', label: 'Family' },
+      [ResourceVisibility.PUBLIC]: { color: 'bg-green-100 text-green-800', label: 'Public' },
     };
 
     const config = visibilityConfig[content.visibility] || { color: 'bg-gray-100 text-gray-800', label: content.visibility };

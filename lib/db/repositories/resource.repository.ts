@@ -423,6 +423,9 @@ class ResourceRepository {
     // Creator: own resources
     if (resource.createdBy === userId) return true;
 
+    // PUBLIC resources are visible to all authenticated users
+    if (resource.visibility === ResourceVisibility.PUBLIC) return true;
+
     // VOLUNTEER: resources in assigned families
     if (userRole === UserRole.VOLUNTEER) {
       if (resource.familyId) {
@@ -583,7 +586,7 @@ class ResourceRepository {
     if (userRole === UserRole.ADMIN) {
       // Admin sees everything
     } else if (userRole === UserRole.VOLUNTEER) {
-      // Volunteer sees: own resources + resources in assigned families
+      // Volunteer sees: own resources + resources in assigned families + public resources
       const assignments =
         await this.prisma.volunteerFamilyAssignment.findMany({
           where: { volunteerId: userId, isActive: true },
@@ -594,7 +597,11 @@ class ResourceRepository {
       where.AND = [
         ...(where.AND || []),
         {
-          OR: [{ createdBy: userId }, { familyId: { in: familyIds } }],
+          OR: [
+            { createdBy: userId },
+            { familyId: { in: familyIds } },
+            { visibility: ResourceVisibility.PUBLIC },
+          ],
         },
       ];
     } else if (userRole === UserRole.MEMBER) {

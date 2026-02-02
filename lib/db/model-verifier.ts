@@ -106,7 +106,7 @@ const VALID_ENUMS = {
   ForumVisibility: ["PUBLIC", "FAMILY", "ROLE_BASED", "PRIVATE"],
   PostType: ["DISCUSSION", "QUESTION", "ANNOUNCEMENT", "RESOURCE", "POLL"],
   VoteType: ["UPVOTE", "DOWNVOTE"],
-  ResourceVisibility: ["PRIVATE", "FAMILY"],
+  ResourceVisibility: ["PRIVATE", "FAMILY", "PUBLIC"],
   ResourceType: [
     "DOCUMENT",
     "LINK",

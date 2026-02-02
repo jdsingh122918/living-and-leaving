@@ -220,6 +220,7 @@ const ContentFilters: React.FC<ContentFiltersProps> = ({
     const visibilities = [
       { value: ResourceVisibility.PRIVATE, label: 'Private' },
       { value: ResourceVisibility.FAMILY, label: 'Family' },
+      { value: ResourceVisibility.PUBLIC, label: 'Public' },
     ];
 
     return (
