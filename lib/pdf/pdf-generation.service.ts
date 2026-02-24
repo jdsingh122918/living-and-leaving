@@ -10,6 +10,7 @@ import type {
   PDFGenerationOptions,
   PDFGenerationResult,
   PDFDocumentProps,
+  PDFSigningVariant,
   FormSectionData,
 } from './types';
 
@@ -32,20 +33,21 @@ async function generateWithTimeout<T>(
 /**
  * Generate a sanitized filename for the PDF
  */
-export function generatePDFFilename(title: string, memberLastName?: string): string {
+export function generatePDFFilename(title: string, memberLastName?: string, variantSuffix?: string): string {
   const sanitizedTitle = title
     .replace(/[^a-zA-Z0-9\s]/g, '')
     .replace(/\s+/g, '_')
     .substring(0, 50);
 
   const date = new Date().toISOString().split('T')[0];
+  const suffix = variantSuffix ? `_${variantSuffix}` : '';
 
   if (memberLastName) {
     const sanitizedName = memberLastName.replace(/[^a-zA-Z]/g, '');
-    return `${sanitizedTitle}_${sanitizedName}_${date}.pdf`;
+    return `${sanitizedTitle}_${sanitizedName}${suffix}_${date}.pdf`;
   }
 
-  return `${sanitizedTitle}_${date}.pdf`;
+  return `${sanitizedTitle}${suffix}_${date}.pdf`;
 }
 
 /**
@@ -70,6 +72,7 @@ export async function generateFormPDF(
       memberEmail: options.memberEmail,
       generatedAt: new Date(),
       completedAt: options.completedAt,
+      signingVariant: options.signingVariant,
     };
 
     // Generate PDF with timeout
@@ -88,7 +91,7 @@ export async function generateFormPDF(
 
     // Generate filename
     const memberLastName = memberName.split(' ').pop();
-    const filename = generatePDFFilename(resourceTitle, memberLastName);
+    const filename = generatePDFFilename(resourceTitle, memberLastName, options.signingVariant);
 
     return {
       success: true,

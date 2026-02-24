@@ -8,6 +8,7 @@ import { ArrowLeft, AlertCircle, FileText, Mail, User } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { AdvanceDirectiveForm, FormResponseData, FormSectionData } from '@/components/forms/advance-directive-forms';
 import { ShareFormDialog } from '@/components/resources/share-form-dialog';
+import { PdfDownloadDropdown } from '@/components/resources/pdf-download-dropdown';
 
 interface FormCompletionClientProps {
   resourceId: string;
@@ -44,7 +45,17 @@ export function FormCompletionClient({
   ): Record<string, FormSectionData> => {
     const sections: Record<string, FormSectionData> = {};
 
-    Object.entries(schema.sections).forEach(([sectionId, sectionDef]) => {
+    // Signing sections are completed on paper only — hide from online form
+    // Cover all ID variants across seeded forms (comprehensive, healthcare directive, etc.)
+    const ONLINE_HIDDEN_SECTIONS = [
+      'signature', 'member-signature',
+      'witness-1', 'witness-2', 'witness-one', 'witness-two',
+      'notary', 'notary-section', 'notary-ca',
+    ];
+
+    Object.entries(schema.sections)
+    .filter(([sectionId]) => !ONLINE_HIDDEN_SECTIONS.includes(sectionId))
+    .forEach(([sectionId, sectionDef]) => {
       const existingSectionData = existingData?.[sectionId];
       const isDynamicList = sectionDef.isDynamicList || false;
 
@@ -148,7 +159,7 @@ export function FormCompletionClient({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <Button variant="ghost" size="sm" asChild={!proxyMemberId} onClick={proxyMemberId ? () => window.history.back() : undefined}>
           {proxyMemberId ? (
             <>
@@ -162,7 +173,12 @@ export function FormCompletionClient({
             </Link>
           )}
         </Button>
-        {!proxyMemberId && (
+        <div className="flex flex-wrap items-center gap-2">
+          <PdfDownloadDropdown
+            resourceId={resourceId}
+            resourceTitle={resourceTitle}
+            memberId={proxyMemberId}
+          />
           <Button
             variant="default"
             size="sm"
@@ -172,17 +188,17 @@ export function FormCompletionClient({
             <Mail className="h-4 w-4 mr-2" />
             Share via Email
           </Button>
-        )}
+        </div>
       </div>
 
       {/* Title Card */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-primary" />
-            {resourceTitle}
+          <CardTitle className="flex flex-wrap items-center gap-2">
+            <FileText className="h-5 w-5 text-primary shrink-0" />
+            <span>{resourceTitle}</span>
             {proxyMemberName && (
-              <Badge variant="secondary" className="ml-2 flex items-center gap-1 text-xs font-normal">
+              <Badge variant="secondary" className="flex items-center gap-1 text-xs font-normal">
                 <User className="h-3 w-3" />
                 {proxyMemberName}
               </Badge>
@@ -221,6 +237,7 @@ export function FormCompletionClient({
         resourceId={resourceId}
         resourceTitle={resourceTitle}
         memberName={memberName}
+        memberId={proxyMemberId}
       />
     </div>
   );

@@ -8,6 +8,9 @@ import type { FamilyMemberEntry } from '@/components/forms/family-member-card';
 import type { RelativeFriendEntry } from '@/components/forms/relatives-friends-card';
 import type { GuardianEntry } from '@/components/forms/additional-guardians-section';
 
+// PDF signing variant — determines which signing sections appear in the PDF
+export type PDFSigningVariant = 'witnesses-only' | 'notary-only' | 'witnesses-and-notary';
+
 // Main document props
 export interface PDFDocumentProps {
   formData: Record<string, FormSectionData>;
@@ -17,6 +20,7 @@ export interface PDFDocumentProps {
   memberEmail?: string;
   generatedAt: Date;
   completedAt?: Date | null;
+  signingVariant?: PDFSigningVariant;
 }
 
 // Section rendering props
@@ -74,6 +78,7 @@ export interface MedicalProviderInfo {
 export interface PDFGenerationOptions {
   includeCompletionDate?: boolean;
   includeResourceTitle?: boolean;
+  signingVariant?: PDFSigningVariant;
 }
 
 // PDF generation result

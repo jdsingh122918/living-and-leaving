@@ -7,7 +7,7 @@ import {
   generatePDFFilename,
 } from "@/lib/pdf/pdf-generation.service";
 import { initializeEmailService } from "@/lib/email";
-import type { FormSectionData } from "@/lib/pdf/types";
+import type { FormSectionData, PDFSigningVariant } from "@/lib/pdf/types";
 
 const prisma = new PrismaClient();
 const resourceRepository = new ResourceRepository(prisma);
@@ -15,6 +15,14 @@ const resourceRepository = new ResourceRepository(prisma);
 // Email validation regex
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_RECIPIENTS = 5;
+
+// Valid PDF signing variants
+const VALID_VARIANTS: PDFSigningVariant[] = ['witnesses-only', 'notary-only', 'witnesses-and-notary'];
+
+function parseSigningVariant(value: string | null | undefined): PDFSigningVariant | undefined {
+  if (!value) return undefined;
+  return VALID_VARIANTS.includes(value as PDFSigningVariant) ? (value as PDFSigningVariant) : undefined;
+}
 
 /**
  * API Route for sharing form responses via email as PDF
@@ -37,11 +45,14 @@ export async function POST(
       recipientEmails,
       subject,
       message,
+      variant,
     }: {
       recipientEmails: string[];
       subject?: string;
       message?: string;
+      variant?: string;
     } = body;
+    const signingVariant = parseSigningVariant(variant);
 
     // Validate recipient emails
     if (
@@ -144,6 +155,7 @@ export async function POST(
         resourceDescription: resource.description || undefined,
         memberEmail: dbUser.email || undefined,
         completedAt: formResponse.completedAt,
+        signingVariant,
       },
     );
 
@@ -298,6 +310,9 @@ export async function GET(
       );
     }
 
+    // Read signing variant from query params
+    const signingVariant = parseSigningVariant(request.nextUrl.searchParams.get("variant"));
+
     // Get form response
     const formResponse = await resourceRepository.getFormResponse(
       resourceId,
@@ -338,6 +353,7 @@ export async function GET(
         resourceDescription: resource.description || undefined,
         memberEmail: dbUser.email || undefined,
         completedAt: formResponse.completedAt,
+        signingVariant,
       },
     );
 
@@ -351,7 +367,7 @@ export async function GET(
     // Return PDF as download
     const filename =
       pdfResult.filename ||
-      generatePDFFilename(resource.title, dbUser.lastName || undefined);
+      generatePDFFilename(resource.title, dbUser.lastName || undefined, signingVariant);
 
     // Convert Buffer to Uint8Array for NextResponse compatibility
     const pdfData = new Uint8Array(pdfResult.buffer);

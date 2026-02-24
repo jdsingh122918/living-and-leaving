@@ -21,7 +21,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Form,
   FormControl,
@@ -30,8 +29,10 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Mail, Send, FileText, Plus, X, Download } from 'lucide-react';
+import { Loader2, Mail, Send, FileText, Plus, X, Download, Users, Scale } from 'lucide-react';
+import type { PDFSigningVariant } from '@/lib/pdf/types';
 
 // Validation schema for the share form
 const shareFormSchema = z.object({
@@ -51,6 +52,7 @@ interface ShareFormDialogProps {
   resourceId: string;
   resourceTitle: string;
   memberName: string;
+  memberId?: string;
   onSuccess?: () => void;
 }
 
@@ -60,6 +62,7 @@ export function ShareFormDialog({
   resourceId,
   resourceTitle,
   memberName,
+  memberId,
   onSuccess,
 }: ShareFormDialogProps) {
   const { toast } = useToast();
@@ -67,6 +70,7 @@ export function ShareFormDialog({
   const [isSending, setIsSending] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [emailInput, setEmailInput] = useState('');
+  const [signingVariant, setSigningVariant] = useState<PDFSigningVariant>('witnesses-only');
 
   const form = useForm<ShareFormValues>({
     resolver: zodResolver(shareFormSchema),
@@ -154,7 +158,12 @@ export function ShareFormDialog({
     setIsSending(true);
 
     try {
-      const response = await fetch(`/api/resources/${resourceId}/form-response/share`, {
+      const postParams = new URLSearchParams();
+      if (memberId) postParams.set('memberId', memberId);
+      const postQuery = postParams.toString();
+      const postUrl = `/api/resources/${resourceId}/form-response/share${postQuery ? `?${postQuery}` : ''}`;
+
+      const response = await fetch(postUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -163,6 +172,7 @@ export function ShareFormDialog({
           recipientEmails: data.recipients,
           subject: data.subject || undefined,
           message: data.message || undefined,
+          variant: signingVariant,
         }),
       });
 
@@ -199,7 +209,9 @@ export function ShareFormDialog({
     setIsDownloading(true);
 
     try {
-      const response = await fetch(`/api/resources/${resourceId}/form-response/share`, {
+      const params = new URLSearchParams({ variant: signingVariant });
+      if (memberId) params.set('memberId', memberId);
+      const response = await fetch(`/api/resources/${resourceId}/form-response/share?${params.toString()}`, {
         method: 'GET',
       });
 
@@ -267,6 +279,41 @@ export function ShareFormDialog({
             Share "{resourceTitle}" as a PDF attachment via email
           </DialogDescription>
         </DialogHeader>
+
+        {/* PDF Signing Variant Selector */}
+        <div className="space-y-3">
+          <Label className="text-sm font-medium">PDF Signing Sections</Label>
+          <RadioGroup
+            value={signingVariant}
+            onValueChange={(val) => setSigningVariant(val as PDFSigningVariant)}
+            className="space-y-2"
+          >
+            <label className="flex items-center gap-3 p-2.5 rounded-md border cursor-pointer hover:bg-accent/50 transition-colors">
+              <RadioGroupItem value="witnesses-only" />
+              <Users className="h-4 w-4 text-muted-foreground" />
+              <div className="flex flex-col">
+                <span className="text-sm font-medium">With 2 Witnesses</span>
+                <span className="text-xs text-muted-foreground">No notary section</span>
+              </div>
+            </label>
+            <label className="flex items-center gap-3 p-2.5 rounded-md border cursor-pointer hover:bg-accent/50 transition-colors">
+              <RadioGroupItem value="notary-only" />
+              <Scale className="h-4 w-4 text-muted-foreground" />
+              <div className="flex flex-col">
+                <span className="text-sm font-medium">With Notary Only</span>
+                <span className="text-xs text-muted-foreground">No witness sections</span>
+              </div>
+            </label>
+            <label className="flex items-center gap-3 p-2.5 rounded-md border cursor-pointer hover:bg-accent/50 transition-colors">
+              <RadioGroupItem value="witnesses-and-notary" />
+              <FileText className="h-4 w-4 text-muted-foreground" />
+              <div className="flex flex-col">
+                <span className="text-sm font-medium">Witnesses + Notary</span>
+                <span className="text-xs text-muted-foreground">Complete signing package</span>
+              </div>
+            </label>
+          </RadioGroup>
+        </div>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
