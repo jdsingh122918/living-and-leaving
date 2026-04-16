@@ -38,6 +38,46 @@ export class UserRepository {
   }
 
   /**
+   * Rebind an existing DB user (matched by email) to a new clerkId.
+   *
+   * Used when a user was invited (DB row holds the invitation id as a
+   * placeholder clerkId), and the real Clerk user has now been created —
+   * or when a Clerk user is deleted and recreated with the same email.
+   *
+   * Transactional: re-verifies the match inside the transaction to avoid
+   * racing with a concurrent webhook creating a second row.
+   */
+  async updateClerkIdByEmail(
+    email: string,
+    newClerkId: string,
+  ): Promise<User | null> {
+    return prisma.$transaction(async (tx) => {
+      const existing = await tx.user.findUnique({ where: { email } });
+      if (!existing) return null;
+      if (existing.clerkId === newClerkId) {
+        return this.transformPrismaUser(existing);
+      }
+      const updated = await tx.user.update({
+        where: { id: existing.id },
+        data: { clerkId: newClerkId, emailVerified: true },
+        include: {
+          family: true,
+          createdBy: {
+            select: {
+              id: true,
+              email: true,
+              firstName: true,
+              lastName: true,
+              role: true,
+            },
+          },
+        },
+      });
+      return this.transformPrismaUser(updated);
+    });
+  }
+
+  /**
    * Create or update a user by clerkId (atomic operation to prevent race conditions)
    * This is the preferred method for user sync operations.
    */

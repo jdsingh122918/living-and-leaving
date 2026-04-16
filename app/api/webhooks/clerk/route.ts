@@ -258,6 +258,19 @@ async function handleUserCreated(clerkUser: ClerkUser, webhookId: string) {
       phoneNumber: createUserData.phoneNumber,
     });
 
+    // If a DB row already exists for this email under a different clerkId
+    // (e.g., a pending invitation placeholder, or a recreated Clerk account),
+    // rebind the existing row to the new clerkId rather than creating a duplicate.
+    const rebound = await userRepository.updateClerkIdByEmail(
+      primaryEmail,
+      clerkUser.id,
+    );
+    if (rebound) {
+      console.log(
+        `🔗 [${webhookId}] Rebound existing DB user ${rebound.id} to new clerkId ${clerkUser.id}`,
+      );
+    }
+
     // Use upsert to atomically create or update user (prevents race conditions)
     console.log(`👤 [${webhookId}] Calling userRepository.upsertUser()...`);
     const { user, created } = await userRepository.upsertUser(createUserData);

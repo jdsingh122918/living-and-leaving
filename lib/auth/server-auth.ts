@@ -197,6 +197,20 @@ const mockClerkClient = {
     updateUserMetadata: async () => ({}),
     deleteUser: async () => ({}),
   },
+  invitations: {
+    createInvitation: async (data: {
+      emailAddress: string;
+      publicMetadata?: Record<string, unknown>;
+      redirectUrl?: string;
+      notify?: boolean;
+      ignoreExisting?: boolean;
+    }) => ({
+      id: `test_inv_${Date.now()}`,
+      emailAddress: data.emailAddress,
+      publicMetadata: data.publicMetadata,
+      status: "pending" as const,
+    }),
+  },
 };
 
 /**

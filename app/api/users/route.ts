@@ -6,6 +6,7 @@ import { UserRole as AppUserRole } from "@/lib/auth/roles";
 import { UserRepository } from "@/lib/db/repositories/user.repository";
 import { FamilyRepository } from "@/lib/db/repositories/family.repository";
 import type { UserFilters, ClerkError } from "@/lib/types/api";
+import brandConfig from "@/brand.config";
 
 const userRepository = new UserRepository();
 const familyRepository = new FamilyRepository();
@@ -271,39 +272,41 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create user in Clerk first
+    // Create a Clerk invitation. Clerk emails a sign-up link to the address
+    // automatically. When the invite is accepted, the user.created webhook
+    // fires — and updateClerkIdByEmail will rebind the placeholder row below
+    // to the real Clerk user id.
     const client = await clerkClient();
-    const clerkUser = await client.users.createUser({
-      emailAddress: [validatedData.email],
-      firstName: validatedData.firstName,
-      lastName: validatedData.lastName,
+    const appUrl =
+      process.env.NEXT_PUBLIC_APP_URL || `https://${brandConfig.domain}`;
+    const invitation = await client.invitations.createInvitation({
+      emailAddress: validatedData.email,
       publicMetadata: {
         role: validatedData.role,
       },
-      skipPasswordChecks: true,
-      skipPasswordRequirement: true,
+      redirectUrl: `${appUrl}/sign-up`,
+      notify: true,
+      ignoreExisting: false,
     });
 
-    console.log("✅ User created in Clerk:", {
-      clerkId: clerkUser.id,
-      email: clerkUser.emailAddresses[0]?.emailAddress,
+    console.log("✅ Clerk invitation sent:", {
+      invitationId: invitation.id,
+      email: invitation.emailAddress,
     });
 
-    // Create user in our database
+    // Create user in our database with the invitation id as a placeholder
+    // clerkId. The webhook rebinds this on invite acceptance.
     const dbUser = await userRepository.createUser({
-      clerkId: clerkUser.id,
+      clerkId: invitation.id,
       email: validatedData.email,
       firstName: validatedData.firstName,
       lastName: validatedData.lastName,
       role: validatedData.role as AppUserRole,
       familyId: validatedData.familyId,
-      createdById: user.id
+      createdById: user.id,
     });
 
     console.log("✅ User created in database:", { userId: dbUser.id });
-
-    // Create invitation (Clerk will send email automatically when user tries to sign in)
-    // We could also use clerkClient.invitations.createInvitation() for more control
 
     return NextResponse.json(
       {
@@ -322,7 +325,7 @@ export async function POST(request: NextRequest) {
           createdAt: dbUser.createdAt,
         },
         message:
-          "User created successfully. They will receive a sign-in link when they try to access the platform.",
+          "Invitation sent. They will receive an email with a link to set up their account.",
       },
       { status: 201 },
     );
