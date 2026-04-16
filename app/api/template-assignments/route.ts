@@ -8,6 +8,8 @@ import { ResourceRepository } from "@/lib/db/repositories/resource.repository";
 import { NotificationRepository } from "@/lib/db/repositories/notification.repository";
 import { NotificationType } from "@/lib/types";
 import { prisma } from "@/lib/db/prisma";
+import { initializeEmailService } from "@/lib/email";
+import brandConfig from "@/brand.config";
 
 const templateAssignmentRepository = new TemplateAssignmentRepository();
 const userRepository = new UserRepository();
@@ -88,14 +90,21 @@ export async function POST(request: NextRequest) {
         })
         .map((a) => a.assigneeId);
 
-      // Create notifications for each assigned member
+      // Create in-app notifications + send email for each assigned member.
+      // Direct email send bypasses the templated notification pipeline, which
+      // silently drops sends for members without a NotificationPreferences row.
+      const emailService = await initializeEmailService();
+      const appUrl =
+        process.env.NEXT_PUBLIC_APP_URL || `https://${brandConfig.domain}`;
+      const resourceUrl = `${appUrl}/member/resources/${resource.id}`;
+
       for (const memberId of recentlyAssignedIds) {
         try {
           await notificationRepository.createNotification({
             userId: memberId,
             type: NotificationType.CARE_UPDATE,
-            title: "New Template Assigned",
-            message: `${assignerName} has assigned "${resource.title}" to you. Please complete this form at your earliest convenience.`,
+            title: "New form to complete",
+            message: `${assignerName} shared "${resource.title}" with you.`,
             data: {
               resourceId: resource.id,
               resourceTitle: resource.title,
@@ -110,6 +119,40 @@ export async function POST(request: NextRequest) {
           console.error(
             `Failed to create notification for user ${memberId}:`,
             notificationError
+          );
+        }
+
+        try {
+          const member = await userRepository.getUserById(memberId);
+          if (!member?.email) continue;
+
+          const recipientName =
+            `${member.firstName || ""} ${member.lastName || ""}`.trim() ||
+            member.email;
+
+          await emailService.sendEmail({
+            to: member.email,
+            subject: `${assignerName} shared "${resource.title}" with you`,
+            html: buildAssignmentEmailHtml({
+              recipientName,
+              assignerName,
+              resourceTitle: resource.title,
+              resourceDescription: resource.description || undefined,
+              resourceUrl,
+            }),
+            text: buildAssignmentEmailText({
+              recipientName,
+              assignerName,
+              resourceTitle: resource.title,
+              resourceDescription: resource.description || undefined,
+              resourceUrl,
+            }),
+            tags: ["template_assignment"],
+          });
+        } catch (emailError) {
+          console.error(
+            `Failed to send assignment email to user ${memberId}:`,
+            emailError
           );
         }
       }
@@ -231,4 +274,76 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+interface AssignmentEmailFields {
+  recipientName: string;
+  assignerName: string;
+  resourceTitle: string;
+  resourceDescription?: string;
+  resourceUrl: string;
+}
+
+function buildAssignmentEmailHtml(f: AssignmentEmailFields): string {
+  const safeRecipient = escapeHtml(f.recipientName);
+  const safeAssigner = escapeHtml(f.assignerName);
+  const safeTitle = escapeHtml(f.resourceTitle);
+  const safeDescription = f.resourceDescription
+    ? `<p style="margin:0 0 16px 0;color:#334155;">${escapeHtml(
+        f.resourceDescription,
+      )}</p>`
+    : "";
+  const safeUrl = escapeHtml(f.resourceUrl);
+  const brandName = escapeHtml((brandConfig.name || "Living & Leaving"));
+
+  return `<!DOCTYPE html>
+<html>
+  <body style="margin:0;padding:24px;background:#f8fafc;font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;color:#0f172a;">
+    <div style="max-width:560px;margin:0 auto;background:#ffffff;border-radius:12px;padding:32px;">
+      <h1 style="margin:0 0 16px 0;font-size:20px;">Hi ${safeRecipient},</h1>
+      <p style="margin:0 0 16px 0;line-height:1.55;">
+        ${safeAssigner} shared <strong>${safeTitle}</strong> with you on ${brandName}.
+      </p>
+      ${safeDescription}
+      <p style="margin:24px 0;">
+        <a href="${safeUrl}" style="display:inline-block;padding:12px 20px;border-radius:8px;background:#6B21A8;color:#ffffff;text-decoration:none;font-weight:600;">Open the form</a>
+      </p>
+      <p style="margin:0;color:#64748b;font-size:13px;line-height:1.5;">
+        You can save your progress and return anytime — nothing has to be completed in one sitting.
+      </p>
+    </div>
+    <p style="max-width:560px;margin:16px auto 0 auto;color:#94a3b8;font-size:12px;text-align:center;">
+      Sent by ${brandName}.
+    </p>
+  </body>
+</html>`;
+}
+
+function buildAssignmentEmailText(f: AssignmentEmailFields): string {
+  const lines = [
+    `Hi ${f.recipientName},`,
+    "",
+    `${f.assignerName} shared "${f.resourceTitle}" with you on ${(brandConfig.name || "Living & Leaving")}.`,
+  ];
+  if (f.resourceDescription) {
+    lines.push("", f.resourceDescription);
+  }
+  lines.push(
+    "",
+    `Open the form: ${f.resourceUrl}`,
+    "",
+    "You can save your progress and return anytime — nothing has to be completed in one sitting.",
+    "",
+    `— ${(brandConfig.name || "Living & Leaving")}`,
+  );
+  return lines.join("\n");
 }
