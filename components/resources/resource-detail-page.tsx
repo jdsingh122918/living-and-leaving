@@ -301,9 +301,18 @@ export function ResourceDetailPage({ resourceId, userRole, userId }: ResourceDet
 
   return (
     <div data-testid="resource-detail-page" className="space-y-4">
-      {/* Header - Action buttons (only shown when there are actions) */}
-      {(canEdit || canDelete || canAssign || (isSystemTemplate && userRole === UserRole.MEMBER)) && (
-        <div className="flex items-center justify-end">
+      {/* Header — Back button (left) + action buttons (right) */}
+      <div className="flex items-center justify-between gap-2">
+        <Link href={`/${userRole.toLowerCase()}/resources`}>
+          <Button variant="ghost" size="sm" className="min-h-[44px]">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Resources
+          </Button>
+        </Link>
+        {(canEdit ||
+          canDelete ||
+          canAssign ||
+          (isSystemTemplate && userRole === UserRole.MEMBER)) && (
           <div className="flex items-center gap-2">
           {isSystemTemplate && userRole === UserRole.MEMBER && (
             assignmentLoading ? (
@@ -413,22 +422,12 @@ export function ResourceDetailPage({ resourceId, userRole, userId }: ResourceDet
             </AlertDialog>
           )}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Main Content */}
       <div className={`grid gap-4 ${hasSidebarContent ? 'lg:grid-cols-3' : 'max-w-4xl mx-auto'}`}>
         <div className={`${hasSidebarContent ? 'lg:col-span-2' : ''} space-y-4`}>
-          {/* Back to Resources - centered */}
-          <div className="flex justify-center">
-            <Link href={`/${userRole.toLowerCase()}/resources`}>
-              <Button variant="default" size="sm" className="min-h-[44px]">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Resources
-              </Button>
-            </Link>
-          </div>
-
           {/* Resource Info */}
           <Card className="p-4">
             <CardHeader className="space-y-3">

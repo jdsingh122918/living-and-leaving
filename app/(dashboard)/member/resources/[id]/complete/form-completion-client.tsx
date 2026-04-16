@@ -1,14 +1,44 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ArrowLeft, AlertCircle, FileText, Mail, User } from 'lucide-react';
+import { ArrowLeft, AlertCircle, FileText, Mail, User, CheckCircle2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { AdvanceDirectiveForm, FormResponseData, FormSectionData } from '@/components/forms/advance-directive-forms';
 import { ShareFormDialog } from '@/components/resources/share-form-dialog';
 import { PdfDownloadDropdown } from '@/components/resources/pdf-download-dropdown';
+
+function isFieldAnswered(value: unknown): boolean {
+  if (value === null || value === undefined) return false;
+  if (typeof value === 'string') return value.trim().length > 0;
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === 'object') {
+    const keys = Object.keys(value as Record<string, unknown>);
+    if (keys.length === 0) return false;
+    return keys.some((k) => isFieldAnswered((value as Record<string, unknown>)[k]));
+  }
+  return true;
+}
+
+function countFieldsInSection(section: FormSectionData): { answered: number; total: number } {
+  if (!section.fields) return { answered: 0, total: 0 };
+  const total = section.fields.length;
+  const answered = section.fields.filter((f) => isFieldAnswered(f.value)).length;
+  return { answered, total };
+}
+
+function countFieldsAcrossSections(sections: Record<string, FormSectionData>) {
+  let answered = 0;
+  let total = 0;
+  for (const section of Object.values(sections)) {
+    const s = countFieldsInSection(section);
+    answered += s.answered;
+    total += s.total;
+  }
+  return { answered, total };
+}
 
 interface FormCompletionClientProps {
   resourceId: string;
@@ -37,6 +67,7 @@ export function FormCompletionClient({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [showShareDialog, setShowShareDialog] = useState(false);
+  const [latestSections, setLatestSections] = useState<Record<string, FormSectionData> | null>(null);
 
   // Convert formSchema sections to FormSectionData format
   const convertToFormSections = useCallback((
@@ -115,6 +146,7 @@ export function FormCompletionClient({
   const handleSave = useCallback(async (data: FormResponseData) => {
     setIsSaving(true);
     setSaveError(null);
+    setLatestSections(data.sections);
 
     try {
       const url = proxyMemberId
@@ -155,6 +187,15 @@ export function FormCompletionClient({
       setIsSaving(false);
     }
   }, [resourceId, proxyMemberId]);
+
+  const progressSections = latestSections ?? initialFormData.sections;
+  const progress = useMemo(
+    () => countFieldsAcrossSections(progressSections),
+    [progressSections],
+  );
+  const progressPercent = progress.total === 0
+    ? 0
+    : Math.round((progress.answered / progress.total) * 100);
 
   return (
     <div className="space-y-6">
@@ -209,6 +250,38 @@ export function FormCompletionClient({
           )}
         </CardHeader>
       </Card>
+
+      {/* Progress */}
+      {progress.total > 0 && (
+        <Card className="sticky top-2 z-10 shadow-sm">
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                {progressPercent === 100 ? (
+                  <CheckCircle2 className="h-4 w-4 text-primary" />
+                ) : null}
+                <span>
+                  {progress.answered} of {progress.total} answered
+                  <span className="text-muted-foreground ml-2">({progressPercent}%)</span>
+                </span>
+              </div>
+              <span className="text-xs text-muted-foreground">
+                Your answers save automatically — you can finish later.
+              </span>
+            </div>
+            <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full bg-primary transition-all duration-300"
+                style={{ width: `${progressPercent}%` }}
+                role="progressbar"
+                aria-valuenow={progressPercent}
+                aria-valuemin={0}
+                aria-valuemax={100}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Error Message */}
       {saveError && (
