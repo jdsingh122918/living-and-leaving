@@ -75,6 +75,7 @@ export function FillOutForMemberModal({
               placeholder="Search and select a member..."
               maxSelections={1}
               showSelectedCount={false}
+              allowAssignedSelection
             />
           </div>
         </div>

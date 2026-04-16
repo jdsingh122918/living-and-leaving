@@ -31,6 +31,7 @@ interface MemberMultiComboboxProps {
   maxSelections?: number;
   showSelectedCount?: boolean;
   disabled?: boolean;
+  allowAssignedSelection?: boolean;
 }
 
 export function MemberMultiCombobox({
@@ -42,6 +43,7 @@ export function MemberMultiCombobox({
   maxSelections,
   showSelectedCount = true,
   disabled = false,
+  allowAssignedSelection = false,
 }: MemberMultiComboboxProps) {
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -125,8 +127,10 @@ export function MemberMultiCombobox({
     const member = members.find((m) => m.id === memberId);
     if (!member) return;
 
-    // Don't allow selecting already assigned members
-    if (member.alreadyAssigned) return;
+    // Block re-selection of already-assigned members unless the consumer
+    // opts in (e.g., the Fill Out For Member modal wants to proxy-fill
+    // an existing assignment).
+    if (member.alreadyAssigned && !allowAssignedSelection) return;
 
     const isSelected = value.includes(memberId);
     let newValue: string[];
@@ -248,8 +252,10 @@ export function MemberMultiCombobox({
                 <CommandGroup className="p-2">
                   {members.map((member) => {
                     const isSelected = value.includes(member.id);
+                    const isAssignedButSelectable =
+                      member.alreadyAssigned && allowAssignedSelection;
                     const canSelect =
-                      !member.alreadyAssigned &&
+                      (!member.alreadyAssigned || allowAssignedSelection) &&
                       (!isAtMaxLimit || isSelected);
                     const displayName = getMemberDisplayName(member);
 
@@ -262,10 +268,20 @@ export function MemberMultiCombobox({
                           "cursor-pointer rounded-md px-2 py-2 mb-0.5",
                           "transition-colors duration-150",
                           isSelected && "bg-accent/50",
-                          member.alreadyAssigned && "opacity-50 cursor-not-allowed",
+                          member.alreadyAssigned &&
+                            !allowAssignedSelection &&
+                            "opacity-50 cursor-not-allowed",
                           !canSelect && !isSelected && "opacity-50 cursor-not-allowed"
                         )}
-                        disabled={member.alreadyAssigned || (!canSelect && !isSelected)}
+                        disabled={
+                          (member.alreadyAssigned && !allowAssignedSelection) ||
+                          (!canSelect && !isSelected)
+                        }
+                        aria-label={
+                          isAssignedButSelectable
+                            ? `${displayName} — already assigned, selectable for proxy fill`
+                            : undefined
+                        }
                       >
                         <div
                           className={cn(
