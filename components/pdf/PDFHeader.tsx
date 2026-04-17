@@ -6,6 +6,7 @@
 import React from 'react';
 import { View, Text } from '@react-pdf/renderer';
 import { styles } from '@/lib/pdf/styles';
+import brandConfig from '@/brand.config';
 
 interface PDFHeaderProps {
   title: string;
@@ -24,11 +25,15 @@ export function PDFHeader({
   generatedAt,
   completedAt,
 }: PDFHeaderProps) {
+  const brandTimezone =
+    (brandConfig.timezone as string | undefined) || "America/Los_Angeles";
+
   const formatDate = (date: Date) => {
     return new Date(date).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
+      timeZone: brandTimezone,
     });
   };
 
@@ -39,6 +44,7 @@ export function PDFHeader({
       day: 'numeric',
       hour: 'numeric',
       minute: '2-digit',
+      timeZone: brandTimezone,
     });
   };
 

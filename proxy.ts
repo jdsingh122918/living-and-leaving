@@ -189,14 +189,30 @@ async function getClerkHandler() {
       return NextResponse.redirect(new URL("/sign-in", request.url));
     }
 
-    // Extract role from session claims
-    const userRole = (sessionClaims?.metadata as { role?: string })
-      ?.role as UserRole;
+    // Prefer the DB role over the JWT claim so admin-initiated role changes
+    // take effect on the next request instead of after a forced re-login.
+    // Fall back to the JWT claim only if the DB read fails.
+    let finalUserRole: UserRole | undefined;
+    try {
+      const dbUser = await prisma.user.findUnique({
+        where: { clerkId: userId },
+        select: { role: true },
+      });
+      if (dbUser?.role) {
+        finalUserRole = dbUser.role as UserRole;
+      }
+    } catch (dbReadError) {
+      console.error("DB role read failed, falling back to session claim:", dbReadError);
+    }
 
-    let finalUserRole = userRole;
+    const claimRole = (sessionClaims?.metadata as { role?: string })
+      ?.role as UserRole | undefined;
+    if (!finalUserRole) {
+      finalUserRole = claimRole;
+    }
 
-    // Database fallback for missing role
-    if (!userRole) {
+    // Database fallback (auto-sync from Clerk) for missing role in both sources
+    if (!finalUserRole) {
       try {
         const dbUser = await prisma.user.findUnique({
           where: { clerkId: userId },

@@ -15,6 +15,11 @@ export interface BrandConfig {
   privacyUrl?: string;
   termsUrl?: string;
 
+  // Locale
+  // IANA timezone name for user-facing date/time rendering (PDFs, emails).
+  // Defaults to "America/Los_Angeles" when omitted.
+  timezone?: string;
+
   // Visual Identity
   logos: {
     light: string; // "/brand/logo-light.png"

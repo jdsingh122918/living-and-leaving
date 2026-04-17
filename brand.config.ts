@@ -13,6 +13,7 @@ const brandConfig: BrandConfigInput = {
   description: "Supporting individuals and their constellation through end of life care with compassion, resources and community",
   domain: "livingandleaving.com",
   supportEmail: "support@livingandleaving.com",
+  timezone: "America/Los_Angeles",
   //
   logos: {
     light: "/brand/logo-light.png",
