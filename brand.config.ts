@@ -10,7 +10,7 @@ const brandConfig: BrandConfigInput = {
   name: "Living & Leaving",
   shortName: "L&L",
   tagline: "Living fully, leaving gracefully",
-  description: "Supporting families through end of life care with compassion, resources, and community",
+  description: "Supporting individuals and their constellation through end of life care with compassion, resources and community",
   domain: "livingandleaving.com",
   supportEmail: "support@livingandleaving.com",
   //
@@ -18,6 +18,7 @@ const brandConfig: BrandConfigInput = {
     light: "/brand/logo-light.png",
     dark: "/brand/logo-dark.png",
     favicon: "/brand/favicon.svg",
+    loginHero: "/brand/login-hero.png",
   },
   //
   colors: {
