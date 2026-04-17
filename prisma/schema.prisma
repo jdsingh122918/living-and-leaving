@@ -75,6 +75,15 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  // Soft-delete — preserves content ownership and allows a grace period
+  // before permanent purge. Nullable; null means the user is active.
+  deletedAt                     DateTime?
+  deletionReason                String?
+  scheduledPermanentDeletionAt  DateTime?
+  deletedByUserId               String?   @db.ObjectId
+  deletedBy                     User?     @relation("UserDeleter", fields: [deletedByUserId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  deletedUsers                  User[]    @relation("UserDeleter")
+
   // Message relations
   sentMessages       Message[] @relation("MessageSender")
   conversations      ConversationParticipant[]
@@ -114,6 +123,7 @@ model User {
 
   @@index([familyId])
   @@index([role])
+  @@index([deletedAt])
   @@map("users")
 }
 
