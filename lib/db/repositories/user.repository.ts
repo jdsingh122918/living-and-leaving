@@ -625,6 +625,10 @@ export class UserRepository {
     emailVerified: boolean;
     createdAt: Date;
     updatedAt: Date;
+    deletedAt?: Date | null;
+    deletionReason?: string | null;
+    scheduledPermanentDeletionAt?: Date | null;
+    deletedByUserId?: string | null;
     family?: {
       id: string;
       name: string;
@@ -657,6 +661,10 @@ export class UserRepository {
       emailVerified: prismaUser.emailVerified,
       createdAt: prismaUser.createdAt,
       updatedAt: prismaUser.updatedAt,
+      deletedAt: prismaUser.deletedAt ?? null,
+      deletionReason: prismaUser.deletionReason ?? null,
+      scheduledPermanentDeletionAt: prismaUser.scheduledPermanentDeletionAt ?? null,
+      deletedByUserId: prismaUser.deletedByUserId ?? null,
       family: prismaUser.family
         ? ({
             id: prismaUser.family.id,

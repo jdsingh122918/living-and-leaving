@@ -97,6 +97,10 @@ export interface User {
   emailVerified: boolean;
   createdAt: Date;
   updatedAt: Date;
+  deletedAt?: Date | null;
+  deletionReason?: string | null;
+  scheduledPermanentDeletionAt?: Date | null;
+  deletedByUserId?: string | null;
   family?: Family | null;
   createdBy?: User | null;
 }
