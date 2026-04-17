@@ -319,7 +319,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-// DELETE /api/users/[id] - Delete specific user
+// DELETE /api/users/[id] — Soft-delete a user.
+// Bans the Clerk account (login-blocked) and marks the DB row with
+// deletedAt + a 30-day grace window. Can be restored via POST /restore.
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const { userId } = await auth();
@@ -328,13 +330,11 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Get current user from database to check role
     const currentUser = await userRepository.getUserByClerkId(userId);
     if (!currentUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Only ADMIN can delete users (for now)
     if (currentUser.role !== UserRole.ADMIN) {
       return NextResponse.json(
         { error: "Only administrators can delete users" },
@@ -345,7 +345,6 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const { id } = await params;
     const targetUserId = id;
 
-    // Prevent self-deletion
     if (currentUser.id === targetUserId) {
       return NextResponse.json(
         { error: "You cannot delete your own account" },
@@ -353,13 +352,11 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Get target user
     const targetUser = await userRepository.getUserById(targetUserId);
     if (!targetUser) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Prevent deleting the last admin
     if (targetUser.role === UserRole.ADMIN) {
       const adminUsers = await userRepository.getUsersByRole(AppUserRole.ADMIN);
       if (adminUsers.length <= 1) {
@@ -372,31 +369,56 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       }
     }
 
-    console.log("🗑️ Deleting user:", {
+    // Optional reason from the request body (admin UI may collect one).
+    let reason: string | undefined;
+    try {
+      const body = await request.json();
+      if (typeof body?.reason === "string" && body.reason.trim().length > 0) {
+        reason = body.reason.trim();
+      }
+    } catch {
+      // No JSON body is fine.
+    }
+
+    console.log("🗑️ Soft-deleting user:", {
       targetUserId,
       email: targetUser.email,
       role: targetUser.role,
       deletedBy: currentUser.email,
     });
 
-    // Delete user from Clerk first
+    // Ban in Clerk so they can't log in. We don't call deleteUser on Clerk —
+    // keeping the Clerk account preserved makes restore straightforward.
     try {
       const client = await clerkClient();
-      await client.users.deleteUser(targetUser.clerkId);
-      console.log("✅ User deleted from Clerk");
+      await client.users.banUser(targetUser.clerkId);
+      console.log("✅ Clerk user banned");
     } catch (clerkError) {
-      console.error("⚠️ Failed to delete user from Clerk:", clerkError);
-      // Continue with database deletion even if Clerk fails
+      console.error("⚠️ Failed to ban Clerk user:", clerkError);
+      // Continue with DB soft-delete even if Clerk ban fails — admin can
+      // retry the ban, or restore and try again.
     }
 
-    // Delete user from database
-    await userRepository.deleteUser(targetUserId);
+    const softDeleted = await userRepository.softDeleteUser(targetUserId, {
+      deletedByUserId: currentUser.id,
+      reason,
+    });
 
-    console.log("✅ User deleted successfully:", { targetUserId });
+    console.log("✅ User soft-deleted:", {
+      targetUserId,
+      restoreBy: softDeleted.scheduledPermanentDeletionAt,
+    });
 
     return NextResponse.json({
       success: true,
-      message: "User deleted successfully",
+      message:
+        "User removed. They can be restored from the Deleted tab for the next 30 days.",
+      user: {
+        id: softDeleted.id,
+        email: softDeleted.email,
+        deletedAt: softDeleted.deletedAt,
+        scheduledPermanentDeletionAt: softDeleted.scheduledPermanentDeletionAt,
+      },
     });
   } catch (error) {
     console.error("❌ Error deleting user:", error);

@@ -196,6 +196,8 @@ const mockClerkClient = {
     getUserList: async () => ({ data: [] }),
     updateUserMetadata: async () => ({}),
     deleteUser: async () => ({}),
+    banUser: async () => ({}),
+    unbanUser: async () => ({}),
   },
   invitations: {
     createInvitation: async (data: {
