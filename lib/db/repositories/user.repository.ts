@@ -2,6 +2,11 @@ import { prisma } from "@/lib/db/prisma";
 import { User, CreateUserInput, Family, FamilyRole } from "@/lib/types";
 import { UserRole } from "@/lib/auth/roles";
 import { Prisma } from "@prisma/client";
+import {
+  ANONYMOUS_USER_CLERK_ID,
+  ANONYMOUS_USER_EMAIL,
+  SOFT_DELETE_GRACE_DAYS,
+} from "@/lib/db/constants";
 
 export class UserRepository {
   /**
@@ -357,14 +362,24 @@ export class UserRepository {
   }
 
   /**
-   * Get all users with optional filters
+   * Get all users with optional filters.
+   *
+   * Excludes soft-deleted users and the anonymous content-placeholder by
+   * default. Pass `includeDeleted: true` to include soft-deleted rows.
    */
   async getAllUsers(filters?: {
     role?: UserRole;
     familyId?: string;
     createdById?: string;
+    includeDeleted?: boolean;
   }): Promise<User[]> {
-    const where: Record<string, unknown> = {};
+    const where: Record<string, unknown> = {
+      clerkId: { not: ANONYMOUS_USER_CLERK_ID },
+    };
+
+    if (!filters?.includeDeleted) {
+      where.deletedAt = null;
+    }
 
     if (filters?.role) {
       where.role = filters.role;
@@ -399,6 +414,47 @@ export class UserRepository {
   }
 
   /**
+   * List soft-deleted users with their deletion metadata.
+   * Used by the admin "Deleted" tab.
+   */
+  async getSoftDeletedUsers(): Promise<
+    Array<
+      User & {
+        deletedAt: Date;
+        deletionReason: string | null;
+        scheduledPermanentDeletionAt: Date | null;
+      }
+    >
+  > {
+    const users = await prisma.user.findMany({
+      where: {
+        deletedAt: { not: null },
+        clerkId: { not: ANONYMOUS_USER_CLERK_ID },
+      },
+      include: {
+        family: true,
+        createdBy: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            role: true,
+          },
+        },
+      },
+      orderBy: { deletedAt: "desc" },
+    });
+
+    return users.map((u) => ({
+      ...this.transformPrismaUser(u),
+      deletedAt: u.deletedAt!,
+      deletionReason: u.deletionReason,
+      scheduledPermanentDeletionAt: u.scheduledPermanentDeletionAt,
+    }));
+  }
+
+  /**
    * Get user statistics
    */
   async getUserStats(): Promise<{
@@ -418,7 +474,132 @@ export class UserRepository {
   }
 
   /**
-   * Delete user
+   * Soft-delete a user. Content they created is preserved; they can be
+   * restored any time before `scheduledPermanentDeletionAt`.
+   */
+  async softDeleteUser(
+    userId: string,
+    options: { deletedByUserId: string; reason?: string } = {
+      deletedByUserId: "",
+    },
+  ): Promise<User> {
+    const graceEnd = new Date();
+    graceEnd.setDate(graceEnd.getDate() + SOFT_DELETE_GRACE_DAYS);
+
+    const updated = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        deletedAt: new Date(),
+        deletionReason: options.reason || null,
+        scheduledPermanentDeletionAt: graceEnd,
+        deletedByUserId: options.deletedByUserId || null,
+      },
+      include: {
+        family: true,
+        createdBy: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            role: true,
+          },
+        },
+      },
+    });
+
+    return this.transformPrismaUser(updated);
+  }
+
+  /**
+   * Restore a soft-deleted user. Clears the deletion metadata.
+   */
+  async restoreUser(userId: string): Promise<User> {
+    const restored = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        deletedAt: null,
+        deletionReason: null,
+        scheduledPermanentDeletionAt: null,
+        deletedByUserId: null,
+      },
+      include: {
+        family: true,
+        createdBy: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            role: true,
+          },
+        },
+      },
+    });
+    return this.transformPrismaUser(restored);
+  }
+
+  /**
+   * Find or create the anonymous placeholder user. Content belonging to
+   * permanently-deleted users is reassigned to this placeholder so FK
+   * constraints don't block deletion.
+   */
+  async getOrCreateDeletedUserPlaceholder(): Promise<User> {
+    const existing = await prisma.user.findUnique({
+      where: { clerkId: ANONYMOUS_USER_CLERK_ID },
+      include: {
+        family: true,
+        createdBy: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            role: true,
+          },
+        },
+      },
+    });
+    if (existing) return this.transformPrismaUser(existing);
+
+    const created = await prisma.user.create({
+      data: {
+        clerkId: ANONYMOUS_USER_CLERK_ID,
+        email: ANONYMOUS_USER_EMAIL,
+        firstName: "Former",
+        lastName: "Member",
+        role: UserRole.MEMBER,
+        emailVerified: true,
+      },
+      include: {
+        family: true,
+        createdBy: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            role: true,
+          },
+        },
+      },
+    });
+    return this.transformPrismaUser(created);
+  }
+
+  /**
+   * Hard-delete a user row after the grace window.
+   * Callers are responsible for reassigning any owned content to the
+   * anonymous placeholder before invoking this.
+   */
+  async permanentlyDeleteUser(userId: string): Promise<void> {
+    await prisma.user.delete({ where: { id: userId } });
+  }
+
+  /**
+   * Legacy hard-delete method kept for backwards compatibility with the
+   * Clerk user.deleted webhook. New admin-initiated deletes go through
+   * softDeleteUser instead.
    */
   async deleteUser(userId: string): Promise<void> {
     await prisma.user.delete({
