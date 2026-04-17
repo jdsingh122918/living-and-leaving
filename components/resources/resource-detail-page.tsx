@@ -56,6 +56,7 @@ import {
 import { TemplateSchemaPreview } from "@/components/resources/template-schema-preview";
 import { AssignTemplateModal } from "@/components/resources/assign-template-modal";
 import { FillOutForMemberModal } from "@/components/resources/fill-out-for-member-modal";
+import { AssignedMembersList } from "@/components/resources/assigned-members-list";
 
 interface Resource {
   id: string;
@@ -558,6 +559,11 @@ export function ResourceDetailPage({ resourceId, userRole, userId }: ResourceDet
               )}
             </CardContent>
           </Card>
+
+          {/* Assigned families — ADMIN/VOLUNTEER view of who has this form */}
+          {canAssign && (
+            <AssignedMembersList resourceId={resourceId} userRole={userRole} />
+          )}
         </div>
 
         {/* Sidebar */}
