@@ -8,7 +8,6 @@ import {
   Resource,
 } from "@/lib/types";
 import { UserRole } from "@/lib/auth/roles";
-import { ANONYMOUS_USER_CLERK_ID } from "@/lib/db/constants";
 
 export class TemplateAssignmentRepository {
   /**
@@ -503,13 +502,10 @@ export class TemplateAssignmentRepository {
         }
       : {};
 
-    // Query members — exclude soft-deleted users and the anonymous
-    // content-placeholder from the picker.
+    // Query members
     const members = await prisma.user.findMany({
       where: {
         role: UserRole.MEMBER,
-        deletedAt: null,
-        clerkId: { not: ANONYMOUS_USER_CLERK_ID },
         ...(familyIds && { familyId: { in: familyIds } }),
         ...searchConditions,
       },

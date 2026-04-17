@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Plus, Search, Eye, Users, Archive } from 'lucide-react'
+import { Plus, Search, Eye, Users } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   Table,
@@ -289,20 +289,12 @@ export default function UsersPage() {
             Manage platform users and their roles ({users.length} total)
           </p>
         </div>
-        <div className="flex w-full sm:w-auto gap-2">
-          <Button asChild variant="outline" className="flex-1 sm:flex-initial min-h-[44px]">
-            <Link href="/admin/users/deleted">
-              <Archive className="mr-2 h-4 w-4" />
-              Deleted
-            </Link>
-          </Button>
-          <Button asChild className="flex-1 sm:flex-initial min-h-[44px]">
-            <Link href="/admin/users/new">
-              <Plus className="mr-2 h-4 w-4" />
-              Create User
-            </Link>
-          </Button>
-        </div>
+        <Button asChild className="w-full sm:w-auto min-h-[44px]">
+          <Link href="/admin/users/new">
+            <Plus className="mr-2 h-4 w-4" />
+            Create User
+          </Link>
+        </Button>
       </div>
 
       {/* Users Content */}
