@@ -35,7 +35,7 @@ export default function AuthLayout({
           className="object-cover"
         />
         <div className="absolute inset-0 bg-black/40"></div>
-        <div className="relative z-10 max-w-md text-center text-white p-12">
+        <div className="relative z-10 max-w-md text-center text-white p-12 lg:translate-x-20">
           <h1 className="text-4xl font-bold mb-4">
             {brand.name}
           </h1>
