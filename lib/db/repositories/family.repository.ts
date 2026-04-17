@@ -10,6 +10,7 @@ import {
   FamilyRole,
 } from "@/lib/types";
 import { UserRole } from "@/lib/auth/roles";
+import { ANONYMOUS_USER_CLERK_ID } from "@/lib/db/constants";
 
 export class FamilyRepository {
   /**
@@ -34,6 +35,10 @@ export class FamilyRepository {
           },
         },
         members: {
+          where: {
+            deletedAt: null,
+            clerkId: { not: ANONYMOUS_USER_CLERK_ID },
+          },
           select: {
             id: true,
             clerkId: true,
@@ -71,6 +76,10 @@ export class FamilyRepository {
           },
         },
         members: {
+          where: {
+            deletedAt: null,
+            clerkId: { not: ANONYMOUS_USER_CLERK_ID },
+          },
           select: {
             id: true,
             clerkId: true,
@@ -107,6 +116,10 @@ export class FamilyRepository {
           },
         },
         members: {
+          where: {
+            deletedAt: null,
+            clerkId: { not: ANONYMOUS_USER_CLERK_ID },
+          },
           select: {
             id: true,
             clerkId: true,
@@ -145,6 +158,10 @@ export class FamilyRepository {
           },
         },
         members: {
+          where: {
+            deletedAt: null,
+            clerkId: { not: ANONYMOUS_USER_CLERK_ID },
+          },
           select: {
             id: true,
             clerkId: true,
@@ -353,6 +370,10 @@ export class FamilyRepository {
           },
         },
         members: {
+          where: {
+            deletedAt: null,
+            clerkId: { not: ANONYMOUS_USER_CLERK_ID },
+          },
           select: {
             id: true,
             clerkId: true,
@@ -512,6 +533,10 @@ export class FamilyRepository {
           },
         },
         members: {
+          where: {
+            deletedAt: null,
+            clerkId: { not: ANONYMOUS_USER_CLERK_ID },
+          },
           select: {
             id: true,
             clerkId: true,
