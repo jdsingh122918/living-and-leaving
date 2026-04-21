@@ -135,6 +135,37 @@ export const ADMIN_GUIDE_SECTIONS: GuideContentSection[] = [
     ],
   },
   {
+    id: 'helping-members',
+    title: 'Helping a Member with Their Form',
+    blocks: [
+      { type: 'paragraph', text: "Some members need help with their healthcare directive — they may not be comfortable online, need a family member to help, or simply want to review what they've entered in a format they can read offline. As administrator, you can pull up a member's form, download it as a PDF, and email it to them (or anyone they choose)." },
+      { type: 'heading', text: 'Pulling Up a Member\u2019s Form' },
+      {
+        type: 'numbered-list',
+        steps: [
+          { title: 'Open Resources from the sidebar', description: 'Click the Healthcare Directive (or any template you want to review).' },
+          { title: 'Scroll to the Assigned Members list', description: 'You\u2019ll see every member the template has been assigned to, with their progress status.' },
+          { title: 'Click the member\u2019s name', description: 'You\u2019ll land on their form with their answers pre-filled. You can review each section.' },
+        ],
+      },
+      { type: 'heading', text: 'Downloading Their PDF' },
+      { type: 'paragraph', text: 'At the top right of the member\u2019s form page you\u2019ll see a Download PDF dropdown. Pick the signing variant (with two witnesses, with notary, or both) and a PDF generates with whatever the member has entered so far. This works even if the form is only partially filled — useful if you want to review a draft with them.' },
+      { type: 'heading', text: 'Emailing Their PDF to Them' },
+      {
+        type: 'numbered-list',
+        steps: [
+          { title: 'Click Share via Email', description: 'Opens a dialog for composing the email.' },
+          { title: 'Add the recipient', description: 'Usually the member\u2019s own email — so they can open the PDF on their device. You can add up to 5 recipients (member, spouse, attorney, etc.).' },
+          { title: 'Choose the signing variant', description: 'Match the variant to the state of signing: two witnesses, notary, or both.' },
+          { title: 'Add an optional subject and message', description: 'A short note explaining what the PDF is and any next steps.' },
+          { title: 'Send', description: 'The member receives an email with the PDF attached. They can print, review, and get back to you.' },
+        ],
+      },
+      { type: 'tip', text: 'The PDF reflects whatever the member has entered at the moment you click Download or Share. If they want to see a "current draft" after you\u2019ve added new information together, save the form first — then re-download.' },
+      { type: 'note', text: "The email is labeled as coming from the member (not from you) so recipients see it in context. The member's email address appears as the sender identity in the PDF metadata." },
+    ],
+  },
+  {
     id: 'chat',
     title: 'Chat',
     blocks: [

@@ -29,6 +29,7 @@ import {
   MessageSquarePlus,
   ClipboardList,
   Download,
+  LifeBuoy,
 } from 'lucide-react'
 import {
   GuideSection,
@@ -89,6 +90,13 @@ export function AdminUserGuideContent(): React.ReactNode {
       icon: ClipboardList,
       description: 'Assign forms to members and track progress',
       content: <TemplateAssignmentsSection />,
+    },
+    {
+      id: 'helping-members',
+      title: 'Helping a Member',
+      icon: LifeBuoy,
+      description: "Review, download, and email a member's HCD",
+      content: <HelpingMembersSection />,
     },
     {
       id: 'chat',
@@ -378,6 +386,55 @@ function TemplateAssignmentsSection() {
       </div>
 
       <NoteBox>If a member needs help, you can also complete a form on their behalf — open the template, choose the member, and fill it out together.</NoteBox>
+    </div>
+  )
+}
+
+function HelpingMembersSection() {
+  return (
+    <div className="space-y-6">
+      <p className="text-base leading-relaxed">
+        Some members need help with their healthcare directive — they may not be comfortable online, need a family member to help, or simply want to review what they&apos;ve entered in a format they can read offline. As administrator, you can pull up a member&apos;s form, download it as a PDF, and email it to them (or anyone they choose).
+      </p>
+
+      <div className="space-y-3">
+        <h3 className="font-semibold text-lg">Pulling Up a Member&apos;s Form</h3>
+        <div className="space-y-3">
+          <WorkflowStep number={1} title="Open Resources from the sidebar" description="Click the Healthcare Directive (or any template you want to review)." />
+          <WorkflowStep number={2} title="Scroll to the Assigned Members list" description="You'll see every member the template has been assigned to, with their progress status." />
+          <WorkflowStep number={3} title="Click the member's name" description="You'll land on their form with their answers pre-filled. You can review each section." />
+        </div>
+      </div>
+
+      <Separator />
+
+      <div className="space-y-3">
+        <h3 className="font-semibold text-lg">Downloading Their PDF</h3>
+        <p className="text-sm text-muted-foreground">
+          At the top right of the member&apos;s form page you&apos;ll see a <strong>Download PDF</strong> dropdown. Pick the signing variant (with two witnesses, with notary, or both) and a PDF generates with whatever the member has entered so far. This works even if the form is only partially filled — useful if you want to review a draft with them.
+        </p>
+      </div>
+
+      <Separator />
+
+      <div className="space-y-3">
+        <h3 className="font-semibold text-lg">Emailing Their PDF to Them</h3>
+        <div className="space-y-3">
+          <WorkflowStep number={1} title="Click Share via Email" description="Opens a dialog for composing the email." />
+          <WorkflowStep number={2} title="Add the recipient" description="Usually the member's own email — so they can open the PDF on their device. You can add up to 5 recipients (member, spouse, attorney, etc.)." />
+          <WorkflowStep number={3} title="Choose the signing variant" description="Match the variant to the state of signing: two witnesses, notary, or both." />
+          <WorkflowStep number={4} title="Add an optional subject and message" description="A short note explaining what the PDF is and any next steps." />
+          <WorkflowStep number={5} title="Send" description="The member receives an email with the PDF attached. They can print, review, and get back to you." />
+        </div>
+      </div>
+
+      <TipBox>
+        The PDF reflects whatever the member has entered at the moment you click Download or Share. If they want to see a &quot;current draft&quot; after you&apos;ve added new information together, save the form first — then re-download.
+      </TipBox>
+
+      <NoteBox>
+        The email is labeled as coming from the member (not from you) so recipients see it in context. The member&apos;s email address appears as the sender identity in the PDF metadata.
+      </NoteBox>
     </div>
   )
 }

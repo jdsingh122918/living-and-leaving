@@ -24,6 +24,62 @@ function parseSigningVariant(value: string | null | undefined): PDFSigningVarian
   return VALID_VARIANTS.includes(value as PDFSigningVariant) ? (value as PDFSigningVariant) : undefined;
 }
 
+type ShareTargetUser = {
+  id: string;
+  firstName: string | null;
+  lastName: string | null;
+  email: string | null;
+};
+
+type ShareTargetResolution =
+  | { ok: true; target: ShareTargetUser }
+  | { ok: false; status: number; error: string };
+
+/**
+ * Resolve which member's form response the caller is sharing/downloading.
+ * Without `memberIdParam` the target is the caller (a member sharing their own).
+ * With `memberIdParam` an ADMIN can target any member; a VOLUNTEER only members
+ * in a family they've been assigned to; a MEMBER may only target themselves.
+ */
+async function resolveShareTarget(
+  caller: ShareTargetUser & { role: UserRole },
+  memberIdParam: string | null | undefined,
+): Promise<ShareTargetResolution> {
+  if (!memberIdParam || memberIdParam === caller.id) {
+    return { ok: true, target: { id: caller.id, firstName: caller.firstName, lastName: caller.lastName, email: caller.email } };
+  }
+
+  if (!/^[0-9a-fA-F]{24}$/.test(memberIdParam)) {
+    return { ok: false, status: 400, error: "Invalid memberId format" };
+  }
+
+  if (caller.role === UserRole.MEMBER) {
+    return { ok: false, status: 403, error: "Members cannot share forms on behalf of others" };
+  }
+
+  const member = await prisma.user.findUnique({
+    where: { id: memberIdParam },
+    select: { id: true, firstName: true, lastName: true, email: true, familyId: true },
+  });
+  if (!member) {
+    return { ok: false, status: 404, error: "Member not found" };
+  }
+
+  if (caller.role === UserRole.VOLUNTEER) {
+    if (!member.familyId) {
+      return { ok: false, status: 403, error: "Member is not assigned to a family" };
+    }
+    const assignment = await prisma.volunteerFamilyAssignment.findFirst({
+      where: { volunteerId: caller.id, familyId: member.familyId, isActive: true },
+    });
+    if (!assignment) {
+      return { ok: false, status: 403, error: "You can only share forms for members in your assigned families" };
+    }
+  }
+
+  return { ok: true, target: { id: member.id, firstName: member.firstName, lastName: member.lastName, email: member.email } };
+}
+
 /**
  * API Route for sharing form responses via email as PDF
  * POST /api/resources/[id]/form-response/share
@@ -115,10 +171,21 @@ export async function POST(
       );
     }
 
-    // Get form response
+    // Resolve which member's form we're sharing (self, or proxied member for admin/volunteer)
+    const memberIdParam = request.nextUrl.searchParams.get("memberId");
+    const resolution = await resolveShareTarget(
+      { ...dbUser, role: finalUserRole },
+      memberIdParam,
+    );
+    if (!resolution.ok) {
+      return NextResponse.json({ error: resolution.error }, { status: resolution.status });
+    }
+    const target = resolution.target;
+
+    // Get form response for the target (caller or proxied member)
     const formResponse = await resourceRepository.getFormResponse(
       resourceId,
-      dbUser.id,
+      target.id,
     );
 
     if (!formResponse) {
@@ -128,7 +195,7 @@ export async function POST(
       );
     }
 
-    // Get resource details
+    // Resource access is checked against the caller's role
     const resource = await resourceRepository.findById(
       resourceId,
       dbUser.id,
@@ -142,9 +209,9 @@ export async function POST(
       );
     }
 
-    // Generate member name
+    // Generate member name (target's name; the PDF and email are about THEIR form)
     const memberName =
-      `${dbUser.firstName || ""} ${dbUser.lastName || ""}`.trim() || "Member";
+      `${target.firstName || ""} ${target.lastName || ""}`.trim() || "Member";
 
     // Generate PDF
     const pdfResult = await generateFormPDF(
@@ -153,7 +220,7 @@ export async function POST(
       memberName,
       {
         resourceDescription: resource.description || undefined,
-        memberEmail: dbUser.email || undefined,
+        memberEmail: target.email || undefined,
         completedAt: formResponse.completedAt,
         signingVariant,
       },
@@ -187,7 +254,7 @@ export async function POST(
             subject || `${memberName} shared "${resource.title}" with you`,
           html: generateEmailHtml({
             senderName: memberName,
-            senderEmail: dbUser.email || undefined,
+            senderEmail: target.email || undefined,
             formTitle: resource.title,
             formDescription: resource.description || undefined,
             customMessage: message,
@@ -199,7 +266,7 @@ export async function POST(
           }),
           text: generateEmailText({
             senderName: memberName,
-            senderEmail: dbUser.email || undefined,
+            senderEmail: target.email || undefined,
             formTitle: resource.title,
             formDescription: resource.description || undefined,
             customMessage: message,
@@ -215,7 +282,7 @@ export async function POST(
                 pdfResult.filename ||
                 generatePDFFilename(
                   resource.title,
-                  dbUser.lastName || undefined,
+                  target.lastName || undefined,
                 ),
               content: pdfResult.buffer,
               contentType: "application/pdf",
@@ -313,10 +380,21 @@ export async function GET(
     // Read signing variant from query params
     const signingVariant = parseSigningVariant(request.nextUrl.searchParams.get("variant"));
 
-    // Get form response
+    // Resolve which member's form we're downloading (self, or proxied member)
+    const memberIdParam = request.nextUrl.searchParams.get("memberId");
+    const resolution = await resolveShareTarget(
+      { ...dbUser, role: finalUserRole },
+      memberIdParam,
+    );
+    if (!resolution.ok) {
+      return NextResponse.json({ error: resolution.error }, { status: resolution.status });
+    }
+    const target = resolution.target;
+
+    // Get form response for the target (caller or proxied member)
     const formResponse = await resourceRepository.getFormResponse(
       resourceId,
-      dbUser.id,
+      target.id,
     );
 
     if (!formResponse) {
@@ -326,7 +404,7 @@ export async function GET(
       );
     }
 
-    // Get resource details
+    // Resource access is checked against the caller's role
     const resource = await resourceRepository.findById(
       resourceId,
       dbUser.id,
@@ -340,9 +418,9 @@ export async function GET(
       );
     }
 
-    // Generate member name
+    // Generate member name (target's name)
     const memberName =
-      `${dbUser.firstName || ""} ${dbUser.lastName || ""}`.trim() || "Member";
+      `${target.firstName || ""} ${target.lastName || ""}`.trim() || "Member";
 
     // Generate PDF
     const pdfResult = await generateFormPDF(
@@ -351,7 +429,7 @@ export async function GET(
       memberName,
       {
         resourceDescription: resource.description || undefined,
-        memberEmail: dbUser.email || undefined,
+        memberEmail: target.email || undefined,
         completedAt: formResponse.completedAt,
         signingVariant,
       },
@@ -367,7 +445,7 @@ export async function GET(
     // Return PDF as download
     const filename =
       pdfResult.filename ||
-      generatePDFFilename(resource.title, dbUser.lastName || undefined, signingVariant);
+      generatePDFFilename(resource.title, target.lastName || undefined, signingVariant);
 
     // Convert Buffer to Uint8Array for NextResponse compatibility
     const pdfData = new Uint8Array(pdfResult.buffer);
