@@ -268,39 +268,40 @@ export function ResourceCard({ resource, userRole, showActions = false, onAssign
           </div>
         </div>
 
-        {/* Actions */}
-        {(resource.externalUrl || (onAssign && (userRole === UserRole.ADMIN || userRole === UserRole.VOLUNTEER))) && (
-          <div className="flex items-center gap-2 pt-1">
-            {resource.externalUrl && (
-              <Button
-                variant="ghost"
-                size="sm"
-                asChild
-                className="h-8 px-2 text-xs"
-              >
-                <a href={resource.externalUrl} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="h-3 w-3 mr-1" />
-                  Open
-                </a>
-              </Button>
-            )}
-            {onAssign && (userRole === UserRole.ADMIN || userRole === UserRole.VOLUNTEER) && (
-              <Button
-                variant="default"
-                size="sm"
-                className="h-8 px-2 text-xs"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onAssign(resource.id, resource.title, resource.description);
-                }}
-              >
-                <Send className="h-3 w-3 mr-1" />
-                Share
-              </Button>
-            )}
-          </div>
-        )}
       </CardContent>
+
+      {/* Actions — always visible at bottom of card, not inside scrollable content */}
+      {(resource.externalUrl || (onAssign && (userRole === UserRole.ADMIN || userRole === UserRole.VOLUNTEER))) && (
+        <div className="flex items-center gap-2 pt-2 mt-2 border-t flex-shrink-0">
+          {resource.externalUrl && (
+            <Button
+              variant="ghost"
+              size="sm"
+              asChild
+              className="h-8 px-2 text-xs"
+            >
+              <a href={resource.externalUrl} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="h-3 w-3 mr-1" />
+                Open
+              </a>
+            </Button>
+          )}
+          {onAssign && (userRole === UserRole.ADMIN || userRole === UserRole.VOLUNTEER) && (
+            <Button
+              variant="default"
+              size="sm"
+              className="h-8 px-2 text-xs"
+              onClick={(e) => {
+                e.stopPropagation();
+                onAssign(resource.id, resource.title, resource.description);
+              }}
+            >
+              <Send className="h-3 w-3 mr-1" />
+              Share
+            </Button>
+          )}
+        </div>
+      )}
     </Card>
   );
 }
