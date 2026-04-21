@@ -1,5 +1,5 @@
 import { UserRole } from '@prisma/client'
-import { Inbox, MessageSquare, StickyNote, BookOpen, MessageCircle, FolderOpen, MessageSquarePlus } from 'lucide-react'
+import { Inbox, MessageSquare, StickyNote, BookOpen, MessageCircle, FolderOpen, MessageSquarePlus, HelpCircle } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { getBrandConfig } from '../brand'
 import type { FeatureFlags } from '../brand/types'
@@ -78,8 +78,14 @@ export const FEATURE_ROUTES: FeatureRoute[] = [
     href: (role: UserRole) => `/${role.toLowerCase()}/feedback`,
     icon: MessageSquarePlus,
     roles: [UserRole.ADMIN, UserRole.VOLUNTEER, UserRole.MEMBER]
+  },
+  {
+    key: 'help',
+    title: 'User Guide',
+    href: (role: UserRole) => `/${role.toLowerCase()}/help`,
+    icon: HelpCircle,
+    roles: [UserRole.ADMIN, UserRole.MEMBER]
   }
-  // Future features can be added here:
 ]
 
 /**
