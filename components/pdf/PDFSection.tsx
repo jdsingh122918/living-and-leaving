@@ -48,10 +48,14 @@ export function PDFSection({ section, sectionIndex, isLastSection }: PDFSectionP
     return null;
   }
 
-  // Standard section rendering
+  // Standard section rendering.
+  // The outer View must allow wrapping (default in @react-pdf) so long sections
+  // split across pages rather than overflowing and overlapping their content.
+  // The header (title + description) stays together via wrap={false} so a
+  // section heading never orphans from its first field.
   return (
-    <View style={styles.section} wrap={section.fields.length <= 4}>
-      <View style={styles.sectionHeader}>
+    <View style={styles.section}>
+      <View style={styles.sectionHeader} wrap={false}>
         <Text style={styles.sectionTitle}>{section.title}</Text>
         {section.description && (
           <Text style={styles.sectionDescription}>{section.description}</Text>
