@@ -36,7 +36,7 @@ export class FamilyRepository {
         },
         members: {
           where: {
-            deletedAt: null,
+            OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }],
             clerkId: { not: ANONYMOUS_USER_CLERK_ID },
           },
           select: {
@@ -77,7 +77,7 @@ export class FamilyRepository {
         },
         members: {
           where: {
-            deletedAt: null,
+            OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }],
             clerkId: { not: ANONYMOUS_USER_CLERK_ID },
           },
           select: {
@@ -117,7 +117,7 @@ export class FamilyRepository {
         },
         members: {
           where: {
-            deletedAt: null,
+            OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }],
             clerkId: { not: ANONYMOUS_USER_CLERK_ID },
           },
           select: {
@@ -159,7 +159,7 @@ export class FamilyRepository {
         },
         members: {
           where: {
-            deletedAt: null,
+            OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }],
             clerkId: { not: ANONYMOUS_USER_CLERK_ID },
           },
           select: {
@@ -371,7 +371,7 @@ export class FamilyRepository {
         },
         members: {
           where: {
-            deletedAt: null,
+            OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }],
             clerkId: { not: ANONYMOUS_USER_CLERK_ID },
           },
           select: {
@@ -534,7 +534,7 @@ export class FamilyRepository {
         },
         members: {
           where: {
-            deletedAt: null,
+            OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }],
             clerkId: { not: ANONYMOUS_USER_CLERK_ID },
           },
           select: {

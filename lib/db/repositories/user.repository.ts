@@ -378,7 +378,8 @@ export class UserRepository {
     };
 
     if (!filters?.includeDeleted) {
-      where.deletedAt = null;
+      // Mongo: match docs missing `deletedAt` (pre-PR2) and restored docs (null)
+      where.OR = [{ deletedAt: null }, { deletedAt: { isSet: false } }];
     }
 
     if (filters?.role) {

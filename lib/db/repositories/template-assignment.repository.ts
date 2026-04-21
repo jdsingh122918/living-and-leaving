@@ -508,7 +508,7 @@ export class TemplateAssignmentRepository {
     const members = await prisma.user.findMany({
       where: {
         role: UserRole.MEMBER,
-        deletedAt: null,
+        OR: [{ deletedAt: null }, { deletedAt: { isSet: false } }],
         clerkId: { not: ANONYMOUS_USER_CLERK_ID },
         ...(familyIds && { familyId: { in: familyIds } }),
         ...searchConditions,
