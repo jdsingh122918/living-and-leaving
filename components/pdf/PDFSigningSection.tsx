@@ -85,24 +85,18 @@ function NotarySection() {
   return (
     <View style={styles.section} wrap={false}>
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>California Notary Acknowledgment</Text>
+        <Text style={styles.sectionTitle}>Arizona Notary Acknowledgment</Text>
         <Text style={styles.sectionDescription}>
-          A notary public or other officer completing this certificate verifies only the identity of the individual who signed the document to which this certificate is attached, and not the truthfulness, accuracy, or validity of that document.
+          Acknowledgment for an individual acting in his or her own right, in the form prescribed by A.R.S. § 33-506.
         </Text>
       </View>
       <View style={styles.sectionContent}>
         <Text style={{ fontSize: 10, color: colors.text, marginBottom: spacing.md }}>
-          State of California
+          State of Arizona
         </Text>
         <SignatureLine label="County of" />
-        <SignatureLine label="On (date)" />
-        <SignatureLine label="before me, (insert name and title of the officer)" />
-        <SignatureLine label="personally appeared" />
         <Text style={{ fontSize: 9, color: colors.text, marginBottom: spacing.lg, lineHeight: 1.5 }}>
-          who proved to me on the basis of satisfactory evidence to be the person(s) whose name(s) is/are subscribed to the within instrument and acknowledged to me that he/she/they executed the same in his/her/their authorized capacity(ies), and that by his/her/their signature(s) on the instrument the person(s), or the entity upon behalf of which the person(s) acted, executed the instrument.
-        </Text>
-        <Text style={{ fontSize: 9, color: colors.text, marginBottom: spacing.lg }}>
-          I certify under PENALTY OF PERJURY under the laws of the State of California that the foregoing paragraph is true and correct.
+          The foregoing instrument was acknowledged before me this ____ day of ______________, 20____, by the person whose name is subscribed to the within instrument, who personally appeared before me and whose identity I verified on the basis of satisfactory evidence.
         </Text>
         <Text style={{ fontSize: 9, color: colors.text, marginBottom: spacing.lg }}>
           WITNESS my hand and official seal.
@@ -111,6 +105,7 @@ function NotarySection() {
         <View style={{ flexDirection: 'row', gap: spacing.lg }}>
           <View style={{ flex: 1 }}>
             <SignatureLine label="Notary Printed Name" />
+            <SignatureLine label="My commission expires" />
           </View>
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border, height: 60, marginBottom: spacing.lg }}>
             <Text style={{ fontSize: 8, color: colors.textMuted }}>(Official Seal)</Text>
