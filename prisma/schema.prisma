@@ -121,9 +121,20 @@ model User {
   assignedTemplates            TemplateAssignment[] @relation("AssignedTemplates")
   createdTemplateAssignments   TemplateAssignment[] @relation("CreatedTemplateAssignments")
 
+  // Post-death proxy: one designated user who can access QR-shared artifacts
+  // after the owner dies. Owner can change or clear while alive; activation
+  // requires proxy to upload a death certificate (see ShareableDirective).
+  proxyUserId   String?  @db.ObjectId
+  proxy         User?    @relation("UserProxy", fields: [proxyUserId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  proxyFor      User[]   @relation("UserProxy")
+
+  // QR + Video sharing relations
+  shareableDirectives ShareableDirective[] @relation("ShareableDirectiveOwner")
+
   @@index([familyId])
   @@index([role])
   @@index([deletedAt])
+  @@index([proxyUserId])
   @@map("users")
 }
 
@@ -192,9 +203,10 @@ model TemplateAssignment {
   assigneeId   String    @db.ObjectId
   assignedBy   String    @db.ObjectId
   assignedAt   DateTime  @default(now())
-  status       String    @default("pending") // pending, started, completed
+  status       String    @default("pending") // pending, started, completed, finalized
   startedAt    DateTime?
   completedAt  DateTime?
+  finalizedAt  DateTime?
   notes        String?
 
   // Relations
@@ -202,12 +214,82 @@ model TemplateAssignment {
   assignee     User      @relation("AssignedTemplates", fields: [assigneeId], references: [id], onDelete: Cascade)
   assigner     User      @relation("CreatedTemplateAssignments", fields: [assignedBy], references: [id], onDelete: NoAction)
 
+  // ShareableDirective: the packaged PDF + video behind a QR code
+  shareableDirective ShareableDirective?
+
   @@unique([resourceId, assigneeId])
   @@index([resourceId])
   @@index([assigneeId])
   @@index([assignedBy])
   @@index([status])
   @@map("template_assignments")
+}
+
+// ====================================
+// QR + VIDEO SHARING MODELS
+// ====================================
+
+// ShareableDirective — the "QR for life" artifact bundle.
+// One per finalized TemplateAssignment. The `token` is embedded in the QR
+// code, stays permanent for life, and resolves server-side to the current
+// PDF + video artifacts. Owners can revoke access at any time.
+model ShareableDirective {
+  id                     String    @id @default(auto()) @map("_id") @db.ObjectId
+  token                  String    @unique // Permanent UUID encoded in QR
+  ownerId                String    @db.ObjectId
+  templateAssignmentId   String    @unique @db.ObjectId
+
+  // Artifacts (Vercel Blob URLs)
+  pdfBlobUrl             String
+  pdfBlobPathname        String    // For deletion and re-upload
+  videoBlobUrl           String?
+  videoBlobPathname      String?
+  videoMimeType          String?   // video/quicktime, video/mp4, video/x-m4v
+  videoSizeBytes         Int?
+  videoDurationSeconds   Float?
+
+  // Revocation
+  isRevoked              Boolean   @default(false)
+  revokedAt              DateTime?
+  revokedReason          String?
+
+  // Post-death activation (set when proxy uploads death certificate)
+  deathActivatedAt       DateTime?
+
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  // Relations
+  owner                  User      @relation("ShareableDirectiveOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  templateAssignment     TemplateAssignment @relation(fields: [templateAssignmentId], references: [id], onDelete: Cascade)
+  accessLogs             ShareAccessLog[]
+
+  @@index([ownerId])
+  @@index([isRevoked])
+  @@index([createdAt])
+  @@map("shareable_directives")
+}
+
+// ShareAccessLog — immutable audit trail for every QR scan.
+// Owner + proxy can view this from their dashboard. IP is hashed to limit
+// PII exposure while still enabling dedup/fraud detection.
+model ShareAccessLog {
+  id                     String    @id @default(auto()) @map("_id") @db.ObjectId
+  shareableDirectiveId   String    @db.ObjectId
+
+  scannedAt              DateTime  @default(now())
+  ipHash                 String?   // SHA-256 of IP + server-side salt
+  userAgent              String?
+  countryCode            String?   // From Vercel request headers if available
+  wasNotified            Boolean   @default(false) // Did we successfully notify the owner
+  notificationError      String?
+
+  // Relations
+  shareableDirective     ShareableDirective @relation(fields: [shareableDirectiveId], references: [id], onDelete: Cascade)
+
+  @@index([shareableDirectiveId, scannedAt])
+  @@index([scannedAt])
+  @@map("share_access_logs")
 }
 
 // Conversation model - represents different types of conversations

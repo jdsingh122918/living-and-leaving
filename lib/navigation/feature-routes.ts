@@ -1,5 +1,5 @@
 import { UserRole } from '@prisma/client'
-import { Inbox, MessageSquare, StickyNote, BookOpen, MessageCircle, FolderOpen, MessageSquarePlus, HelpCircle } from 'lucide-react'
+import { Inbox, MessageSquare, StickyNote, BookOpen, MessageCircle, FolderOpen, MessageSquarePlus, HelpCircle, QrCode } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { getBrandConfig } from '../brand'
 import type { FeatureFlags } from '../brand/types'
@@ -71,6 +71,13 @@ export const FEATURE_ROUTES: FeatureRoute[] = [
       shouldShow: (state) => state.unreadCount > 0,
       getContent: (state) => state.unreadCount > 99 ? '99+' : state.unreadCount
     }
+  },
+  {
+    key: 'share',
+    title: 'My Share Link',
+    href: () => `/member/share`,
+    icon: QrCode,
+    roles: [UserRole.MEMBER]
   },
   {
     key: 'feedback',

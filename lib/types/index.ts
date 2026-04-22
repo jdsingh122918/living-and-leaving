@@ -983,7 +983,7 @@ export interface TagWithUsage {
 // TEMPLATE ASSIGNMENT TYPES
 // ====================================
 
-export type TemplateAssignmentStatus = 'pending' | 'started' | 'completed';
+export type TemplateAssignmentStatus = 'pending' | 'started' | 'completed' | 'finalized';
 
 export interface TemplateAssignment {
   id: string;
@@ -994,6 +994,7 @@ export interface TemplateAssignment {
   status: TemplateAssignmentStatus;
   startedAt?: Date;
   completedAt?: Date;
+  finalizedAt?: Date;
   notes?: string;
 
   // Relations
