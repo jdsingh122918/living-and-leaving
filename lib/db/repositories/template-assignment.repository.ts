@@ -276,6 +276,13 @@ export class TemplateAssignmentRepository {
             role: true,
           },
         },
+        shareableDirective: {
+          select: {
+            id: true,
+            token: true,
+            isRevoked: true,
+          },
+        },
       },
       orderBy: { assignedAt: "desc" },
     });
@@ -560,7 +567,15 @@ export class TemplateAssignmentRepository {
       status: assignment.status as TemplateAssignmentStatus,
       startedAt: assignment.startedAt || undefined,
       completedAt: assignment.completedAt || undefined,
+      finalizedAt: assignment.finalizedAt || undefined,
       notes: assignment.notes || undefined,
+      shareableDirective: assignment.shareableDirective
+        ? {
+            id: assignment.shareableDirective.id,
+            token: assignment.shareableDirective.token,
+            isRevoked: assignment.shareableDirective.isRevoked,
+          }
+        : undefined,
       resource: assignment.resource
         ? {
             id: assignment.resource.id,

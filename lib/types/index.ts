@@ -1001,6 +1001,11 @@ export interface TemplateAssignment {
   resource?: Resource;
   assignee?: User;
   assigner?: User;
+  shareableDirective?: {
+    id: string;
+    token: string;
+    isRevoked: boolean;
+  };
 }
 
 export interface CreateTemplateAssignmentInput {

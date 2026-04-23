@@ -25,6 +25,20 @@ export const maxDuration = 60;
 // Returns: { token, qrUrl, shareUrl }
 export async function POST(request: NextRequest) {
   try {
+    // Precheck the blob storage env var so we can return a friendly 503 instead
+    // of letting the upload helpers throw mid-request. Deploys without
+    // BLOB_READ_WRITE_TOKEN set will see this response.
+    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+      return NextResponse.json(
+        {
+          error:
+            "Upload service is not yet configured. Please contact support.",
+          code: "blob_not_configured",
+        },
+        { status: 503 },
+      );
+    }
+
     const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

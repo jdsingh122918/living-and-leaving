@@ -213,7 +213,29 @@ export async function GET(request: NextRequest) {
       | "pending"
       | "started"
       | "completed"
+      | "finalized"
       | null;
+    const scope = searchParams.get("scope"); // "all" — admin-wide list
+
+    // Admin-wide status filter: ?scope=all&status=completed returns every
+    // assignment matching the status across all members. Powers the admin
+    // Finalize dashboard. ADMIN only.
+    if (scope === "all") {
+      if (user.role !== UserRole.ADMIN) {
+        return NextResponse.json(
+          { error: "Insufficient permissions" },
+          { status: 403 }
+        );
+      }
+
+      const assignments = await templateAssignmentRepository.filter({
+        ...(status && { status }),
+      });
+      return NextResponse.json({
+        success: true,
+        assignments,
+      });
+    }
 
     // If resourceId is provided, return assignments for that resource
     if (resourceId) {

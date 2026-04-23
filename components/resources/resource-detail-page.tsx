@@ -27,6 +27,8 @@ import {
   ChevronRight,
   LayoutList,
   Send,
+  Upload,
+  QrCode,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -57,6 +59,7 @@ import { TemplateSchemaPreview } from "@/components/resources/template-schema-pr
 import { AssignTemplateModal } from "@/components/resources/assign-template-modal";
 import { FillOutForMemberModal } from "@/components/resources/fill-out-for-member-modal";
 import { AssignedMembersList } from "@/components/resources/assigned-members-list";
+import { FinalizeDialog } from "@/components/share/finalize-dialog";
 
 interface Resource {
   id: string;
@@ -105,9 +108,10 @@ interface ResourceDetailPageProps {
 
 interface TemplateAssignment {
   id: string;
-  status: 'pending' | 'started' | 'completed';
+  status: 'pending' | 'started' | 'completed' | 'finalized';
   startedAt?: string;
   completedAt?: string;
+  finalizedAt?: string;
 }
 
 export function ResourceDetailPage({ resourceId, userRole, userId }: ResourceDetailPageProps) {
@@ -119,6 +123,7 @@ export function ResourceDetailPage({ resourceId, userRole, userId }: ResourceDet
   const [previewOpen, setPreviewOpen] = useState(true); // Expanded by default
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showFillOutModal, setShowFillOutModal] = useState(false);
+  const [showFinalizeDialog, setShowFinalizeDialog] = useState(false);
   const [assignment, setAssignment] = useState<TemplateAssignment | null>(null);
   const [assignmentLoading, setAssignmentLoading] = useState(false);
   const [canSelfAssign, setCanSelfAssign] = useState(false);
@@ -321,17 +326,51 @@ export function ResourceDetailPage({ resourceId, userRole, userId }: ResourceDet
                 <span className="animate-pulse">Loading...</span>
               </Button>
             ) : assignment ? (
-              // User has an assignment - show appropriate button based on status
+              // User has an assignment - show appropriate button(s) based on status
               assignment.status === 'completed' ? (
-                <Button
-                  onClick={handleViewForm}
-                  variant="outline"
-                  size="sm"
-                  className="min-h-[44px]"
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                  View My Response
-                </Button>
+                <>
+                  <Button
+                    onClick={handleViewForm}
+                    variant="outline"
+                    size="sm"
+                    className="min-h-[44px]"
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    View My Response
+                  </Button>
+                  <Button
+                    onClick={() => setShowFinalizeDialog(true)}
+                    variant="default"
+                    size="sm"
+                    className="min-h-[44px]"
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Finalize &amp; Package
+                  </Button>
+                </>
+              ) : assignment.status === 'finalized' ? (
+                <>
+                  <Button
+                    onClick={handleViewForm}
+                    variant="outline"
+                    size="sm"
+                    className="min-h-[44px]"
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    View My Response
+                  </Button>
+                  <Button
+                    asChild
+                    variant="default"
+                    size="sm"
+                    className="min-h-[44px]"
+                  >
+                    <Link href="/member/share">
+                      <QrCode className="h-4 w-4 mr-2" />
+                      My Share Link
+                    </Link>
+                  </Button>
+                </>
               ) : (
                 <Button
                   onClick={handleStartWorking}
@@ -603,6 +642,21 @@ export function ResourceDetailPage({ resourceId, userRole, userId }: ResourceDet
           resourceId={resourceId}
           resourceTitle={resource.title}
           userRole={userRole}
+        />
+      )}
+
+      {/* Finalize & Package Dialog (member self-serve on completed assignments) */}
+      {assignment && assignment.status === "completed" && (
+        <FinalizeDialog
+          open={showFinalizeDialog}
+          onOpenChange={setShowFinalizeDialog}
+          templateAssignmentId={assignment.id}
+          onSuccess={() => {
+            // Optimistically flip the status so the button row swaps to
+            // "My Share Link" without a round-trip. The dialog itself toasted
+            // success; the next render shows the finalized affordance.
+            setAssignment({ ...assignment, status: "finalized" });
+          }}
         />
       )}
     </div>
