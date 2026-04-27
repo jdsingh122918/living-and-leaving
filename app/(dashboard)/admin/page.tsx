@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { auth } from '@/lib/auth/server-auth'
 import { redirect } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -10,13 +11,17 @@ import {
   MessagesSquare,
   Activity,
   TrendingUp,
-  FileImage
+  FileImage,
+  ClipboardCheck,
+  QrCode,
+  ArrowRight
 } from 'lucide-react'
 import { UserRepository } from '@/lib/db/repositories/user.repository'
 import { FamilyRepository } from '@/lib/db/repositories/family.repository'
 import { ForumRepository } from '@/lib/db/repositories/forum.repository'
 import { DocumentRepository } from '@/lib/db/repositories/document.repository'
 import { TemplateAssignmentRepository } from '@/lib/db/repositories/template-assignment.repository'
+import { prisma } from '@/lib/db/prisma'
 import { UserRole } from '@/lib/auth/roles'
 import { ResourcesSharedSection } from '@/components/dashboard/resources-shared-section'
 
@@ -52,12 +57,14 @@ export default async function AdminDashboard() {
   // Get admin user from database
   const adminUser = await userRepository.getUserByClerkId(userId)
 
-  const [userStats, familyStats, forumStats, documentStats, sharedResources] = await Promise.all([
+  const [userStats, familyStats, forumStats, documentStats, sharedResources, readyToFinalizeCount, finalizedCount] = await Promise.all([
     userRepository.getUserStats(),
     familyRepository.getFamilyStats(),
     forumRepository.getForumStats(),
     documentRepository.getDocumentStats(),
-    adminUser ? templateAssignmentRepository.getAssignmentsByAssigner(adminUser.id, { limit: 5 }) : Promise.resolve([])
+    adminUser ? templateAssignmentRepository.getAssignmentsByAssigner(adminUser.id, { limit: 5 }) : Promise.resolve([]),
+    prisma.templateAssignment.count({ where: { status: "completed" } }),
+    prisma.templateAssignment.count({ where: { status: "finalized" } })
   ])
 
   return (
@@ -203,6 +210,55 @@ export default async function AdminDashboard() {
               </p>
             </CardContent>
           </Card>
+        </div>
+      </div>
+
+      {/* Advance Directives */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <ClipboardCheck className="h-4 w-4" />
+            <h3 className="text-lg font-medium">Advance Directives</h3>
+          </div>
+          <Link
+            href="/admin/advance-directives"
+            className="text-sm text-primary hover:underline inline-flex items-center gap-1"
+          >
+            Open dashboard
+            <ArrowRight className="h-3 w-3" />
+          </Link>
+        </div>
+
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
+          <Link href="/admin/advance-directives" className="block">
+            <Card className="p-3 border-l-4 border-l-amber-500 bg-amber-50/50 dark:bg-amber-950/20 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-colors h-full">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Ready to Finalize</CardTitle>
+                <ClipboardCheck className="h-4 w-4 text-amber-600 dark:text-amber-500" />
+              </CardHeader>
+              <CardContent className="space-y-1">
+                <div className="text-2xl font-bold">{readyToFinalizeCount}</div>
+                <p className="text-xs text-muted-foreground">
+                  Members waiting for signed PDF and QR packaging
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link href="/admin/advance-directives" className="block">
+            <Card className="p-3 border-l-4 border-l-green-600 bg-green-50/50 dark:bg-green-950/20 hover:bg-green-50 dark:hover:bg-green-950/40 transition-colors h-full">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Finalized</CardTitle>
+                <QrCode className="h-4 w-4 text-green-600 dark:text-green-500" />
+              </CardHeader>
+              <CardContent className="space-y-1">
+                <div className="text-2xl font-bold">{finalizedCount}</div>
+                <p className="text-xs text-muted-foreground">
+                  Active QR shares
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
         </div>
       </div>
 
