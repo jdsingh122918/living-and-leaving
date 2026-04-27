@@ -294,6 +294,7 @@ export default function AdvanceDirectivesAdminPage() {
             if (!open) setDialogAssignment(null);
           }}
           templateAssignmentId={dialogAssignment.id}
+          assigneeId={dialogAssignment.assigneeId}
           assigneeLabel={displayName(dialogAssignment.assignee)}
           onSuccess={handleFinalizeSuccess}
         />

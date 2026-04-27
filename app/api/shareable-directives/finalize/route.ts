@@ -5,29 +5,50 @@ import { UserRepository } from "@/lib/db/repositories/user.repository";
 import { prisma } from "@/lib/db/prisma";
 import { shareableDirectiveRepository } from "@/lib/db/repositories/shareable-directive.repository";
 import {
-  uploadSignedPdf,
-  uploadVideo,
-  deleteBlob,
   BlobConstants,
+  deleteBlob,
+  isAcceptedVideoExtension,
+  isAcceptedVideoMimeType,
+  isPathnameOwnedBy,
 } from "@/lib/storage/blob.service";
 import brandConfig from "@/brand.config";
 
 const userRepository = new UserRepository();
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
 
-// Accepts multipart/form-data:
-//   templateAssignmentId: string
-//   pdf: File (application/pdf)
-//   video?: File (video/quicktime | video/mp4 | video/x-m4v)
-//
-// Returns: { token, qrUrl, shareUrl }
+interface BlobRef {
+  url: string;
+  pathname: string;
+  contentType: string;
+  sizeBytes: number;
+}
+
+interface FinalizeRequest {
+  templateAssignmentId: string;
+  pdfBlob: BlobRef;
+  videoBlob?: BlobRef | null;
+}
+
+function pathnameExtension(pathname: string): string {
+  const idx = pathname.lastIndexOf(".");
+  return idx >= 0 ? pathname.slice(idx + 1).toLowerCase() : "";
+}
+
+function isBlobRef(value: unknown): value is BlobRef {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return (
+    typeof v.url === "string" &&
+    typeof v.pathname === "string" &&
+    typeof v.contentType === "string" &&
+    typeof v.sizeBytes === "number" &&
+    Number.isFinite(v.sizeBytes)
+  );
+}
+
 export async function POST(request: NextRequest) {
   try {
-    // Precheck the blob storage env var so we can return a friendly 503 instead
-    // of letting the upload helpers throw mid-request. Deploys without
-    // BLOB_READ_WRITE_TOKEN set will see this response.
     if (!process.env.BLOB_READ_WRITE_TOKEN) {
       return NextResponse.json(
         {
@@ -52,23 +73,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const formData = await request.formData();
-    const templateAssignmentId = formData.get("templateAssignmentId");
-    const pdfFile = formData.get("pdf");
-    const videoFile = formData.get("video");
+    let parsed: FinalizeRequest;
+    try {
+      const json = (await request.json()) as Partial<FinalizeRequest>;
+      if (
+        typeof json?.templateAssignmentId !== "string" ||
+        !json.templateAssignmentId ||
+        !isBlobRef(json.pdfBlob) ||
+        (json.videoBlob != null && !isBlobRef(json.videoBlob))
+      ) {
+        return NextResponse.json(
+          { error: "Invalid request body" },
+          { status: 400 },
+        );
+      }
+      parsed = json as FinalizeRequest;
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid JSON" },
+        { status: 400 },
+      );
+    }
 
-    if (typeof templateAssignmentId !== "string" || !templateAssignmentId) {
-      return NextResponse.json(
-        { error: "templateAssignmentId is required" },
-        { status: 400 },
-      );
-    }
-    if (!(pdfFile instanceof File)) {
-      return NextResponse.json(
-        { error: "pdf file is required" },
-        { status: 400 },
-      );
-    }
+    const { templateAssignmentId, pdfBlob, videoBlob } = parsed;
 
     const assignment = await prisma.templateAssignment.findUnique({
       where: { id: templateAssignmentId },
@@ -87,8 +114,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Authorization: assignee, admin, or a volunteer assigned to the
-    // assignee's family (acting in a proxy capacity).
     const isAssignee = assignment.assigneeId === actor.id;
     const isAdmin = actor.role === AppUserRole.ADMIN;
     if (!isAssignee && !isAdmin) {
@@ -101,8 +126,7 @@ export async function POST(request: NextRequest) {
     if (assignment.status !== "completed" && assignment.status !== "finalized") {
       return NextResponse.json(
         {
-          error:
-            "Assignment must be in 'completed' state before finalizing",
+          error: "Assignment must be in 'completed' state before finalizing",
           currentStatus: assignment.status,
         },
         { status: 409 },
@@ -119,33 +143,57 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const pdfBuffer = Buffer.from(await pdfFile.arrayBuffer());
-    const pdfResult = await uploadSignedPdf(
-      pdfBuffer,
-      assignment.assigneeId,
-      pdfFile.name || "signed.pdf",
-    );
+    // Validate the blobs the client just uploaded actually live in our
+    // namespace. The upload-handler enforced this on token issue, but a
+    // belt-and-suspenders check here also rejects forged blob URLs from a
+    // separate Vercel Blob store.
+    if (!isPathnameOwnedBy(pdfBlob.pathname, assignment.assigneeId)) {
+      return NextResponse.json(
+        { error: "PDF blob is not in the assignee namespace" },
+        { status: 400 },
+      );
+    }
+    if (pathnameExtension(pdfBlob.pathname) !== "pdf") {
+      return NextResponse.json(
+        { error: "PDF blob must have .pdf extension" },
+        { status: 400 },
+      );
+    }
+    if (pdfBlob.contentType !== BlobConstants.PDF_MIME_TYPE) {
+      return NextResponse.json(
+        { error: `PDF blob must be ${BlobConstants.PDF_MIME_TYPE}` },
+        { status: 400 },
+      );
+    }
+    if (pdfBlob.sizeBytes > BlobConstants.MAX_PDF_BYTES) {
+      return NextResponse.json(
+        { error: "PDF exceeds maximum size" },
+        { status: 400 },
+      );
+    }
 
-    let videoResult: Awaited<ReturnType<typeof uploadVideo>> | null = null;
-    if (videoFile instanceof File && videoFile.size > 0) {
-      try {
-        const videoBuffer = Buffer.from(await videoFile.arrayBuffer());
-        videoResult = await uploadVideo(
-          videoBuffer,
-          assignment.assigneeId,
-          videoFile.name || "video",
-          videoFile.type,
-        );
-      } catch (videoErr) {
-        // Video upload failed — we've already uploaded the PDF. Clean up.
-        await deleteBlob(pdfResult.pathname).catch(() => undefined);
+    if (videoBlob) {
+      if (!isPathnameOwnedBy(videoBlob.pathname, assignment.assigneeId)) {
         return NextResponse.json(
-          {
-            error:
-              videoErr instanceof Error
-                ? videoErr.message
-                : "Video upload failed",
-          },
+          { error: "Video blob is not in the assignee namespace" },
+          { status: 400 },
+        );
+      }
+      if (!isAcceptedVideoExtension(pathnameExtension(videoBlob.pathname))) {
+        return NextResponse.json(
+          { error: "Video blob has unsupported extension" },
+          { status: 400 },
+        );
+      }
+      if (!isAcceptedVideoMimeType(videoBlob.contentType)) {
+        return NextResponse.json(
+          { error: "Video blob has unsupported MIME type" },
+          { status: 400 },
+        );
+      }
+      if (videoBlob.sizeBytes > BlobConstants.MAX_VIDEO_BYTES) {
+        return NextResponse.json(
+          { error: "Video exceeds maximum size" },
           { status: 400 },
         );
       }
@@ -156,18 +204,18 @@ export async function POST(request: NextRequest) {
       directive = await shareableDirectiveRepository.createForAssignment({
         ownerId: assignment.assigneeId,
         templateAssignmentId: assignment.id,
-        pdfBlobUrl: pdfResult.url,
-        pdfBlobPathname: pdfResult.pathname,
-        videoBlobUrl: videoResult?.url,
-        videoBlobPathname: videoResult?.pathname,
-        videoMimeType: videoResult?.contentType,
-        videoSizeBytes: videoResult?.sizeBytes,
+        pdfBlobUrl: pdfBlob.url,
+        pdfBlobPathname: pdfBlob.pathname,
+        videoBlobUrl: videoBlob?.url ?? null,
+        videoBlobPathname: videoBlob?.pathname ?? null,
+        videoMimeType: videoBlob?.contentType ?? null,
+        videoSizeBytes: videoBlob?.sizeBytes ?? null,
       });
     } catch (dbErr) {
-      // Roll back blob uploads so we don't leak orphaned files.
-      await deleteBlob(pdfResult.pathname).catch(() => undefined);
-      if (videoResult) {
-        await deleteBlob(videoResult.pathname).catch(() => undefined);
+      // Roll back the client-uploaded blobs so storage doesn't leak.
+      await deleteBlob(pdfBlob.pathname).catch(() => undefined);
+      if (videoBlob) {
+        await deleteBlob(videoBlob.pathname).catch(() => undefined);
       }
       throw dbErr;
     }
@@ -189,11 +237,11 @@ export async function POST(request: NextRequest) {
         token: directive.token,
         shareUrl,
         qrPayload: shareUrl,
-        pdf: { sizeBytes: pdfResult.sizeBytes },
-        video: videoResult
+        pdf: { sizeBytes: pdfBlob.sizeBytes },
+        video: videoBlob
           ? {
-              sizeBytes: videoResult.sizeBytes,
-              mimeType: videoResult.contentType,
+              sizeBytes: videoBlob.sizeBytes,
+              mimeType: videoBlob.contentType,
             }
           : null,
       },
@@ -204,9 +252,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         error:
-          error instanceof Error
-            ? error.message
-            : "Internal server error",
+          error instanceof Error ? error.message : "Internal server error",
         limits: {
           maxPdfBytes: BlobConstants.MAX_PDF_BYTES,
           maxVideoBytes: BlobConstants.MAX_VIDEO_BYTES,

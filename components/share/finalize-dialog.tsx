@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
+import { upload } from "@vercel/blob/client";
 import { Loader2, Upload, FileText, Video as VideoIcon } from "lucide-react";
 import {
   Dialog,
@@ -14,10 +15,19 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 
 const MAX_PDF_BYTES = 25 * 1024 * 1024; // mirrors lib/storage/blob.service.ts
 const MAX_VIDEO_BYTES = 300 * 1024 * 1024;
 const ACCEPTED_VIDEO_EXTENSIONS = ["mov", "mp4", "m4v"];
+const VIDEO_MIME_BY_EXT: Record<string, string> = {
+  mov: "video/quicktime",
+  mp4: "video/mp4",
+  m4v: "video/x-m4v",
+};
+
+const UPLOAD_HANDLER_URL = "/api/shareable-directives/finalize/upload-handler";
+const FINALIZE_URL = "/api/shareable-directives/finalize";
 
 export interface FinalizeSuccessResult {
   token: string;
@@ -28,6 +38,8 @@ interface FinalizeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   templateAssignmentId: string;
+  /** Owner of the directive being finalized — required for blob path scoping. */
+  assigneeId: string;
   /** Name of the person whose HCD is being finalized — shown in the dialog header. */
   assigneeLabel?: string;
   /** Called after a successful finalize. Receives the new share token + URL. */
@@ -43,21 +55,34 @@ function getExt(filename: string): string {
   return idx >= 0 ? filename.slice(idx + 1).toLowerCase() : "";
 }
 
+function buildPathname(assigneeId: string, ext: string): string {
+  return `shareable/${assigneeId}/${crypto.randomUUID()}.${ext}`;
+}
+
+type Stage =
+  | { kind: "idle" }
+  | { kind: "uploading-pdf"; percentage: number }
+  | { kind: "uploading-video"; percentage: number }
+  | { kind: "finalizing" };
+
 export function FinalizeDialog({
   open,
   onOpenChange,
   templateAssignmentId,
+  assigneeId,
   assigneeLabel,
   onSuccess,
 }: FinalizeDialogProps) {
   const [pdf, setPdf] = useState<File | null>(null);
   const [video, setVideo] = useState<File | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+  const [stage, setStage] = useState<Stage>({ kind: "idle" });
+
+  const submitting = stage.kind !== "idle";
 
   function reset() {
     setPdf(null);
     setVideo(null);
-    setSubmitting(false);
+    setStage({ kind: "idle" });
   }
 
   function handlePdfPick(file: File | null) {
@@ -102,16 +127,66 @@ export function FinalizeDialog({
       toast.error("A signed PDF is required.");
       return;
     }
-    setSubmitting(true);
-    try {
-      const formData = new FormData();
-      formData.append("templateAssignmentId", templateAssignmentId);
-      formData.append("pdf", pdf);
-      if (video) formData.append("video", video);
 
-      const res = await fetch("/api/shareable-directives/finalize", {
+    try {
+      // 1) Upload PDF directly to Vercel Blob
+      setStage({ kind: "uploading-pdf", percentage: 0 });
+      const pdfPathname = buildPathname(assigneeId, "pdf");
+      const pdfResult = await upload(pdfPathname, pdf, {
+        access: "public",
+        handleUploadUrl: UPLOAD_HANDLER_URL,
+        contentType: "application/pdf",
+        clientPayload: JSON.stringify({ templateAssignmentId, kind: "pdf" }),
+        onUploadProgress: ({ percentage }) => {
+          setStage({ kind: "uploading-pdf", percentage });
+        },
+      });
+
+      // 2) Upload video if provided
+      let videoPayload: {
+        url: string;
+        pathname: string;
+        contentType: string;
+        sizeBytes: number;
+      } | null = null;
+      if (video) {
+        setStage({ kind: "uploading-video", percentage: 0 });
+        const ext = getExt(video.name);
+        const contentType = VIDEO_MIME_BY_EXT[ext] || video.type;
+        const videoPathname = buildPathname(assigneeId, ext);
+        const videoResult = await upload(videoPathname, video, {
+          access: "public",
+          handleUploadUrl: UPLOAD_HANDLER_URL,
+          contentType,
+          multipart: true,
+          clientPayload: JSON.stringify({ templateAssignmentId, kind: "video" }),
+          onUploadProgress: ({ percentage }) => {
+            setStage({ kind: "uploading-video", percentage });
+          },
+        });
+        videoPayload = {
+          url: videoResult.url,
+          pathname: videoResult.pathname,
+          contentType,
+          sizeBytes: video.size,
+        };
+      }
+
+      // 3) Tell finalize endpoint about the uploaded blobs
+      setStage({ kind: "finalizing" });
+      const res = await fetch(FINALIZE_URL, {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          templateAssignmentId,
+          pdfBlob: {
+            url: pdfResult.url,
+            pathname: pdfResult.pathname,
+            contentType: "application/pdf",
+            sizeBytes: pdf.size,
+          },
+          videoBlob: videoPayload,
+        }),
       });
       const json = await res.json().catch(() => ({}));
 
@@ -121,9 +196,9 @@ export function FinalizeDialog({
             "Upload service is not yet configured. Please contact support.",
           );
         } else {
-          toast.error(json.error || `Upload failed (HTTP ${res.status})`);
+          toast.error(json.error || `Finalize failed (HTTP ${res.status})`);
         }
-        setSubmitting(false);
+        setStage({ kind: "idle" });
         return;
       }
 
@@ -139,7 +214,7 @@ export function FinalizeDialog({
       toast.error(
         err instanceof Error ? err.message : "Upload failed. Please try again.",
       );
-      setSubmitting(false);
+      setStage({ kind: "idle" });
     }
   }
 
@@ -198,6 +273,28 @@ export function FinalizeDialog({
               {video && ` Selected: ${video.name} (${formatMB(video.size)}).`}
             </p>
           </div>
+
+          {stage.kind === "uploading-pdf" && (
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">
+                Uploading PDF… {Math.round(stage.percentage)}%
+              </p>
+              <Progress value={stage.percentage} />
+            </div>
+          )}
+          {stage.kind === "uploading-video" && (
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">
+                Uploading video… {Math.round(stage.percentage)}%
+              </p>
+              <Progress value={stage.percentage} />
+            </div>
+          )}
+          {stage.kind === "finalizing" && (
+            <p className="text-sm text-muted-foreground">
+              Finalizing package…
+            </p>
+          )}
         </div>
 
         <DialogFooter>
@@ -212,7 +309,7 @@ export function FinalizeDialog({
             {submitting ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Uploading…
+                {stage.kind === "finalizing" ? "Finalizing…" : "Uploading…"}
               </>
             ) : (
               <>

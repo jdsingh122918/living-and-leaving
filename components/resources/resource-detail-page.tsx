@@ -651,6 +651,7 @@ export function ResourceDetailPage({ resourceId, userRole, userId }: ResourceDet
           open={showFinalizeDialog}
           onOpenChange={setShowFinalizeDialog}
           templateAssignmentId={assignment.id}
+          assigneeId={userId}
           onSuccess={() => {
             // Optimistically flip the status so the button row swaps to
             // "My Share Link" without a round-trip. The dialog itself toasted
