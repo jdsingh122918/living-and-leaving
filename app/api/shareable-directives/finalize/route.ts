@@ -11,11 +11,14 @@ import {
   isAcceptedVideoMimeType,
   isPathnameOwnedBy,
 } from "@/lib/storage/blob.service";
+import { transcodeVideoToMp4 } from "@/lib/storage/transcode.service";
 import brandConfig from "@/brand.config";
 
 const userRepository = new UserRepository();
 
 export const runtime = "nodejs";
+// Transcoding a 5-min video can run 30-50s on Vercel Pro's serverless CPU.
+export const maxDuration = 60;
 
 interface BlobRef {
   url: string;
@@ -220,6 +223,49 @@ export async function POST(request: NextRequest) {
       throw dbErr;
     }
 
+    // QuickTime / M4V only play in Safari. Transcode to H.264 MP4 so the
+    // share page works in Chrome and Android browsers. If transcode fails
+    // (e.g. function timeout on a long video), the original .mov stays in
+    // place — the Download button still works, the family just gets a
+    // browser-compat warning instead of inline playback.
+    let finalVideo = videoBlob
+      ? {
+          sizeBytes: videoBlob.sizeBytes,
+          mimeType: videoBlob.contentType,
+        }
+      : null;
+    if (
+      videoBlob &&
+      (videoBlob.contentType === "video/quicktime" ||
+        videoBlob.contentType === "video/x-m4v")
+    ) {
+      try {
+        const transcoded = await transcodeVideoToMp4(
+          videoBlob.url,
+          assignment.assigneeId,
+        );
+        await prisma.shareableDirective.update({
+          where: { id: directive.id },
+          data: {
+            videoBlobUrl: transcoded.url,
+            videoBlobPathname: transcoded.pathname,
+            videoMimeType: transcoded.contentType,
+            videoSizeBytes: transcoded.sizeBytes,
+          },
+        });
+        await deleteBlob(videoBlob.pathname).catch(() => undefined);
+        finalVideo = {
+          sizeBytes: transcoded.sizeBytes,
+          mimeType: transcoded.contentType,
+        };
+      } catch (transcodeErr) {
+        console.error(
+          "⚠️ Video transcode failed; keeping original .mov:",
+          transcodeErr,
+        );
+      }
+    }
+
     await prisma.templateAssignment.update({
       where: { id: assignment.id },
       data: {
@@ -238,12 +284,7 @@ export async function POST(request: NextRequest) {
         shareUrl,
         qrPayload: shareUrl,
         pdf: { sizeBytes: pdfBlob.sizeBytes },
-        video: videoBlob
-          ? {
-              sizeBytes: videoBlob.sizeBytes,
-              mimeType: videoBlob.contentType,
-            }
-          : null,
+        video: finalVideo,
       },
       { status: 201 },
     );
