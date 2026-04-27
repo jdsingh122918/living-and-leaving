@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Card,
   CardContent,
@@ -17,7 +18,6 @@ import {
   FileText,
   AlertCircle,
   CheckCircle2,
-  ExternalLink,
   QrCode,
   Upload,
 } from "lucide-react";
@@ -60,6 +60,7 @@ function formatDate(iso?: string): string {
 }
 
 export default function AdvanceDirectivesAdminPage() {
+  const router = useRouter();
   const [completed, setCompleted] = useState<ApiAssignment[]>([]);
   const [finalized, setFinalized] = useState<ApiAssignment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -99,9 +100,13 @@ export default function AdvanceDirectivesAdminPage() {
   }, [loadAssignments]);
 
   const handleFinalizeSuccess = useCallback(() => {
-    // Refresh so the just-finalized row moves from Completed → Finalized.
-    void loadAssignments();
-  }, [loadAssignments]);
+    // Take Keri straight to the QR / Print page she just unlocked.
+    if (dialogAssignment) {
+      router.push(`/admin/advance-directives/${dialogAssignment.id}`);
+    } else {
+      void loadAssignments();
+    }
+  }, [dialogAssignment, loadAssignments, router]);
 
   const counts = useMemo(
     () => ({
@@ -268,13 +273,9 @@ export default function AdvanceDirectivesAdminPage() {
                           size="sm"
                           className="min-h-[40px]"
                         >
-                          <Link
-                            href={`/share/${a.shareableDirective.token}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                            View share
+                          <Link href={`/admin/advance-directives/${a.id}`}>
+                            <QrCode className="h-4 w-4" />
+                            View QR &amp; print
                           </Link>
                         </Button>
                       )}
