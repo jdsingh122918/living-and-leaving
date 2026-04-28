@@ -19,6 +19,7 @@ import {
   FileText,
   Loader2,
   RefreshCw,
+  Wand2,
 } from "lucide-react";
 import { ShareableDirectiveQRCard } from "@/components/share/shareable-directive-qr-card";
 
@@ -29,6 +30,7 @@ interface DirectiveSummary {
   isRevoked: boolean;
   revokedAt: string | null;
   hasVideo: boolean;
+  videoMimeType: string | null;
   scanCount: number;
   lastScannedAt: string | null;
 }
@@ -59,6 +61,41 @@ export function AdminDirectiveDetailClient({
   const [logs, setLogs] = useState<AccessLog[] | null>(null);
   const [logsLoading, setLogsLoading] = useState(false);
   const [logsError, setLogsError] = useState<string | null>(null);
+  const [retranscoding, setRetranscoding] = useState(false);
+  const [retranscodeError, setRetranscodeError] = useState<string | null>(null);
+  const [retranscodeSuccess, setRetranscodeSuccess] = useState(false);
+
+  const needsRetranscode =
+    directive.hasVideo &&
+    !directive.isRevoked &&
+    (directive.videoMimeType === "video/quicktime" ||
+      directive.videoMimeType === "video/x-m4v");
+
+  const handleRetranscode = useCallback(async () => {
+    setRetranscoding(true);
+    setRetranscodeError(null);
+    setRetranscodeSuccess(false);
+    try {
+      const res = await fetch(
+        `/api/shareable-directives/${directive.id}/retranscode`,
+        { method: "POST" },
+      );
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Retranscode failed");
+      }
+      const data = await res.json();
+      setDirective((prev) => ({ ...prev, videoMimeType: data.videoMimeType }));
+      setRetranscodeSuccess(true);
+      router.refresh();
+    } catch (err) {
+      setRetranscodeError(
+        err instanceof Error ? err.message : "Retranscode failed",
+      );
+    } finally {
+      setRetranscoding(false);
+    }
+  }, [directive.id, router]);
 
   const fetchLogs = useCallback(async () => {
     setLogsLoading(true);
@@ -138,6 +175,52 @@ export function AdminDirectiveDetailClient({
           ownerFirstName={ownerFirstName}
           ownerLastName={ownerLastName}
         />
+      )}
+
+      {needsRetranscode && (
+        <Card className="border-amber-500/40 bg-amber-50/40 dark:bg-amber-950/20">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Wand2 className="h-5 w-5 text-amber-600" />
+              Make video playable in Chrome &amp; Android
+            </CardTitle>
+            <CardDescription>
+              This directive&apos;s video is QuickTime ({directive.videoMimeType}),
+              which only plays in Safari. Convert to MP4 so the family can watch
+              it on any phone.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {retranscodeError && (
+              <Alert variant="destructive" className="mb-3">
+                <AlertDescription>{retranscodeError}</AlertDescription>
+              </Alert>
+            )}
+            {retranscodeSuccess && (
+              <Alert className="mb-3">
+                <AlertDescription>
+                  Video converted. Reload the share link to see it play.
+                </AlertDescription>
+              </Alert>
+            )}
+            <Button
+              onClick={handleRetranscode}
+              disabled={retranscoding}
+              className="min-h-[44px]"
+            >
+              {retranscoding ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Wand2 className="h-4 w-4 mr-2" />
+              )}
+              {retranscoding ? "Converting…" : "Convert to MP4"}
+            </Button>
+            <p className="text-xs text-muted-foreground mt-2">
+              Takes about a minute. The original is replaced once the new
+              version is ready.
+            </p>
+          </CardContent>
+        </Card>
       )}
 
       <Card>

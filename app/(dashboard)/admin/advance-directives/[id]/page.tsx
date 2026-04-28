@@ -94,6 +94,7 @@ export default async function AdminAdvanceDirectiveDetailPage({
             isRevoked: directive.isRevoked,
             revokedAt: directive.revokedAt?.toISOString() ?? null,
             hasVideo: Boolean(directive.videoBlobUrl),
+            videoMimeType: directive.videoMimeType,
             scanCount: directive._count.accessLogs,
             lastScannedAt:
               directive.accessLogs[0]?.scannedAt.toISOString() ?? null,

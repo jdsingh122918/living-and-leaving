@@ -11,6 +11,9 @@ const nextConfig: NextConfig = {
     '/api/shareable-directives/finalize': [
       './node_modules/@ffmpeg-installer/**',
     ],
+    '/api/shareable-directives/[id]/retranscode': [
+      './node_modules/@ffmpeg-installer/**',
+    ],
   },
 };
 
