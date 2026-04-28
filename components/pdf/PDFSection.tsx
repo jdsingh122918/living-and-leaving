@@ -43,9 +43,30 @@ export function PDFSection({ section, sectionIndex, isLastSection }: PDFSectionP
     );
   }
 
-  // Skip sections with no fields
-  if (!section.fields || section.fields.length === 0) {
+  // Skip sections with no fields (unless flagged Not applicable — those
+  // still render their header so the document structure stays intact for
+  // legal review).
+  if (!section.notApplicable && (!section.fields || section.fields.length === 0)) {
     return null;
+  }
+
+  // Sections marked Not applicable preserve their header — the body just
+  // says so explicitly so a reviewer can tell the difference between
+  // "section was skipped" and "we forgot to ask".
+  if (section.notApplicable) {
+    return (
+      <View style={styles.section}>
+        <View style={styles.sectionHeader} wrap={false}>
+          <Text style={styles.sectionTitle}>{section.title}</Text>
+        </View>
+        <View style={styles.sectionContent}>
+          <Text style={{ fontSize: 10, fontStyle: 'italic', color: '#475569' }}>
+            Not applicable for this individual.
+          </Text>
+        </View>
+        {!isLastSection && <View style={styles.divider} />}
+      </View>
+    );
   }
 
   // Standard section rendering.

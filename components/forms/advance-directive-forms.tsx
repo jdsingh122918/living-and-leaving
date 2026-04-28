@@ -62,6 +62,11 @@ export interface FormSectionData {
   description?: string;
   fields: FormFieldData[];
   completed?: boolean;
+  // Marked "Not applicable" by the member. Counts as completed for progress;
+  // PDF preserves the section header but replaces the body with a
+  // "Not applicable for this individual" line so the document structure
+  // stays intact for legal review.
+  notApplicable?: boolean;
   // Extended data for special sections (like additional guardians)
   guardians?: GuardianEntry[];
   notes?: string;
@@ -87,6 +92,10 @@ interface AdvanceDirectiveFormProps {
   initialData?: FormResponseData;
   onSave: (data: FormResponseData) => Promise<void>;
   readOnly?: boolean;
+  // When true, sections render in compact form (no descriptions, tighter
+  // spacing) so a member filling many sections in one sitting can move
+  // faster. UI-only — does not change saved data.
+  compact?: boolean;
 }
 
 // Individual form field components
@@ -605,7 +614,8 @@ const FormSection: React.FC<{
   section: FormSectionData;
   onUpdate: (section: FormSectionData) => void;
   readOnly?: boolean;
-}> = ({ section, onUpdate, readOnly }) => {
+  compact?: boolean;
+}> = ({ section, onUpdate, readOnly, compact }) => {
   const updateField = useCallback((fieldId: string, value: any) => {
     if (readOnly) return;
 
@@ -616,7 +626,8 @@ const FormSection: React.FC<{
     const updatedSection = {
       ...section,
       fields: updatedFields,
-      completed: updatedFields.every(field =>
+      // N/A sections are always considered completed regardless of fields
+      completed: section.notApplicable || updatedFields.every(field =>
         field.required ? Boolean(field.value) : true
       )
     };
@@ -624,25 +635,60 @@ const FormSection: React.FC<{
     onUpdate(updatedSection);
   }, [section, onUpdate, readOnly]);
 
+  const toggleNotApplicable = useCallback(() => {
+    if (readOnly) return;
+    const next = !section.notApplicable;
+    onUpdate({
+      ...section,
+      notApplicable: next,
+      // Marking N/A counts as completed; un-marking re-evaluates from fields.
+      completed: next
+        ? true
+        : section.fields.every(f => (f.required ? Boolean(f.value) : true)),
+    });
+  }, [section, onUpdate, readOnly]);
+
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg flex items-center gap-2">
+    <Card className={`w-full ${section.notApplicable ? 'opacity-60' : ''}`}>
+      <CardHeader className={compact ? 'py-3' : undefined}>
+        <div className="flex items-start justify-between gap-3">
+          <CardTitle className="text-lg flex items-center gap-2 flex-wrap">
             {section.title}
-            {section.completed && (
+            {section.notApplicable ? (
+              <Badge variant="outline" className="text-xs font-normal">
+                Not applicable
+              </Badge>
+            ) : section.completed ? (
               <Badge variant="default" className="bg-green-100 text-green-800">
                 <Check className="w-3 h-3 mr-1" />
                 Complete
               </Badge>
-            )}
+            ) : null}
           </CardTitle>
+          {!readOnly && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={toggleNotApplicable}
+              className="text-xs text-muted-foreground hover:text-foreground shrink-0 min-h-[36px]"
+            >
+              {section.notApplicable ? 'This section applies after all' : "Doesn't apply to me"}
+            </Button>
+          )}
         </div>
-        {section.description && (
+        {!compact && section.description && !section.notApplicable && (
           <p className="text-sm text-muted-foreground">{section.description}</p>
         )}
       </CardHeader>
-      <CardContent className="space-y-4">
+      {section.notApplicable ? (
+        <CardContent className="pt-0">
+          <p className="text-sm text-muted-foreground italic">
+            Not applicable for this individual.
+          </p>
+        </CardContent>
+      ) : (
+      <CardContent className={compact ? 'space-y-3 pt-0' : 'space-y-4'}>
         {section.fields.map((field) => {
           const fieldValue = field.value;
 
@@ -722,6 +768,7 @@ const FormSection: React.FC<{
           }
         })}
       </CardContent>
+      )}
     </Card>
   );
 };
@@ -732,7 +779,8 @@ export const AdvanceDirectiveForm: React.FC<AdvanceDirectiveFormProps> = ({
   userId,
   initialData,
   onSave,
-  readOnly = false
+  readOnly = false,
+  compact = false
 }) => {
   const [formData, setFormData] = useState<FormResponseData>(
     initialData || {
@@ -1244,6 +1292,7 @@ export const AdvanceDirectiveForm: React.FC<AdvanceDirectiveFormProps> = ({
             section={section}
             onUpdate={(updatedSection) => updateSection(sectionId, updatedSection)}
             readOnly={readOnly}
+            compact={compact}
           />
         );
       })}

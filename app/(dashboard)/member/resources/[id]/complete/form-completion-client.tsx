@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { ArrowLeft, AlertCircle, FileText, Mail, User, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, AlertCircle, FileText, Mail, User, CheckCircle2, Rows3, Rows4 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { AdvanceDirectiveForm, FormResponseData, FormSectionData } from '@/components/forms/advance-directive-forms';
 import { ShareFormDialog } from '@/components/resources/share-form-dialog';
@@ -25,6 +25,9 @@ function isFieldAnswered(value: unknown): boolean {
 function countFieldsInSection(section: FormSectionData): { answered: number; total: number } {
   if (!section.fields) return { answered: 0, total: 0 };
   const total = section.fields.length;
+  // N/A sections count as fully answered — the member's explicit decision
+  // that the section doesn't apply is just as resolved as filling it in.
+  if (section.notApplicable) return { answered: total, total };
   const answered = section.fields.filter((f) => isFieldAnswered(f.value)).length;
   return { answered, total };
 }
@@ -68,6 +71,33 @@ export function FormCompletionClient({
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [latestSections, setLatestSections] = useState<Record<string, FormSectionData> | null>(null);
+  const [compactMode, setCompactMode] = useState(false);
+
+  // Restore the user's compact-mode preference from localStorage on mount.
+  // We hydrate after mount (rather than initializing with the value) so SSR
+  // and the first client render produce the same markup.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const stored = window.localStorage.getItem('form-completion-compact');
+      if (stored === '1') setCompactMode(true);
+    } catch {
+      // localStorage unavailable (private mode, disabled cookies) — fine,
+      // compact mode just won't persist across sessions.
+    }
+  }, []);
+
+  const toggleCompactMode = useCallback(() => {
+    setCompactMode((prev) => {
+      const next = !prev;
+      try {
+        window.localStorage.setItem('form-completion-compact', next ? '1' : '0');
+      } catch {
+        // ignore — see useEffect above
+      }
+      return next;
+    });
+  }, []);
 
   // Convert formSchema sections to FormSectionData format
   const convertToFormSections = useCallback((
@@ -96,6 +126,9 @@ export function FormCompletionClient({
         title: sectionDef.title,
         description: sectionDef.description,
         completed: existingSectionData?.completed || false,
+        // Preserve "Not applicable" flag from saved data so the toggle
+        // survives round-trips through the auto-save endpoint.
+        notApplicable: existingSectionData?.notApplicable || false,
         fields: sectionDef.fields.map((field: any) => ({
           id: field.id,
           type: field.type,
@@ -215,6 +248,21 @@ export function FormCompletionClient({
           )}
         </Button>
         <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={toggleCompactMode}
+            className="min-h-[44px]"
+            aria-pressed={compactMode}
+            title={compactMode ? 'Switch to roomy view' : 'Switch to compact view'}
+          >
+            {compactMode ? (
+              <Rows4 className="h-4 w-4 mr-2" />
+            ) : (
+              <Rows3 className="h-4 w-4 mr-2" />
+            )}
+            {compactMode ? 'Roomy' : 'Compact'}
+          </Button>
           <PdfDownloadDropdown
             resourceId={resourceId}
             resourceTitle={resourceTitle}
@@ -301,6 +349,7 @@ export function FormCompletionClient({
         userId={userId}
         initialData={initialFormData}
         onSave={handleSave}
+        compact={compactMode}
       />
 
       {/* Share Dialog */}
