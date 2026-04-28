@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Printer, X } from "lucide-react";
 import brandConfig from "@/brand.config";
@@ -20,11 +21,23 @@ export function QRCardPrintSheet({
   qrCodeDataUrl,
   onClose,
 }: QRCardPrintSheetProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const handlePrint = useCallback(() => {
     window.print();
   }, []);
 
-  return (
+  if (!mounted) return null;
+
+  // Portal into document.body so the print CSS rule
+  // `body > *:not(#qr-print-root) { display: none }` actually leaves
+  // #qr-print-root as a direct body child instead of getting hidden
+  // along with whatever admin layout wrapper React rendered into.
+  return createPortal(
     <>
       <style>{`
         @media print {
@@ -99,7 +112,8 @@ export function QRCardPrintSheet({
           ))}
         </div>
       </div>
-    </>
+    </>,
+    document.body,
   );
 }
 

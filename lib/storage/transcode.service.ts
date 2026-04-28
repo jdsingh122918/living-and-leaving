@@ -43,12 +43,20 @@ export async function transcodeVideoToMp4(
     const buf = Buffer.from(await res.arrayBuffer());
     await writeFile(inputPath, buf);
 
-    // Run ffmpeg
+    // Run ffmpeg.
+    //
+    // -map 0:v:0 / -map 0:a:0? : iPhone .mov files include a third
+    // metadata track (motion / accelerometer data) with codec="none"
+    // that would crash ffmpeg if left in. Explicitly map only the first
+    // video and (optional) first audio stream. The "?" suffix on audio
+    // makes it tolerate audio-less inputs.
     const args = [
       "-y", // overwrite output
       "-hide_banner",
       "-loglevel", "error",
       "-i", inputPath,
+      "-map", "0:v:0",
+      "-map", "0:a:0?",
       "-vf", "scale=-2:720", // cap height at 720, preserve aspect ratio (-2 = even-aligned width)
       "-c:v", "libx264",
       "-preset", "ultrafast",
