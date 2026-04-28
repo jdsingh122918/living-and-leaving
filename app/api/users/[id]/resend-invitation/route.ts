@@ -10,6 +10,22 @@ interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
+// Best-effort extraction of Clerk's structured error detail. The Clerk SDK
+// throws Error objects whose `.message` is just the HTTP status text
+// ("Unprocessable Entity") — the actual reason lives on `.errors[0]`.
+function extractClerkErrorDetail(error: unknown): string {
+  const e = error as {
+    errors?: Array<{ long_message?: string; message?: string; code?: string }>;
+    message?: string;
+  } | null;
+  return (
+    e?.errors?.[0]?.long_message ||
+    e?.errors?.[0]?.message ||
+    e?.errors?.[0]?.code ||
+    (error instanceof Error ? error.message : "Failed to resend invitation")
+  );
+}
+
 // POST /api/users/[id]/resend-invitation
 //
 // Issues a fresh Clerk invitation email to an existing DB user. Used when:
@@ -47,6 +63,28 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
     const appUrl =
       process.env.NEXT_PUBLIC_APP_URL || `https://${brandConfig.domain}`;
     const client = await clerkClient();
+
+    // Pre-check: if the email already maps to a live Clerk user, the
+    // re-invite path will 422. Surface a useful message instead — the
+    // recovery is a sign-in attempt, not an invitation.
+    const existing = await client.users.getUserList({
+      emailAddress: [targetUser.email],
+    });
+    if (existing.data.length > 0) {
+      console.log("ℹ️ Resend invitation no-op (active Clerk user exists):", {
+        email: targetUser.email,
+        targetUserId: targetUser.id,
+        issuedBy: currentUser.id,
+      });
+      return NextResponse.json({
+        success: true,
+        noop: true,
+        message:
+          `${targetUser.email} already has an active account. They can sign in directly at ` +
+          `${appUrl}/sign-in — they'll get a fresh verification code by email.`,
+      });
+    }
+
     const invitation = await client.invitations.createInvitation({
       emailAddress: targetUser.email,
       publicMetadata: { role: targetUser.role },
@@ -69,8 +107,9 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
     });
   } catch (error) {
     console.error("❌ Error resending invitation:", error);
-    const message =
-      error instanceof Error ? error.message : "Failed to resend invitation";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json(
+      { error: extractClerkErrorDetail(error) },
+      { status: 500 },
+    );
   }
 }
