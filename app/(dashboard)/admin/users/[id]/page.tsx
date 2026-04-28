@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Trash2, Mail, Phone, Calendar, User, Shield, Users } from 'lucide-react'
+import { ArrowLeft, Trash2, Mail, Phone, Calendar, User, Shield, Users, Send } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -107,6 +107,33 @@ export default function UserDetailPage() {
       setLoading(false)
     }
   }, [userId])
+
+  const [resendingInvitation, setResendingInvitation] = useState(false)
+
+  // Re-send a Clerk invitation email to an existing DB user. Used when the
+  // original invite was never received or the user lost access to their
+  // Clerk account. The webhook rebinds the existing DB row on acceptance.
+  const handleResendInvitation = async () => {
+    if (!user) return
+    if (resendingInvitation) return
+
+    try {
+      setResendingInvitation(true)
+      const response = await fetch(`/api/users/${userId}/resend-invitation`, {
+        method: 'POST',
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to resend invitation')
+      }
+      alert(data.message || `Invitation re-sent to ${user.email}.`)
+    } catch (err) {
+      console.error('Error resending invitation:', err)
+      alert(err instanceof Error ? err.message : 'Failed to resend invitation')
+    } finally {
+      setResendingInvitation(false)
+    }
+  }
 
   // Handle user deletion
   const handleDeleteUser = async () => {
@@ -379,6 +406,17 @@ export default function UserDetailPage() {
         </div>
 
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:space-x-2">
+          <Button
+            variant="outline"
+            onClick={handleResendInvitation}
+            disabled={resendingInvitation}
+            className="w-full sm:w-auto min-h-[44px]"
+          >
+            <Send className="mr-2 h-4 w-4" />
+            <span className="sm:inline">
+              {resendingInvitation ? 'Sending…' : 'Resend Invitation'}
+            </span>
+          </Button>
           <Button
             variant="destructive"
             onClick={handleDeleteUser}
