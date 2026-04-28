@@ -96,7 +96,9 @@ export async function POST(request: NextRequest) {
       const emailService = await initializeEmailService();
       const appUrl =
         process.env.NEXT_PUBLIC_APP_URL || `https://${brandConfig.domain}`;
-      const resourceUrl = `${appUrl}/member/resources/${resource.id}`;
+      // Deep-link directly into the form so members land where they left off.
+      // The form auto-saves, so the link works as both "start" and "resume".
+      const resourceUrl = `${appUrl}/member/resources/${resource.id}/complete`;
 
       for (const memberId of recentlyAssignedIds) {
         try {
@@ -337,7 +339,7 @@ function buildAssignmentEmailHtml(f: AssignmentEmailFields): string {
       </p>
       ${safeDescription}
       <p style="margin:24px 0;">
-        <a href="${safeUrl}" style="display:inline-block;padding:12px 20px;border-radius:8px;background:#6B21A8;color:#ffffff;text-decoration:none;font-weight:600;">Open the form</a>
+        <a href="${safeUrl}" style="display:inline-block;padding:12px 20px;border-radius:8px;background:#6B21A8;color:#ffffff;text-decoration:none;font-weight:600;">Open the form &amp; pick up where you left off</a>
       </p>
       <p style="margin:0;color:#64748b;font-size:13px;line-height:1.5;">
         You can save your progress and return anytime — nothing has to be completed in one sitting.
@@ -361,7 +363,7 @@ function buildAssignmentEmailText(f: AssignmentEmailFields): string {
   }
   lines.push(
     "",
-    `Open the form: ${f.resourceUrl}`,
+    `Open the form and pick up where you left off: ${f.resourceUrl}`,
     "",
     "You can save your progress and return anytime — nothing has to be completed in one sitting.",
     "",

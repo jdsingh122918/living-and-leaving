@@ -21,6 +21,9 @@ export interface PDFDocumentProps {
   generatedAt: Date;
   completedAt?: Date | null;
   signingVariant?: PDFSigningVariant;
+  // Watermark every page with "DRAFT" when the form isn't finished.
+  // Defaults to true when completedAt is null/undefined.
+  isDraft?: boolean;
 }
 
 // Section rendering props

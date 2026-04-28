@@ -73,6 +73,9 @@ export async function generateFormPDF(
       generatedAt: new Date(),
       completedAt: options.completedAt,
       signingVariant: options.signingVariant,
+      // Watermark every page when the form isn't finalized so a printed
+      // draft can never be mistaken for a signed directive.
+      isDraft: !options.completedAt,
     };
 
     // Generate PDF with timeout

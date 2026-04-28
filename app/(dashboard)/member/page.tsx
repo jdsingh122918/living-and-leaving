@@ -11,11 +11,14 @@ import {
   Calendar,
   Users,
   Mail,
+  FileText,
+  ArrowRight,
 } from 'lucide-react'
 import { UserRepository } from '@/lib/db/repositories/user.repository'
 import { ConversationRepository } from '@/lib/db/repositories/conversation.repository'
 import { NotificationRepository } from '@/lib/db/repositories/notification.repository'
 import { MessageRepository } from '@/lib/db/repositories/message.repository'
+import { TemplateAssignmentRepository } from '@/lib/db/repositories/template-assignment.repository'
 import { AddFamilyMemberButton } from '@/components/families/add-family-member-button'
 import { ChatButton } from '@/components/families/chat-button'
 import { MemberActionsDropdown } from '@/components/families/member-actions-dropdown'
@@ -24,6 +27,22 @@ const userRepository = new UserRepository()
 const conversationRepository = new ConversationRepository()
 const notificationRepository = new NotificationRepository()
 const messageRepository = new MessageRepository()
+const templateAssignmentRepository = new TemplateAssignmentRepository()
+
+// Friendly status labels + pill colors for the dashboard HCD tile.
+type AssignmentStatus = 'pending' | 'started' | 'completed' | 'finalized'
+const STATUS_LABEL: Record<AssignmentStatus, string> = {
+  pending: 'Not started',
+  started: 'In progress',
+  completed: 'Completed',
+  finalized: 'Finalized',
+}
+const STATUS_TONE: Record<AssignmentStatus, string> = {
+  pending: 'bg-amber-100 text-amber-800 hover:bg-amber-100',
+  started: 'bg-blue-100 text-blue-800 hover:bg-blue-100',
+  completed: 'bg-emerald-100 text-emerald-800 hover:bg-emerald-100',
+  finalized: 'bg-emerald-100 text-emerald-800 hover:bg-emerald-100',
+}
 
 export default async function MemberDashboard() {
   const { userId, sessionClaims } = await auth()
@@ -48,6 +67,12 @@ export default async function MemberDashboard() {
     unreadMessages: 0,
     unreadNotifications: 0,
   }
+  let assignments: Array<{
+    id: string
+    resourceId: string
+    resourceTitle: string
+    status: AssignmentStatus
+  }> = []
 
   if (user) {
     try {
@@ -64,16 +89,26 @@ export default async function MemberDashboard() {
       }
 
       // Fetch user-specific data
-      const [conversations, unreadMessages, notifications] = await Promise.allSettled([
+      const [conversations, unreadMessages, notifications, userAssignments] = await Promise.allSettled([
         conversationRepository.getConversationsForUser(user.id),
         messageRepository.getTotalUnreadForUser(user.id),
         notificationRepository.getUnreadCount(user.id),
+        templateAssignmentRepository.getAssignmentsForUser(user.id),
       ])
 
       userStats = {
         conversations: conversations.status === 'fulfilled' ? conversations.value.total : 0,
         unreadMessages: unreadMessages.status === 'fulfilled' ? unreadMessages.value : 0,
         unreadNotifications: notifications.status === 'fulfilled' ? notifications.value : 0,
+      }
+
+      if (userAssignments.status === 'fulfilled') {
+        assignments = userAssignments.value.map((a) => ({
+          id: a.id,
+          resourceId: a.resourceId,
+          resourceTitle: a.resource?.title || 'Form',
+          status: a.status as AssignmentStatus,
+        }))
       }
 
       console.log('📊 Member dashboard stats:', userStats)
@@ -139,6 +174,43 @@ export default async function MemberDashboard() {
           </Card>
         </Link>
       </div>
+
+      {assignments.length > 0 && (
+        <Card className="border-l-4 border-l-primary">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <FileText className="h-5 w-5 text-primary" />
+              <span>My Forms</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {assignments.map((a) => (
+                <Link
+                  key={a.id}
+                  href={`/member/resources/${a.resourceId}/complete`}
+                  className="flex items-center justify-between gap-3 rounded-lg border p-3 hover:bg-muted/50 transition-colors min-h-[64px]"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate">{a.resourceTitle}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {a.status === 'completed' || a.status === 'finalized'
+                        ? 'Open to review or download'
+                        : 'Open to pick up where you left off'}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Badge className={`${STATUS_TONE[a.status]} text-xs font-medium`}>
+                      {STATUS_LABEL[a.status]}
+                    </Badge>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div>
         {/* My Family Section */}

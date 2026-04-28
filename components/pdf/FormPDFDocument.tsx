@@ -93,6 +93,38 @@ function PDFWitnessesSection({
   );
 }
 
+// Diagonal "DRAFT" watermark anchored to the page. Rendered last so it
+// paints over the form content. fixed=true keeps it on every page.
+function DraftWatermark() {
+  return (
+    <View
+      fixed
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <Text
+        style={{
+          fontSize: 110,
+          fontWeight: 700,
+          color: '#94a3b8',
+          opacity: 0.18,
+          transform: 'rotate(-30deg)',
+          letterSpacing: 8,
+        }}
+      >
+        DRAFT
+      </Text>
+    </View>
+  );
+}
+
 export function FormPDFDocument({
   formData,
   resourceTitle,
@@ -102,6 +134,7 @@ export function FormPDFDocument({
   generatedAt,
   completedAt,
   signingVariant,
+  isDraft,
 }: PDFDocumentProps) {
   // Strip ALL signing sections from the main body
   const sectionEntries = Object.entries(formData).filter(
@@ -164,6 +197,9 @@ export function FormPDFDocument({
 
         {/* Footer with page numbers */}
         <PDFFooter showPrivacy={true} />
+
+        {/* Watermark layer rendered last so it paints over content */}
+        {isDraft && <DraftWatermark />}
       </Page>
     </Document>
   );
