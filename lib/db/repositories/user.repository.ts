@@ -16,7 +16,10 @@ export class UserRepository {
     const user = await prisma.user.create({
       data: {
         clerkId: data.clerkId,
-        email: data.email,
+        // Email is lowercase-normalized at every write site so the
+        // case-sensitive Mongo unique index can never miss a match
+        // when Clerk later sends the lowercased version via webhook.
+        email: data.email.toLowerCase(),
         firstName: data.firstName || null,
         lastName: data.lastName || null,
         role: data.role,
@@ -56,12 +59,26 @@ export class UserRepository {
     email: string,
     newClerkId: string,
   ): Promise<User | null> {
+    const normalizedEmail = email.toLowerCase();
     return prisma.$transaction(async (tx) => {
-      const existing = await tx.user.findUnique({ where: { email } });
-      if (!existing) return null;
+      const existing = await tx.user.findUnique({
+        where: { email: normalizedEmail },
+      });
+      if (!existing) {
+        console.log(
+          `🔗 updateClerkIdByEmail: no DB row for email=${normalizedEmail}, newClerkId=${newClerkId}`,
+        );
+        return null;
+      }
       if (existing.clerkId === newClerkId) {
+        console.log(
+          `🔗 updateClerkIdByEmail: row ${existing.id} already bound to ${newClerkId}, no-op`,
+        );
         return this.transformPrismaUser(existing);
       }
+      console.log(
+        `🔗 updateClerkIdByEmail: rebinding row ${existing.id} from ${existing.clerkId} → ${newClerkId} (email=${normalizedEmail})`,
+      );
       const updated = await tx.user.update({
         where: { id: existing.id },
         data: { clerkId: newClerkId, emailVerified: true },
@@ -87,6 +104,7 @@ export class UserRepository {
    * This is the preferred method for user sync operations.
    */
   async upsertUser(data: CreateUserInput): Promise<{ user: User; created: boolean }> {
+    const normalizedEmail = data.email.toLowerCase();
     // First check if user exists to determine if this is a create or update
     const existingUser = await prisma.user.findUnique({
       where: { clerkId: data.clerkId },
@@ -96,14 +114,14 @@ export class UserRepository {
       where: { clerkId: data.clerkId },
       update: {
         // Only update fields that should be synced from Clerk
-        email: data.email,
+        email: normalizedEmail,
         firstName: data.firstName || undefined,
         lastName: data.lastName || undefined,
         // Note: We don't update role, familyId, etc. as those are managed locally
       },
       create: {
         clerkId: data.clerkId,
-        email: data.email,
+        email: normalizedEmail,
         firstName: data.firstName || null,
         lastName: data.lastName || null,
         role: data.role,
@@ -230,7 +248,7 @@ export class UserRepository {
    */
   async getUserByEmail(email: string): Promise<User | null> {
     const user = await prisma.user.findUnique({
-      where: { email },
+      where: { email: email.toLowerCase() },
       include: {
         family: true,
         createdBy: {

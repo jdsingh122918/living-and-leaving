@@ -200,13 +200,13 @@ async function handleUserCreated(clerkUser: ClerkUser, webhookId: string) {
 
     // Extract primary email
     console.log(`👤 [${webhookId}] Extracting user data from Clerk payload...`);
-    const primaryEmail = clerkUser.email_addresses[0]?.email_address;
+    const rawEmail = clerkUser.email_addresses[0]?.email_address;
     console.log(
       `👤 [${webhookId}] Email addresses:`,
       clerkUser.email_addresses?.map((e) => e.email_address),
     );
 
-    if (!primaryEmail) {
+    if (!rawEmail) {
       console.error(
         `❌ [${webhookId}] No email found for user ${clerkUser.id}`,
       );
@@ -216,6 +216,10 @@ async function handleUserCreated(clerkUser: ClerkUser, webhookId: string) {
       );
       throw new Error(`No email address found for user ${clerkUser.id}`);
     }
+    // Lowercase-normalize. Clerk already lowercases internally, but the
+    // webhook payload is the only source of truth and we don't want to
+    // depend on Clerk's normalization for our DB lookups.
+    const primaryEmail = rawEmail.toLowerCase();
 
     // Extract role from metadata (default to MEMBER if not set)
     console.log(`👤 [${webhookId}] Extracting role from metadata...`);
@@ -269,11 +273,50 @@ async function handleUserCreated(clerkUser: ClerkUser, webhookId: string) {
       console.log(
         `🔗 [${webhookId}] Rebound existing DB user ${rebound.id} to new clerkId ${clerkUser.id}`,
       );
+    } else {
+      console.log(
+        `🔗 [${webhookId}] No existing row to rebind for email=${primaryEmail} — proceeding to upsert`,
+      );
     }
 
     // Use upsert to atomically create or update user (prevents race conditions)
     console.log(`👤 [${webhookId}] Calling userRepository.upsertUser()...`);
-    const { user, created } = await userRepository.upsertUser(createUserData);
+    let user;
+    let created;
+    try {
+      const result = await userRepository.upsertUser(createUserData);
+      user = result.user;
+      created = result.created;
+    } catch (upsertError) {
+      // Safety net: if upsert's create branch trips the unique-email
+      // constraint, a row with this email exists under some other clerkId
+      // that the rebind above didn't catch. Retry the rebind explicitly,
+      // then re-run upsert. This shouldn't happen with the lowercase-
+      // normalization fix in place, but it costs nothing as a backstop.
+      const errCode = (upsertError as { code?: unknown } | null)?.code;
+      const isUniqueViolation = errCode === "P2002";
+      if (!isUniqueViolation) throw upsertError;
+
+      console.warn(
+        `⚠️ [${webhookId}] upsert hit unique-email constraint for ${primaryEmail}, retrying rebind...`,
+      );
+      const reboundRetry = await userRepository.updateClerkIdByEmail(
+        primaryEmail,
+        clerkUser.id,
+      );
+      if (!reboundRetry) {
+        // This is the truly unrecoverable state: unique constraint says a
+        // row exists, but we can't find it by email. Indicates a deeper
+        // data-integrity issue that needs investigation, not retry.
+        throw upsertError;
+      }
+      console.log(
+        `🔗 [${webhookId}] Retry-rebind succeeded for row ${reboundRetry.id}, re-running upsert`,
+      );
+      const result = await userRepository.upsertUser(createUserData);
+      user = result.user;
+      created = result.created;
+    }
 
     if (created) {
       console.log(`✅ [${webhookId}] User created successfully!`);
