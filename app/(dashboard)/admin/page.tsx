@@ -231,10 +231,10 @@ export default async function AdminDashboard() {
 
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
           <Link href="/admin/advance-directives" className="block">
-            <Card className="p-3 border-l-4 border-l-amber-500 bg-amber-50/50 dark:bg-amber-950/20 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-colors h-full">
+            <Card className="p-3 border-l-4 border-l-amber-500 bg-amber-100/70 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-950/60 transition-colors h-full">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Ready to Finalize</CardTitle>
-                <ClipboardCheck className="h-4 w-4 text-amber-600 dark:text-amber-500" />
+                <ClipboardCheck className="h-4 w-4 text-amber-600 dark:text-amber-400" />
               </CardHeader>
               <CardContent className="space-y-1">
                 <div className="text-2xl font-bold">{readyToFinalizeCount}</div>
@@ -246,10 +246,10 @@ export default async function AdminDashboard() {
           </Link>
 
           <Link href="/admin/advance-directives" className="block">
-            <Card className="p-3 border-l-4 border-l-green-600 bg-green-50/50 dark:bg-green-950/20 hover:bg-green-50 dark:hover:bg-green-950/40 transition-colors h-full">
+            <Card className="p-3 border-l-4 border-l-green-600 bg-green-100/70 dark:bg-green-950/40 hover:bg-green-100 dark:hover:bg-green-950/60 transition-colors h-full">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Finalized</CardTitle>
-                <QrCode className="h-4 w-4 text-green-600 dark:text-green-500" />
+                <QrCode className="h-4 w-4 text-green-600 dark:text-green-400" />
               </CardHeader>
               <CardContent className="space-y-1">
                 <div className="text-2xl font-bold">{finalizedCount}</div>
