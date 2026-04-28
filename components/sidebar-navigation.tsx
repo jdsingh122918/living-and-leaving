@@ -16,7 +16,8 @@ import {
   Users,
   Home,
   Heart,
-  Settings
+  Settings,
+  FolderOpen
 } from 'lucide-react'
 import {
   Sidebar,
@@ -80,6 +81,12 @@ const navigationItems: NavigationItem[] = [
     roles: [UserRole.VOLUNTEER]
   },
   {
+    title: 'My Files',
+    href: '/member/files',
+    icon: FolderOpen,
+    roles: [UserRole.MEMBER]
+  },
+  {
     title: 'Settings',
     href: '/settings',
     icon: Settings,
@@ -112,8 +119,13 @@ export function SidebarNavigation({
   const [mounted, setMounted] = useState(false)
   const brand = useBrand()
 
-  // Hydration protection - wait for theme to be resolved on client
+  // Hydration protection - wait for theme to be resolved on client.
+  // setMounted is the canonical Next.js mount-detection idiom; the
+  // react-hooks/set-state-in-effect rule's "you might not need an effect"
+  // suggestion does not apply here — we genuinely need to wait for the
+  // client mount before reading resolvedTheme to avoid SSR/CSR mismatch.
   useEffect(() => {
+    /* eslint-disable-next-line react-hooks/set-state-in-effect */
     setMounted(true)
   }, [])
 
